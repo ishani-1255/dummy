@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "./UIComponents";
 import Sidebar from "./Sidebar";
+import ExportCoordData from './ExportCoordData';
 // Alert Component
 const Alert = ({ children, variant = 'success', onClose }) => {
   const bgColor = {
@@ -625,6 +626,7 @@ const CoordinatorManagement = () => {
   const [notifications, setNotifications] = useState([]);
   const [selectedView, setSelectedView] = useState('departments'); // 'departments' or 'duties'
   const [dutiesSearchTerm, setDutiesSearchTerm] = useState('');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -731,13 +733,14 @@ const CoordinatorManagement = () => {
     setSelectedDuty(null);
   };
 
-  const handleExportData = () => {
+  /*const handleExportData = () => {
     const data = {
       coordinators,
       exportDate: new Date().toISOString(),
       totalCoordinators: coordinators.length,
       totalDuties: coordinators.reduce((acc, curr) => acc + curr.duties.length, 0)
     };
+    
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -751,6 +754,7 @@ const CoordinatorManagement = () => {
     
     showNotification('Data exported successfully');
   };
+  */
 
   const showNotification = (message) => {
     const newNotification = {
@@ -776,13 +780,15 @@ const CoordinatorManagement = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Student Placement Coordinators</h1>
           <div className="flex space-x-4">
+            
             <button
-              onClick={handleExportData}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
-              <Download className="h-5 w-5" />
-              <span>Export Data</span>
+          <Download className="h-5 w-5" />
+          <span>Export Data</span>
             </button>
+
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -977,6 +983,12 @@ const CoordinatorManagement = () => {
           onConfirm={handleDeleteDuty}
           title="Delete Duty"
           message={`Are you sure you want to delete this duty from ${selectedCoordinator?.name}?`}
+        />
+        <ExportCoordData
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        coordinators={coordinators}
+        departments={departments}
         />
 
         {/* Notifications */}
