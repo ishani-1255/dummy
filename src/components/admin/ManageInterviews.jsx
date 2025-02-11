@@ -521,97 +521,97 @@ const ManageInterview = () => {
     };
 
     return (
-      <Card className="transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-t-4 border-blue-500">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building className="h-6 w-6 text-blue-600" />
+      <Card className="transform transition-all pt-8 duration-300 hover:shadow-xl hover:-translate-y-1 border-t-4 border-blue-500 w-[500px]">
+        <CardContent className="">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-start space-x-4">
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Building className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-800">{company.name}</h3>
-                <div className="flex items-center text-gray-600 mt-1">
-                  <Briefcase className="h-4 w-4 mr-1" />
-                  <p className="text-sm">{company.role}</p>
+                <h3 className="text-2xl font-semibold text-gray-800">{company.name}</h3>
+                <div className="flex items-center text-gray-600 mt-2">
+                  <Briefcase className="h-5 w-5 mr-2" />
+                  <p className="text-base">{company.role}</p>
                 </div>
               </div>
             </div>
-            <span className={`px-4 py-1 rounded-full text-sm font-medium border ${statusColors[company.status]}`}>
+            <span className={`px-6 py-2 rounded-full text-base font-medium border ${statusColors[company.status]}`}>
               {company.status}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="bg-gray-50 p-3 rounded-lg">
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
-                <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="text-sm">{new Date(company.dateTime).toLocaleDateString()}</span>
+                <Calendar className="h-5 w-5 mr-3 text-blue-600" />
+                <span className="text-base">{new Date(company.dateTime).toLocaleDateString()}</span>
               </div>
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
-                <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="text-sm">{new Date(company.dateTime).toLocaleTimeString()}</span>
+                <Clock className="h-5 w-5 mr-3 text-blue-600" />
+                <span className="text-base">{new Date(company.dateTime).toLocaleTimeString()}</span>
               </div>
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
-                <MapPin className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="text-sm">{company.location}</span>
+                <MapPin className="h-5 w-5 mr-3 text-blue-600" />
+                <span className="text-base">{company.location}</span>
               </div>
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
-                <Users className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="text-sm">{company.package}</span>
+                <Users className="h-5 w-5 mr-3 text-blue-600" />
+                <span className="text-base">{company.package}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 className="font-medium text-gray-800 mb-2">Requirements</h4>
-            <p className="text-sm text-gray-600">{company.requirements}</p>
+          <div className="bg-gray-50 p-6 rounded-xl mb-6">
+            <h4 className="font-medium text-lg text-gray-800 mb-3">Requirements</h4>
+            <p className="text-base text-gray-600 leading-relaxed">{company.requirements}</p>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-800">Interview Rounds</h4>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-4">
+            <h4 className="font-medium text-lg text-gray-800">Interview Rounds</h4>
+            <div className="grid grid-cols-2 gap-4">
               {company.rounds.map((round, index) => (
-                <div key={index} className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium text-blue-800">{round.name}</p>
-                  <p className="text-xs text-blue-600 mt-1">{round.duration}</p>
+                <div key={index} className="bg-blue-50 p-4 rounded-xl">
+                  <p className="text-base font-medium text-blue-800">{round.name}</p>
+                  <p className="text-sm text-blue-600 mt-2">{round.duration}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t">
-            <h4 className="font-medium text-gray-800 mb-3">Contact Person</h4>
-            <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+          <div className="mt-6 pt-6 border-t">
+            <h4 className="font-medium text-lg text-gray-800 mb-4">Contact Person</h4>
+            <div className="bg-gray-50 p-6 rounded-xl text-base space-y-3">
               <p className="flex items-center text-gray-700">
-                <Users className="h-4 w-4 mr-2 text-blue-600" />
+                <Users className="h-5 w-5 mr-3 text-blue-600" />
                 {company.contactPerson.name}
               </p>
               <p className="flex items-center text-gray-700">
-                <Mail className="h-4 w-4 mr-2 text-blue-600" />
+                <Mail className="h-5 w-5 mr-3 text-blue-600" />
                 {company.contactPerson.email}
               </p>
               <p className="flex items-center text-gray-700">
-                <Phone className="h-4 w-4 mr-2 text-blue-600" />
+                <Phone className="h-5 w-5 mr-3 text-blue-600" />
                 {company.contactPerson.phone}
               </p>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end space-x-2">
+          <div className="mt-8 flex justify-end space-x-4">
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogTrigger asChild>
-                <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 flex items-center">
-                  <Edit2 className="h-4 w-4 mr-1" />
+                <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 flex items-center">
+                  <Edit2 className="h-5 w-5 mr-2" />
                   <span>Edit</span>
                 </button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl">
+              <DialogContent className="max-w-4xl">
                 <DialogHeader>
                   <DialogTitle>Edit Interview Details</DialogTitle>
                 </DialogHeader>
@@ -633,9 +633,9 @@ const ManageInterview = () => {
                 department: department,
                 interviewId: company.id
               })}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 flex items-center"
+              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 flex items-center"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-5 w-5 mr-2" />
               <span>Delete</span>
             </button>
           </div>
@@ -643,7 +643,6 @@ const ManageInterview = () => {
       </Card>
     );
   };
-
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
