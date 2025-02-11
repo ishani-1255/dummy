@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, PlusCircle, Edit2, Trash2, ChevronDown, ChevronRight, Bell, Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Search, PlusCircle, Edit2, Trash2, ChevronDown, ChevronRight, Bell, Calendar, Clock, MapPin, Users, Building, Briefcase, CheckCircle, XCircle, Mail, Phone, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardHeader,
+  CardHeader1,
   CardTitle,
   CardContent,
   Table,
@@ -121,6 +122,60 @@ const ManageInterview = () => {
     data: null
   });
 
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    department: '',
+    interviewId: null
+  });
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (deleteModal.department && deleteModal.interviewId) {
+      setDepartments(prev => prev.map(dept => {
+        if (dept.code === deleteModal.department) {
+          return {
+            ...dept,
+            companies: dept.companies.filter(company => company.id !== deleteModal.interviewId)
+          };
+        }
+        return dept;
+      }));
+      showNotification("Interview deleted successfully", "success");
+      setDeleteModal({ isOpen: false, department: '', interviewId: null });
+    }
+  };
+
+  // Delete Confirmation Modal Component
+  const DeleteConfirmationModal = () => (
+    <Dialog open={deleteModal.isOpen} onOpenChange={(open) => setDeleteModal(prev => ({ ...prev, isOpen: open }))}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            Confirm Deletion
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-4">
+          <p className="text-gray-600 mb-4">Are you sure you want to delete this interview? This action cannot be undone.</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteModal({ isOpen: false, department: '', interviewId: null })}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   // State for filters
   const [filters, setFilters] = useState({
     searchQuery: '',
@@ -146,12 +201,13 @@ const ManageInterview = () => {
     const newNotification = {
       id: Date.now(),
       message,
-      type
+      type,
+      icon: type === 'success' ? CheckCircle : type === 'error' ? XCircle : Bell
     };
     setNotifications(prev => [...prev, newNotification]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
-    }, 3000);
+    }, 5000);
   };
 
   // Handle interview scheduling/editing
@@ -456,83 +512,131 @@ const ManageInterview = () => {
 
   // Interview Card Component
   const InterviewCard = ({ company, department }) => {
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    const statusColors = {
+      Scheduled: 'bg-green-100 text-green-800 border-green-300',
+      Completed: 'bg-blue-100 text-blue-800 border-blue-300',
+      Cancelled: 'bg-red-100 text-red-800 border-red-300'
+    };
+
     return (
-      <Card className="hover:shadow-lg transition-shadow">
+      <Card className="transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-t-4 border-blue-500">
         <CardContent className="p-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-xl font-semibold">{company.name}</h3>
-              <p className="text-gray-600">{company.role}</p>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Building className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800">{company.name}</h3>
+                <div className="flex items-center text-gray-600 mt-1">
+                  <Briefcase className="h-4 w-4 mr-1" />
+                  <p className="text-sm">{company.role}</p>
+                </div>
+              </div>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm ${
-              company.status === 'Scheduled' ? 'bg-green-100 text-green-800' :
-              company.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-              'bg-red-100 text-red-800'
-            }`}>
+            <span className={`px-4 py-1 rounded-full text-sm font-medium border ${statusColors[company.status]}`}>
               {company.status}
             </span>
           </div>
-          
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center text-gray-600">
-              <Calendar className="h-4 w-4 mr-2" />
-              {new Date(company.dateTime).toLocaleDateString()}
-              <Clock className="h-4 w-4 ml-4 mr-2" />
-              {new Date(company.dateTime).toLocaleTimeString()}
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center text-gray-700">
+                <Calendar className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="text-sm">{new Date(company.dateTime).toLocaleDateString()}</span>
+              </div>
             </div>
-            <div className="flex items-center text-gray-600">
-              <MapPin className="h-4 w-4 mr-2" />
-              {company.location}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center text-gray-700">
+                <Clock className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="text-sm">{new Date(company.dateTime).toLocaleTimeString()}</span>
+              </div>
             </div>
-            <div className="flex items-center text-gray-600">
-              <Users className="h-4 w-4 mr-2" />
-              {company.package}
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center text-gray-700">
+                <MapPin className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="text-sm">{company.location}</span>
+              </div>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center text-gray-700">
+                <Users className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="text-sm">{company.package}</span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-4">
-          <h4 className="font-medium mb-2">Requirements</h4>
-            <p className="text-gray-600 text-sm">{company.requirements}</p>
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <h4 className="font-medium text-gray-800 mb-2">Requirements</h4>
+            <p className="text-sm text-gray-600">{company.requirements}</p>
           </div>
 
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Interview Rounds</h4>
-            <div className="space-y-2">
+          <div className="space-y-3">
+            <h4 className="font-medium text-gray-800">Interview Rounds</h4>
+            <div className="grid grid-cols-2 gap-2">
               {company.rounds.map((round, index) => (
-                <div key={index} className="flex justify-between text-sm text-gray-600">
-                  <span>{round.name}</span>
-                  <span>{round.duration}</span>
+                <div key={index} className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800">{round.name}</p>
+                  <p className="text-xs text-blue-600 mt-1">{round.duration}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="mt-4 pt-4 border-t">
-            <h4 className="font-medium mb-2">Contact Person</h4>
-            <div className="text-sm text-gray-600">
-              <p>{company.contactPerson.name}</p>
-              <p>{company.contactPerson.email}</p>
-              <p>{company.contactPerson.phone}</p>
+            <h4 className="font-medium text-gray-800 mb-3">Contact Person</h4>
+            <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+              <p className="flex items-center text-gray-700">
+                <Users className="h-4 w-4 mr-2 text-blue-600" />
+                {company.contactPerson.name}
+              </p>
+              <p className="flex items-center text-gray-700">
+                <Mail className="h-4 w-4 mr-2 text-blue-600" />
+                {company.contactPerson.email}
+              </p>
+              <p className="flex items-center text-gray-700">
+                <Phone className="h-4 w-4 mr-2 text-blue-600" />
+                {company.contactPerson.phone}
+              </p>
             </div>
           </div>
 
-          <div className="mt-4 flex justify-end space-x-2">
+          <div className="mt-6 flex justify-end space-x-2">
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 flex items-center">
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  <span>Edit</span>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Interview Details</DialogTitle>
+                </DialogHeader>
+                <InterviewForm
+                  initialData={company}
+                  department={department}
+                  onSubmit={(formData) => {
+                    handleInterviewSubmit(formData);
+                    setIsEditDialogOpen(false);
+                    showNotification('Interview details updated successfully', 'success');
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+            
             <button
-              onClick={() => setInterviewModal({
+              onClick={() => setDeleteModal({
                 isOpen: true,
-                type: 'edit',
                 department: department,
-                data: company
+                interviewId: company.id
               })}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 flex items-center"
             >
-              <Edit2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => deleteInterview(department, company.id)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-full"
-            >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4 mr-1" />
+              <span>Delete</span>
             </button>
           </div>
         </CardContent>
@@ -549,27 +653,24 @@ const ManageInterview = () => {
             {/* Notifications */}
             <div className="fixed top-4 right-4 z-50 space-y-2">
               {notifications.map(notification => (
-                <Alert key={notification.id} className={`w-80 ${
-                  notification.type === 'success' ? 'bg-green-50 border-green-200' :
-                  notification.type === 'error' ? 'bg-red-50 border-red-200' :
-                  'bg-blue-50 border-blue-200'
-                }`}>
-                  <AlertTitle className={
-                    notification.type === 'success' ? 'text-green-800' :
-                    notification.type === 'error' ? 'text-red-800' :
-                    'text-blue-800'
-                  }>
-                    {notification.type === 'success' ? 'Success' :
-                     notification.type === 'error' ? 'Error' :
-                     'Notification'}
-                  </AlertTitle>
-                  <AlertDescription className="text-gray-600">
-                    {notification.message}
-                  </AlertDescription>
+                <Alert
+                  key={notification.id}
+                  variant={notification.type}
+                  className="w-96 flex items-start space-x-3"
+                >
+                  <notification.icon className="h-5 w-5 mt-0.5" />
+                  <div>
+                    <AlertTitle>
+                      {notification.type === 'success' ? 'Success' :
+                       notification.type === 'error' ? 'Error' :
+                       'Notification'}
+                    </AlertTitle>
+                    <AlertDescription>{notification.message}</AlertDescription>
+                  </div>
                 </Alert>
               ))}
             </div>
-
+            <DeleteConfirmationModal />
             {/* Header Card */}
             <Card className="mb-6">
               <CardHeader>
@@ -742,19 +843,34 @@ const ManageInterview = () => {
                                   </TableCell>
                                   <TableCell>
                                     <div className="flex space-x-2">
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <button
+                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded-full"
+                                          >
+                                            <Edit2 className="h-4 w-4" />
+                                          </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-3xl">
+                                          <DialogHeader>
+                                            <DialogTitle>Edit Interview Details</DialogTitle>
+                                          </DialogHeader>
+                                          <InterviewForm
+                                            initialData={company}
+                                            department={dept.code}
+                                            onSubmit={(formData) => {
+                                              handleInterviewSubmit(formData);
+                                              showNotification('Interview details updated successfully', 'success');
+                                            }}
+                                          />
+                                        </DialogContent>
+                                      </Dialog>
                                       <button
-                                        onClick={() => setInterviewModal({
+                                        onClick={() => setDeleteModal({
                                           isOpen: true,
-                                          type: 'edit',
                                           department: dept.code,
-                                          data: company
+                                          interviewId: company.id
                                         })}
-                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded-full"
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => deleteInterview(dept.code, company.id)}
                                         className="p-1 text-red-600 hover:bg-red-50 rounded-full"
                                       >
                                         <Trash2 className="h-4 w-4" />
