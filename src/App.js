@@ -7,7 +7,6 @@ import SignInForm from './pages/login';
 import Admin from './pages/admin';
 import ManageCompanies from "./components/admin/ManageCompanies";
 import SearchStudent from "./components/admin/SearchStudent";
-import Departments from "./components/admin/Departments";
 import Batches from "./components/admin/Batches";
 import ManageInterviews from "./components/admin/ManageInterviews";
 import PlacementRecords from "./components/admin/PlacementRecords";
@@ -27,7 +26,6 @@ function App() {
       <Route path ='/Admin' element = {<Admin/>} />
       <Route path="/manage-companies" element={<ManageCompanies />} />
       <Route path="/search-student" element={<SearchStudent />} />
-      <Route path="/departments" element={<Departments />} />
       <Route path="/batches" element={<Batches />} />
       <Route path="/manage-interviews" element={<ManageInterviews />} />
       <Route path="/placement-records" element={<PlacementRecords />} />
