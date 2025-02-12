@@ -43,7 +43,6 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Building2, label: 'Manage Companies', path: '/manage-companies' },
     { icon: Search, label: 'Student Info', path: '/search-student' },
-    { icon: GraduationCap, label: 'Departments Report', path: '/departments' },
     { icon: Users, label: 'Batches', path: '/batches' },
     { icon: Calendar, label: 'Manage Interviews', path: '/manage-interviews' },
     { icon: BarChart3, label: 'Placement Records', path: '/placement-records' },
