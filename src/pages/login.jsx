@@ -1,8 +1,8 @@
-"use client";
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { AtSign, Lock, Shield, UserCircle } from 'lucide-react';
+import { Route, Routes } from "react-router-dom";
 
 const InputField = ({ 
   label, 
@@ -10,7 +10,10 @@ const InputField = ({
   placeholder, 
   icon: Icon, 
   required = true,
-  className = "" 
+  className = "",
+  name,
+  value,
+  onChange
 }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="text-sm font-medium text-gray-700">
@@ -24,8 +27,11 @@ const InputField = ({
       )}
       <input
         type={type}
+        name={name}
         placeholder={placeholder}
         required={required}
+        value={value}
+        onChange={onChange}
         className={`w-full rounded-md border border-gray-300 shadow-sm py-2 
           ${Icon ? 'pl-10 pr-3' : 'px-3'}
           focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
@@ -36,16 +42,44 @@ const InputField = ({
 );
 
 const LoginForm = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
+  const [error, setError] = useState('');
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const response = await axios.post(
+        "http://localhost:6400/login",
+        formData
+      );
+      
+      if (response.data) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError('Invalid credentials. Please try again.');
+    }
+  };
 
   const handleSignUp = (role) => {
     setIsModalOpen(false);
-    if (role === "student") {
-      navigate("/Student-SignUp");
-    } else {
-      navigate("/Admin-SignUp");
-    }
+    navigate(role === "student" ? "/Student-SignUp" : "/Admin-SignUp");
   };
 
   return (
@@ -60,24 +94,36 @@ const LoginForm = () => {
           <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleLogin}>
+          {error && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-6">
             <div className="border-b pb-2">
               <h2 className="text-sm font-medium text-gray-700">Login Credentials</h2>
             </div>
             
             <InputField 
-              label="Email ID / Username"
-              type="email"
-              placeholder="Enter your email"
+              label="Username"
+              type="text"
+              placeholder="Enter your unique username"
+              name="username"
               icon={AtSign}
+              value={formData.username}
+              onChange={handleInputChange}
             />
 
             <InputField 
               label="Password"
               type="password"
+              name="password"
               placeholder="••••••••"
               icon={Lock}
+              value={formData.password}
+              onChange={handleInputChange}
             />
 
             <div className="flex items-center justify-between pt-2">
