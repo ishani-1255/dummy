@@ -245,8 +245,13 @@ const DepartmentMetrics = ({ department, isCompleted, onDownload }) => {
   );
 };
 
-const BatchCard = ({ batch, onDownload }) => {
+const BatchCard = ({ batch, onDownload, selectedDepartment }) => {
   const [expandedDept, setExpandedDept] = useState(null);
+
+  // Filter departments based on selection
+  const filteredDepartments = selectedDepartment === "All Departments" 
+    ? batch.departments
+    : batch.departments.filter(dept => dept.name === selectedDepartment);
 
   return (
     <Card className="mb-4 hover:shadow-md transition-shadow">
@@ -262,7 +267,7 @@ const BatchCard = ({ batch, onDownload }) => {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="divide-y">
-          {batch.departments.map((dept, index) => (
+          {filteredDepartments.map((dept, index) => (
             <div key={index}>
               <button
                 className="w-full flex items-center justify-between py-3 hover:bg-gray-50 px-2 rounded transition-colors"
@@ -345,13 +350,9 @@ const Batches = () => {
     showNotification(`Successfully added batch ${batchYear}`);
   };
 
-  const filteredBatches = batches.filter((batch) => {
-    const matchesSearch = batch.year.toLowerCase().includes(searchTerm.toLowerCase());
-    if (selectedDepartment === "All Departments") {
-      return matchesSearch;
-    }
-    return matchesSearch && batch.departments.some(dept => dept.name === selectedDepartment);
-  });
+  const filteredBatches = batches.filter((batch) => 
+    batch.year.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex">
@@ -417,6 +418,7 @@ const Batches = () => {
               key={batch.id}
               batch={batch}
               onDownload={handleDownload}
+              selectedDepartment={selectedDepartment}
             />
           ))}
         </div>

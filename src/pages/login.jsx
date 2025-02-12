@@ -69,7 +69,7 @@ const LoginForm = () => {
       );
       
       if (response.data) {
-        navigate("/dashboard");
+        navigate("/admin");
       }
     } catch (error) {
       console.error("Login error:", error);
