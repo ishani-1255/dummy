@@ -10,7 +10,8 @@ const InputField = ({
   placeholder, 
   icon: Icon, 
   required = true,
-  className = "" 
+  className = "" ,
+  name,
 }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="text-sm font-medium text-gray-700">
@@ -60,73 +61,85 @@ const AdminSignUpForm = () => {
               <InputField 
                 label="Full Name"
                 placeholder="Dr. Jane Smith"
+                name="name"
                 icon={User}
               />
               <InputField 
                 label="Phone Number"
                 type="tel"
                 placeholder="+1 (555) 000-0000"
+                name="phone"
                 icon={Phone}
               />
               <InputField 
                 label="Official Email ID"
                 type="email"
                 placeholder="jane.smith@institution.edu"
+                name="email"
                 icon={AtSign}
               />
             </div>
 
-            {/* Professional Information Section */}
-            <div className="space-y-6">
-              <div className="border-b pb-2">
-                <h2 className="text-sm font-medium text-gray-700">Professional Details</h2>
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Designation <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <select
-                    className="w-full rounded-md border border-gray-300 shadow-sm pl-10 pr-3 py-2
-                      focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
-                      text-gray-900 text-sm"
-                    required
-                  >
-                    <option value="">Select designation</option>
-                    <option value="placement_officer">Placement Officer</option>
-                    <option value="hod">HOD</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <InputField 
-                label="Admin Access Code"
-                type="text"
-                placeholder="Enter access code if provided"
-                icon={Key}
-                required={false}
-              />
-            </div>
-          </div>
+            /* Professional Information Section */}
+                  <div className="space-y-6">
+                    <div className="border-b pb-2">
+                    <h2 className="text-sm font-medium text-gray-700">Professional Details</h2>
+                    </div>
+                    <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Designation <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <select
+                      name="designation"
+                      className="w-full rounded-md border border-gray-300 shadow-sm pl-10 pr-3 py-2
+                        focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
+                        text-gray-900 text-sm"
+                      required>
+                      <option value="">Select designation</option>
+                      <option value="placement_officer">Placement Officer</option>
+                      <option value="hod">HOD</option>
+                      <option value="other">Other</option>
+                      </select>
+                    </div>
+                    </div>
+                    <InputField 
+                    label="Admin Access Code"
+                    type="text"
+                    name="accessCode"
+                    placeholder="Enter access code if provided"
+                    icon={Key}
+                    required={false}
+                    />
+                  </div>
+                  </div>
 
-          {/* Security Section - Full Width */}
+                  {/* Security Section - Full Width */}
           <div className="space-y-6">
             <div className="border-b pb-2">
               <h2 className="text-sm font-medium text-gray-700">Security</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputField 
+              <InputField
+                label="username"
+                type="text"
+                name="username"
+                placeholder="johndoe"
+              />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <InputField
                 label="Password"
                 type="password"
+                name="password"
                 placeholder="••••••••"
-                icon={Lock}
               />
-              <InputField 
+              <InputField
                 label="Confirm Password"
                 type="password"
+                name="confirmPassword"
                 placeholder="••••••••"
-                icon={Lock}
               />
             </div>
           </div>
