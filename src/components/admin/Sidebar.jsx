@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
@@ -15,12 +15,13 @@ import {
   ChevronRight
 } from 'lucide-react';
 
+
 const NavItem = ({ icon: Icon, label, path, isActive, onClick }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center space-x-3 px-4 py-3 text-sm transition-colors duration-200
-      ${isActive 
-        ? 'bg-blue-600 text-white' 
+      ${isActive
+        ? 'bg-blue-600 text-white'
         : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'}`}
   >
     <Icon className="h-5 w-5" />
@@ -30,14 +31,24 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick }) => (
   </button>
 );
 
+
 const Sidebar = () => {
   const navigate = useNavigate();
-  const [activePath, setActivePath] = useState('/admin');
+  const location = useLocation();
+  const [activePath, setActivePath] = useState(location.pathname);
+
+
+  // Update active path when location changes
+  useEffect(() => {
+    setActivePath(location.pathname);
+  }, [location.pathname]);
+
 
   const handleNavigation = (path) => {
     setActivePath(path);
     navigate(path);
   };
+
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -47,8 +58,8 @@ const Sidebar = () => {
     { icon: Calendar, label: 'Manage Interviews', path: '/manage-interviews' },
     { icon: BarChart3, label: 'Placement Records', path: '/placement-records' },
     { icon: UserCog, label: 'Coordinator Management', path: '/coordinator-management' },
-    { icon: FileText, label: 'Reports', path: '/reports' }
   ];
+
 
   return (
     <div className="h-screen w-72 bg-white border-r border-gray-200 flex flex-col">
@@ -64,6 +75,7 @@ const Sidebar = () => {
           </div>
         </div>
       </div>
+
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
@@ -81,6 +93,7 @@ const Sidebar = () => {
         </div>
       </nav>
 
+
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50">
@@ -96,5 +109,6 @@ const Sidebar = () => {
     </div>
   );
 };
+
 
 export default Sidebar;
