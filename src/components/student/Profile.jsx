@@ -21,7 +21,7 @@ import Sidebar from './Sidebar';
 const Profile = () => {
   // Existing states from the original component...
   const [studentInfo, setStudentInfo] = useState({
-    name: "Alex Kumar",
+    name: "Ayush Kumar",
     rollNo: "CS21B042",
     email: "alex.k@university.edu",
     phone: "+1234567890",
