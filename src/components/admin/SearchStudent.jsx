@@ -298,7 +298,7 @@ const EnhancedStudentSearch = () => {
   return (
     <div className="flex">
       <Sidebar />
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen w-full bg-gray-50">
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-7xl mx-auto">
             <Card className="mb-6">
