@@ -10,7 +10,7 @@ import SearchStudent from "./components/admin/SearchStudent";
 import Batches from "./components/admin/Batches";
 import ManageInterviews from "./components/admin/ManageInterviews";
 import PlacementRecords from "./components/admin/PlacementRecords";
-
+import GeneralQueries from "./components/admin/GeneralQueries"
 import CoordinatorManagement from "./components/admin/CoordinatorManagement";
 import Reports from "./components/admin/Reports";
 
@@ -30,7 +30,7 @@ function App() {
       <Route path="/manage-interviews" element={<ManageInterviews />} />
       <Route path="/placement-records" element={<PlacementRecords />} />
       <Route path="/coordinator-management" element={<CoordinatorManagement />} />
-      <Route path="/reports" element={<Reports />} />
+      <Route path="/queries" element={<GeneralQueries />} />
       
      
     </Routes>
