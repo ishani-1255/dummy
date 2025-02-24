@@ -3,11 +3,12 @@ import {
   Building2, Users, Printer, FileText, Trash2, Edit, Plus,
   Mail, Bell, Phone, Globe, Linkedin, Github, Star,
   Calendar, MapPin, Award, BookOpen, Briefcase, X,
-  ChartBar, GraduationCap, ExternalLink, Download, Search
+  ChartBar, GraduationCap, ExternalLink, Download, Search,
+  Info, Building
 } from 'lucide-react';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  Card, CardHeader, CardTitle, CardContent,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Card, CardHeader1, CardHeader, CardTitle, CardContent,
   Tabs, TabsList, TabsTrigger, TabsContent,
   Button, Input, Textarea, Badge,
   Alert, AlertDescription,
@@ -106,11 +107,115 @@ const Profile = () => {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
+  const [isAchievementModalOpen, setIsAchievementModalOpen] = useState(false);
+  const [isEditCertificationModalOpen, setIsEditCertificationModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedCertification, setSelectedCertification] = useState(null);
+  const [selectedAchievement, setSelectedAchievement] = useState(null);
+  const [newInterest, setNewInterest] = useState("");
+  
+  // States for mail and notifications
+  const [mailboxOpen, setMailboxOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Sample notifications
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'interview',
+      title: 'Interview Scheduled',
+      message: 'Your interview with Google has been scheduled for tomorrow at 2:00 PM.',
+      timestamp: '2 hours ago',
+      status: 'unread'
+    },
+    {
+      id: 2,
+      type: 'placement',
+      title: 'Placement Update',
+      message: 'Congratulations! You have been placed at Microsoft.',
+      timestamp: '1 day ago',
+      status: 'read'
+    },
+    {
+      id: 3,
+      type: 'company',
+      title: 'New Company Registration',
+      message: 'Amazon has registered for campus placements.',
+      timestamp: '2 days ago',
+      status: 'read'
+    }
+  ]);
+  
+  // Function to handle filtered notifications
+  const filteredNotifications = notifications.filter(notification => {
+    const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          notification.message.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTab = activeTab === 'all' || notification.type === activeTab;
+    
+    return matchesSearch && matchesTab;
+  });
+
+  // Function to handle notification actions
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(notification => ({
+      ...notification,
+      status: 'read'
+    })));
+  };
+  
+  // Function to handle interest deletion
+  const handleDeleteInterest = (index) => {
+    const updatedInterests = [...studentInfo.interests];
+    updatedInterests.splice(index, 1);
+    setStudentInfo({...studentInfo, interests: updatedInterests});
+  };
+  
+  // Function to handle adding a new interest
+  const handleAddInterest = () => {
+    if (newInterest.trim()) {
+      setStudentInfo({
+        ...studentInfo, 
+        interests: [...studentInfo.interests, newInterest.trim()]
+      });
+      setNewInterest("");
+      setIsInterestModalOpen(false);
+    }
+  };
   
   // Function to handle project deletion
   const handleDeleteProject = (projectId) => {
     setProjects(projects.filter(p => p.id !== projectId));
+  };
+  
+  // Function to handle achievement deletion
+  const handleDeleteAchievement = (index) => {
+    const updatedAchievements = [...studentInfo.achievements];
+    updatedAchievements.splice(index, 1);
+    setStudentInfo({...studentInfo, achievements: updatedAchievements});
+  };
+  
+  // Function to handle achievement addition/edit
+  const handleSaveAchievement = (achievement, isEdit = false, index = null) => {
+    if (isEdit && index !== null) {
+      const updatedAchievements = [...studentInfo.achievements];
+      updatedAchievements[index] = achievement;
+      setStudentInfo({...studentInfo, achievements: updatedAchievements});
+    } else {
+      setStudentInfo({
+        ...studentInfo,
+        achievements: [...studentInfo.achievements, achievement]
+      });
+    }
+    setSelectedAchievement(null);
+    setIsAchievementModalOpen(false);
   };
 
   // Stats data
@@ -134,13 +239,19 @@ const Profile = () => {
                 <p className="text-gray-500">Manage your academic profile and achievements</p>
               </div>
               <div className="flex space-x-4">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export Profile
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2"
+                  onClick={() => setMailboxOpen(true)}
+                >
+                  <Mail className="h-4 w-4" />
                 </Button>
-                <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
+                <Button 
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => setNotificationsOpen(true)}
+                >
+                  <Bell className="h-4 w-4 " />
+                  
                 </Button>
               </div>
             </div>
@@ -149,7 +260,7 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {stats.map((stat, index) => (
                 <Card key={index}>
-                  <CardContent className="p-4 flex items-center space-x-4">
+                  <CardContent className="p-4 flex pt-4 items-center space-x-4">
                     <div className={`p-3 rounded-lg ${stat.color}`}>
                       <stat.icon className="h-5 w-5" />
                     </div>
@@ -172,7 +283,7 @@ const Profile = () => {
                   <div className="flex flex-col items-center">
                     <div className="relative">
                       <img
-                        src={studentInfo.profileImage}
+                        src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
                         alt="Profile"
                         className="w-32 h-32 rounded-full mb-4"
                       />
@@ -180,6 +291,7 @@ const Profile = () => {
                         variant="outline"
                         size="icon"
                         className="absolute bottom-0 right-0 rounded-full bg-white"
+                        onClick={() => setIsPhotoModalOpen(true)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -248,13 +360,13 @@ const Profile = () => {
                   <div className="space-y-6">
                     {/* About Section */}
                     <Card>
-                      <CardHeader className="flex flex-row items-center justify-between">
+                      <CardHeader1 className="flex flex-row items-center justify-between">
                         <CardTitle>About Me</CardTitle>
                         <Button variant="outline" onClick={() => setIsEditMode(!isEditMode)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </Button>
-                      </CardHeader>
+                      </CardHeader1>
                       <CardContent>
                         {isEditMode ? (
                           <Textarea
@@ -271,14 +383,30 @@ const Profile = () => {
 
                     {/* Interests Section */}
                     <Card>
-                      <CardHeader>
+                      <CardHeader1 className="flex flex-row items-center justify-between">
                         <CardTitle>Interests</CardTitle>
-                      </CardHeader>
+                        <Button variant="outline" onClick={() => setIsInterestModalOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Interest
+                        </Button>
+                      </CardHeader1>
                       <CardContent>
                         <div className="flex flex-wrap gap-2">
                           {studentInfo.interests.map((interest, index) => (
-                            <Badge key={index} variant="secondary" className="text-blue-600 bg-blue-100">
+                            <Badge 
+                              key={index} 
+                              variant="secondary" 
+                              className="text-blue-600 bg-blue-100 flex items-center gap-2"
+                            >
                               {interest}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 p-0"
+                                onClick={() => handleDeleteInterest(index)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
                             </Badge>
                           ))}
                         </div>
@@ -287,13 +415,19 @@ const Profile = () => {
 
                     {/* Achievements Section */}
                     <Card>
-                      <CardHeader className="flex flex-row items-center justify-between">
+                      <CardHeader1 className="flex flex-row items-center justify-between">
                         <CardTitle>Achievements</CardTitle>
-                        <Button variant="outline">
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedAchievement(null);
+                            setIsAchievementModalOpen(true);
+                          }}
+                        >
                           <Plus className="h-4 w-4 mr-2" />
                           Add Achievement
                         </Button>
-                      </CardHeader>
+                      </CardHeader1>
                       <CardContent>
                         <div className="space-y-4">
                           {studentInfo.achievements.map((achievement, index) => (
@@ -301,9 +435,28 @@ const Profile = () => {
                               <div className="p-2 bg-blue-100 rounded-lg">
                                 <Award className="h-5 w-5 text-blue-600" />
                               </div>
-                              <div>
+                              <div className="flex-1">
                                 <h4 className="font-medium">{achievement.title}</h4>
                                 <p className="text-sm text-gray-500">{achievement.date}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedAchievement({...achievement, index});
+                                    setIsAchievementModalOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteAchievement(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
                               </div>
                             </div>
                           ))}
@@ -313,16 +466,15 @@ const Profile = () => {
                   </div>
                 </TabsContent>
 
-                
                 <TabsContent value="education">
                   <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader1 className="flex flex-row items-center justify-between">
                       <CardTitle>Educational Background</CardTitle>
                       <Button onClick={() => setIsEducationModalOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Education
                       </Button>
-                    </CardHeader>
+                    </CardHeader1>
                     <CardContent>
                       <Table>
                         <TableHeader>
@@ -385,91 +537,98 @@ const Profile = () => {
                 </TabsContent>
 
                 <TabsContent value="skills">
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Technical Skills</CardTitle>
-            <Button onClick={() => setIsSkillModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Add Skill
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {Object.entries(technicalSkills).map(([category, skills]) => (
-                <div key={category} className="space-y-2">
-                  <h3 className="text-lg font-semibold capitalize">
-                    {category.replace(/([A-Z])/g, " $1").trim()}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.isArray(skills) && typeof skills[0] === "string" ? (
-                      skills.map((skill, index) => (
-                        <Badge
-                          key={index}
-                          className="px-3 py-1 flex items-center gap-2 bg-blue-100 text-blue-600 hover:bg-blue-200"
-                        >
-                          {skill}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-4 w-4 p-0"
-                            onClick={() => {
-                              const newSkills = { ...technicalSkills };
-                              newSkills[category] = skills.filter((_, i) => i !== index);
-                              setTechnicalSkills(newSkills);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      ))
-                    ) : (
-                      <div className="flex flex-col space-y-2 w-full">
-                        {skills.map((cert, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="font-medium">{cert.name}</p>
-                              <p className="text-sm text-gray-500">
-                                {cert.issuer} - {cert.date}
-                              </p>
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader1 className="flex flex-row items-center justify-between">
+                        <CardTitle>Technical Skills</CardTitle>
+                        <Button onClick={() => setIsSkillModalOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" /> Add Skill
+                        </Button>
+                      </CardHeader1>
+                      <CardContent>
+                        <div className="space-y-6">
+                          {Object.entries(technicalSkills).map(([category, skills]) => (
+                            <div key={category} className="space-y-2">
+                              <h3 className="text-lg font-semibold capitalize">
+                                {category.replace(/([A-Z])/g, " $1").trim()}
+                              </h3>
+                              <div className="flex flex-wrap gap-2">
+                                {Array.isArray(skills) && typeof skills[0] === "string" ? (
+                                  skills.map((skill, index) => (
+                                    <Badge
+                                      key={index}
+                                      className="px-3 py-1 flex items-center gap-2 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                                    >
+                                      {skill}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 p-0"
+                                        onClick={() => {
+                                          const newSkills = { ...technicalSkills };
+                                          newSkills[category] = skills.filter((_, i) => i !== index);
+                                          setTechnicalSkills(newSkills);
+                                        }}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <div className="flex flex-col space-y-2 w-full">
+                                    {skills.map((cert, index) => (
+                                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div>
+                                          <p className="font-medium">{cert.name}</p>
+                                          <p className="text-sm text-gray-500">
+                                            {cert.issuer} - {cert.date}
+                                          </p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon"
+                                            onClick={() => {
+                                              setSelectedCertification({...cert, index});
+                                              setIsEditCertificationModalOpen(true);
+                                            }}
+                                          >
+                                            <Edit className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                              const newSkills = { ...technicalSkills };
+                                              newSkills[category] = skills.filter((_, i) => i !== index);
+                                              setTechnicalSkills(newSkills);
+                                            }}
+                                          >
+                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4 text-blue-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  const newSkills = { ...technicalSkills };
-                                  newSkills[category] = skills.filter((_, i) => i !== index);
-                                  setTechnicalSkills(newSkills);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </TabsContent>
+                </TabsContent>
 
                 <TabsContent value="projects">
                   <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader1 className="flex flex-row items-center justify-between">
                       <CardTitle>Projects</CardTitle>
                       <Button onClick={() => setIsProjectModalOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Project
                       </Button>
-                    </CardHeader>
+                    </CardHeader1>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {projects.map((project) => (
@@ -526,10 +685,8 @@ const Profile = () => {
           </div>
         </div>
       </div>
-              
 
-      {/* Add necessary modals here... */}
-
+      {/* Add Project Modal */}
       <Dialog open={isProjectModalOpen} onOpenChange={setIsProjectModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -617,11 +774,12 @@ const Profile = () => {
           </DialogHeader>
           <form className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <select className="w-full border rounded-md p-2">
+              <label className="text-sm font-medium">Skill Category</label>
+              <select className="w-full p-2 border rounded-md">
                 <option value="programmingLanguages">Programming Languages</option>
                 <option value="technologies">Technologies</option>
                 <option value="tools">Tools</option>
+                <option value="certifications">Certifications</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -645,33 +803,54 @@ const Profile = () => {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {selectedEducation ? 'Edit Education' : 'Add Education'}
+              {selectedEducation ? "Edit Education" : "Add Education"}
             </DialogTitle>
           </DialogHeader>
           <form className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Level</label>
-              <select className="w-full border rounded-md p-2">
+              <label className="text-sm font-medium">Education Level</label>
+              <select 
+                className="w-full p-2 border rounded-md"
+                defaultValue={selectedEducation?.level || ""}
+              >
+                <option value="" disabled>Select level</option>
                 <option value="ssc">SSC (10th)</option>
                 <option value="hsc">HSC (12th)</option>
                 <option value="graduation">Graduation</option>
+                <option value="postgraduation">Post Graduation</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Institution</label>
-              <Input placeholder="Enter institution name" />
+              <label className="text-sm font-medium">Institution Name</label>
+              <Input 
+                placeholder="Enter institution name" 
+                defaultValue={selectedEducation?.school || ""} 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Board/University</label>
-              <Input placeholder="Enter board or university name" />
+              <Input 
+                placeholder="Enter board/university" 
+                defaultValue={selectedEducation?.board || ""} 
+              />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Score (%)</label>
-              <Input type="number" placeholder="Enter percentage" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Year of Completion</label>
-              <Input type="number" placeholder="Enter year" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Percentage/CGPA</label>
+                <Input 
+                  type="number" 
+                  placeholder="Enter percentage"
+                  defaultValue={selectedEducation?.percentage || ""} 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Year of Completion</label>
+                <Input 
+                  type="number" 
+                  placeholder="Enter year"
+                  defaultValue={selectedEducation?.year || ""} 
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => {
@@ -681,10 +860,368 @@ const Profile = () => {
                 Cancel
               </Button>
               <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                {selectedEducation ? 'Save Changes' : 'Add Education'}
+                {selectedEducation ? "Save Changes" : "Add Education"}
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Achievement Modal */}
+      <Dialog open={isAchievementModalOpen} onOpenChange={setIsAchievementModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAchievement ? "Edit Achievement" : "Add Achievement"}
+            </DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const achievement = {
+              title: formData.get('title'),
+              date: formData.get('date')
+            };
+            
+            if (selectedAchievement) {
+              handleSaveAchievement(achievement, true, selectedAchievement.index);
+            } else {
+              handleSaveAchievement(achievement);
+            }
+          }}>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Achievement Title</label>
+              <Input 
+                name="title"
+                placeholder="Enter achievement title" 
+                defaultValue={selectedAchievement?.title || ""} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Year/Date</label>
+              <Input 
+                name="date"
+                placeholder="Enter year or date" 
+                defaultValue={selectedAchievement?.date || ""} 
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" type="button" onClick={() => {
+                setIsAchievementModalOpen(false);
+                setSelectedAchievement(null);
+              }}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700" type="submit">
+                {selectedAchievement ? "Save Changes" : "Add Achievement"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Certification Modal */}
+      <Dialog open={isEditCertificationModalOpen} onOpenChange={setIsEditCertificationModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Certification</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Certification Name</label>
+              <Input 
+                placeholder="Enter certification name" 
+                defaultValue={selectedCertification?.name || ""} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Issuing Organization</label>
+              <Input 
+                placeholder="Enter issuer" 
+                defaultValue={selectedCertification?.issuer || ""} 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Date of Certification</label>
+              <Input 
+                placeholder="Month, Year" 
+                defaultValue={selectedCertification?.date || ""} 
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditCertificationModalOpen(false);
+                  setSelectedCertification(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Photo Modal */}
+      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Update Profile Photo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <img
+                src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                alt="Current Profile"
+                className="w-32 h-32 rounded-full mb-4"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Upload New Photo</label>
+              <Input type="file" accept="image/*" />
+            </div>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Image should be a square JPG or PNG file, maximum 5MB.
+              </AlertDescription>
+            </Alert>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsPhotoModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                Update Photo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Interest Modal */}
+      <Dialog open={isInterestModalOpen} onOpenChange={setIsInterestModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Interest</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Interest</label>
+              <Input 
+                placeholder="Enter a new interest" 
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsInterestModalOpen(false);
+                  setNewInterest("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={handleAddInterest}
+              >
+                Add Interest
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notifications Dialog */}
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Notifications</DialogTitle>
+            <DialogDescription>
+              Stay updated with your placement activities
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-between items-center mb-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="interview">Interviews</TabsTrigger>
+                <TabsTrigger value="placement">Placements</TabsTrigger>
+                <TabsTrigger value="company">Companies</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={markAllAsRead}
+            >
+              Mark all as read
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2 mb-4">
+            <Search className="h-4 w-4 text-gray-500" />
+            <Input 
+              placeholder="Search notifications..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+          
+          <ScrollArea className="max-h-[50vh]">
+            <div className="space-y-3 pr-3">
+              {filteredNotifications.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Bell className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  <p>No notifications found</p>
+                </div>
+              ) : (
+                filteredNotifications.map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`p-3 rounded-lg border ${notification.status === 'unread' ? 'bg-blue-50 border-blue-100' : 'bg-white'}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-3">
+                        <div className={`p-2 rounded-full 
+                          ${notification.type === 'interview' ? 'bg-purple-100' : 
+                            notification.type === 'placement' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                          {notification.type === 'interview' ? 
+                            <Calendar className="h-4 w-4 text-purple-600" /> : 
+                            notification.type === 'placement' ? 
+                              <Award className="h-4 w-4 text-green-600" /> : 
+                              <Building className="h-4 w-4 text-blue-600" />
+                          }
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{notification.title}</div>
+                          <p className="text-sm text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6"
+                        onClick={() => removeNotification(notification.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Mail Dialog */}
+      <Dialog open={mailboxOpen} onOpenChange={setMailboxOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Messages</DialogTitle>
+            <DialogDescription>
+              Communicate with placement officers and companies
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-between items-center mb-4">
+            <Tabs defaultValue="inbox">
+              <TabsList>
+                <TabsTrigger value="inbox">Inbox</TabsTrigger>
+                <TabsTrigger value="sent">Sent</TabsTrigger>
+                <TabsTrigger value="drafts">Drafts</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Compose
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2 mb-4">
+            <Search className="h-4 w-4 text-gray-500" />
+            <Input 
+              placeholder="Search messages..." 
+              className="flex-1"
+            />
+          </div>
+          
+          <ScrollArea className="max-h-[50vh]">
+            <div className="space-y-1 pr-3">
+              {/* Sample messages */}
+              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Placement Office</span>
+                    <span className="text-xs text-gray-500">10:30 AM</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1">Interview schedule for Amazon has been updated</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Building2 className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Google Recruiters</span>
+                    <span className="text-xs text-gray-500">Yesterday</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1">Thank you for your application to Google</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <FileText className="h-4 w-4 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Resume Verification</span>
+                    <span className="text-xs text-gray-500">Feb 20</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1">Your resume has been verified for the upcoming placement season</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer">
+                <div className="p-2 bg-orange-100 rounded-full">
+                  <BookOpen className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Training Department</span>
+                    <span className="text-xs text-gray-500">Feb 18</span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-1">New interview preparation workshops scheduled</p>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+          
+          <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
+            <span>4 unread messages</span>
+            <Button variant="ghost" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export All
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
