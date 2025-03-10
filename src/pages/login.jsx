@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { AtSign, Lock, Shield, UserCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { AtSign, Lock, Shield, UserCircle } from "lucide-react";
 import { Route, Routes } from "react-router-dom";
 
-const InputField = ({ 
-  label, 
-  type = "text", 
-  placeholder, 
-  icon: Icon, 
+const InputField = ({
+  label,
+  type = "text",
+  placeholder,
+  icon: Icon,
   required = true,
   className = "",
   name,
   value,
-  onChange
+  onChange,
 }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="text-sm font-medium text-gray-700">
@@ -33,7 +33,7 @@ const InputField = ({
         value={value}
         onChange={onChange}
         className={`w-full rounded-md border border-gray-300 shadow-sm py-2 
-          ${Icon ? 'pl-10 pr-3' : 'px-3'}
+          ${Icon ? "pl-10 pr-3" : "px-3"}
           focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
           text-gray-900 text-sm placeholder-gray-400`}
       />
@@ -45,35 +45,35 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
       const response = await axios.post(
         "http://localhost:6400/login",
         formData
       );
-      
+
       if (response.data) {
-        navigate("/admin");
+        navigate("/Admin");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError('Invalid credentials. Please try again.');
+      setError("Invalid credentials. Please try again.");
     }
   };
 
@@ -103,10 +103,12 @@ const LoginForm = () => {
 
           <div className="space-y-6">
             <div className="border-b pb-2">
-              <h2 className="text-sm font-medium text-gray-700">Login Credentials</h2>
+              <h2 className="text-sm font-medium text-gray-700">
+                Login Credentials
+              </h2>
             </div>
-            
-            <InputField 
+
+            <InputField
               label="Username"
               type="text"
               placeholder="Enter your unique username"
@@ -116,7 +118,7 @@ const LoginForm = () => {
               onChange={handleInputChange}
             />
 
-            <InputField 
+            <InputField
               label="Password"
               type="password"
               name="password"
@@ -125,6 +127,32 @@ const LoginForm = () => {
               value={formData.password}
               onChange={handleInputChange}
             />
+
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium text-gray-700">Login As</h2>
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={formData.role === "student"}
+                    onChange={handleInputChange}
+                  />
+                  <span className="text-sm text-gray-700">Student</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === "admin"}
+                    onChange={handleInputChange}
+                  />
+                  <span className="text-sm text-gray-700">Admin</span>
+                </label>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between pt-2">
               <label className="flex items-center">
@@ -151,11 +179,11 @@ const LoginForm = () => {
           >
             Sign In
           </button>
-          
+
           <div className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <button 
-              type="button" 
+            Don't have an account?{" "}
+            <button
+              type="button"
               className="text-blue-600 hover:text-blue-700 font-medium"
               onClick={() => setIsModalOpen(true)}
             >
@@ -178,7 +206,9 @@ const LoginForm = () => {
             <div className="flex justify-center mb-4">
               <Shield className="h-12 w-12 text-blue-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 text-center mb-6">Choose Account Type</h2>
+            <h2 className="text-xl font-semibold text-gray-900 text-center mb-6">
+              Choose Account Type
+            </h2>
             <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => handleSignUp("student")}
