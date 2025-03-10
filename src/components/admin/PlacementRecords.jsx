@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { 
-  Building2, Users, Printer, FileText, Trash2, Edit, Plus, 
+import {
+  Building2, Users, Printer, FileText, Trash2, Edit, Plus,
   AlertTriangle, CheckCircle, X, BookOpen, Briefcase, Server, Search,
   Database, Ruler, Network, AlertCircle, FlaskConical, Calendar, MapPin, DollarSign, Award, Star,
 } from 'lucide-react';
 import {
-  
+ 
   Dialog,
   DialogContent,
   DialogHeader,
@@ -48,6 +48,7 @@ const departments = [
   { id: 5, name: "Information Technology", icon: <Database className="h-6 w-6" />, totalStudents: 110 },
   { id: 6, name: "Civil", icon: <Building2 className="h-6 w-6" />, totalStudents: 85 },
 ];
+
 
 // Sample companies data
 const initialCompanies = [
@@ -142,6 +143,7 @@ const initialCompanies = [
   }
 ];
 
+
 // Notification component with different styles for success, error, and warning
 const NotificationAlert = ({ type, message, onClose }) => {
   const alertStyles = {
@@ -150,19 +152,21 @@ const NotificationAlert = ({ type, message, onClose }) => {
     warning: "bg-yellow-50 border-yellow-200"
   };
 
+
   const iconStyles = {
     success: <CheckCircle className="h-5 w-5 text-green-500" />,
     error: <AlertCircle className="h-5 w-5 text-red-500" />,
     warning: <AlertTriangle className="h-5 w-5 text-yellow-500" />
   };
 
+
   return (
     <Alert className={`fixed top-4 right-4 w-96 border ${alertStyles[type]} animate-in slide-in-from-top-2 z-50`}>
       <div className="flex items-center space-x-3">
         {iconStyles[type]}
         <AlertDescription className="flex-1">{message}</AlertDescription>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={onClose}
           className="h-8 w-8 p-0"
@@ -173,25 +177,145 @@ const NotificationAlert = ({ type, message, onClose }) => {
     </Alert>
   );
 };
+const PrintableDepartmentStats = ({ department, companies, onClose }) => {
+  const departmentPlacements = companies.flatMap(company =>
+    company.placements.filter(p => p.department === department.id)
+  );
 
-// Department metrics component
-const DepartmentMetrics = ({ departmentId }) => {
+
+  const metrics = {
+    totalPlacements: departmentPlacements.length,
+    dreamPlacements: departmentPlacements.filter(p => p.isDreamPlacement).length,
+    averagePackage: departmentPlacements.length ?
+      (departmentPlacements.reduce((acc, p) => acc + p.package, 0) / departmentPlacements.length / 100000).toFixed(2) : "0",
+    highestPackage: departmentPlacements.length ?
+      (Math.max(...departmentPlacements.map(p => p.package)) / 100000).toFixed(2) : "0"
+  };
+
+
+  const companyStats = companies
+    .filter(company => company.placements.some(p => p.department === department.id))
+    .map(company => {
+      const companyPlacements = company.placements.filter(p => p.department === department.id);
+      return {
+        name: company.name,
+        totalStudents: companyPlacements.length,
+        dreamPlacements: companyPlacements.filter(p => p.isDreamPlacement).length,
+        averagePackage: (companyPlacements.reduce((acc, p) => acc + p.package, 0) / companyPlacements.length / 100000).toFixed(2),
+        roles: [...new Set(companyPlacements.map(p => p.role))]
+      };
+    });
+
+
+  const printContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${department.name} Department - Placement Statistics</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; }
+          .header { margin-bottom: 20px; }
+          .department-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+          .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+          .metric-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+          .metric-title { font-size: 14px; color: #666; }
+          .metric-value { font-size: 24px; font-weight: bold; margin-top: 5px; }
+          .section-title { font-size: 18px; font-weight: bold; margin: 20px 0; }
+          .footer { margin-top: 30px; font-size: 12px; color: #666; }
+          .roles { color: #666; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="department-name">${department.name} Department - Placement Statistics</div>
+          <div>Generated on ${new Date().toLocaleDateString()}</div>
+        </div>
+
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-title">Total Placements</div>
+            <div class="metric-value">${metrics.totalPlacements}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Dream Placements</div>
+            <div class="metric-value">${metrics.dreamPlacements}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Average Package</div>
+            <div class="metric-value">${metrics.averagePackage} LPA</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Highest Package</div>
+            <div class="metric-value">${metrics.highestPackage} LPA</div>
+          </div>
+        </div>
+
+
+        <div class="section-title">Company-wise Statistics</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Company Name</th>
+              <th>Students Placed</th>
+              <th>Dream Placements</th>
+              <th>Average Package (LPA)</th>
+              <th>Roles Offered</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${companyStats.map(company => `
+              <tr>
+                <td>${company.name}</td>
+                <td>${company.totalStudents}</td>
+                <td>${company.dreamPlacements}</td>
+                <td>${company.averagePackage}</td>
+                <td class="roles">${company.roles.join(', ')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+
+        <div class="footer">
+          * Dream placement is considered for packages >= 7 LPA
+        </div>
+      </body>
+    </html>
+  `;
+
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.print();
+  printWindow.onafterprint = onClose;
+};
+
+
+const DepartmentMetrics = ({ departmentId, companies }) => {
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+ 
   const metrics = useMemo(() => {
-    const departmentPlacements = initialCompanies.flatMap(c => 
+    const departmentPlacements = companies.flatMap(c =>
       c.placements.filter(p => p.department === departmentId)
     );
-    
+   
     const dreamPlacements = departmentPlacements.filter(p => p.isDreamPlacement).length;
     const totalPlacements = departmentPlacements.length;
     const packages = departmentPlacements.map(p => p.package);
-    
+   
     return {
       totalPlacements,
       dreamPlacements,
       averagePackage: packages.length ? (packages.reduce((a, b) => a + b, 0) / packages.length / 100000).toFixed(2) : "0",
       highestPackage: packages.length ? (Math.max(...packages) / 100000).toFixed(2) : "0"
     };
-  }, [departmentId]);
+  }, [departmentId, companies]);
+
 
   const metricsData = [
     { icon: <Users className="h-6 w-6 text-blue-500" />, value: metrics.totalPlacements, label: "Total Placements" },
@@ -200,22 +324,47 @@ const DepartmentMetrics = ({ departmentId }) => {
     { icon: <Award className="h-6 w-6 text-purple-500" />, value: `${metrics.highestPackage} LPA`, label: "Highest Package" }
   ];
 
+
+  const handlePrint = () => {
+    const department = departments.find(d => d.id === departmentId);
+    PrintableDepartmentStats({
+      department,
+      companies,
+      onClose: () => setShowPrintDialog(false)
+    });
+  };
+
+
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      {metricsData.map((metric, index) => (
-        <Card key={index}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              {metric.icon}
-              <div className="text-2xl font-bold">{metric.value}</div>
-            </div>
-            <p className="text-sm text-gray-500">{metric.label}</p>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Department Statistics</h2>
+        <Button
+          variant="outline"
+          onClick={handlePrint}
+          className="flex items-center space-x-2"
+        >
+          <Printer className="h-4 w-4" />
+          <span>Print Department Statistics</span>
+        </Button>
+      </div>
+      <div className="grid grid-cols-4 gap-4">
+        {metricsData.map((metric, index) => (
+          <Card key={index}>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-2">
+                {metric.icon}
+                <div className="text-2xl font-bold">{metric.value}</div>
+              </div>
+              <p className="text-sm text-gray-500">{metric.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
+
 
 // Student form component for adding/editing students
 const StudentForm = ({ student, onSubmit, onClose }) => {
@@ -231,6 +380,7 @@ const StudentForm = ({ student, onSubmit, onClose }) => {
     year: new Date().getFullYear()
   });
 
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const packageValue = parseFloat(formData.package);
@@ -241,6 +391,7 @@ const StudentForm = ({ student, onSubmit, onClose }) => {
     });
     onClose();
   };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -318,6 +469,7 @@ const StudentForm = ({ student, onSubmit, onClose }) => {
   );
 };
 
+
 // Printable view component
 const PrintableStudentList = ({ companyName, students }) => {
   return (
@@ -351,6 +503,7 @@ const PrintableStudentList = ({ companyName, students }) => {
   );
 };
 
+
 // Company card component
 const CompanyCard = ({ company, departmentId }) => {
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -359,10 +512,12 @@ const CompanyCard = ({ company, departmentId }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [placements, setPlacements] = useState(company.placements);
 
-  const departmentPlacements = useMemo(() => 
+
+  const departmentPlacements = useMemo(() =>
     company.placements.filter(p => p.department === departmentId),
     [company, departmentId]
   );
+
 
   const handleAddStudent = (studentData) => {
     const newStudent = {
@@ -374,40 +529,44 @@ const CompanyCard = ({ company, departmentId }) => {
     const updatedPlacements = [...placements, newStudent];
     setPlacements(updatedPlacements);
     company.placements = updatedPlacements; // Update company.placements as well
-    
+   
     setShowAddStudent(false);
     setNotification({ type: 'success', message: 'Student added successfully!' });
     setTimeout(() => setNotification(null), 3000);
   };
 
+
   const handleEditStudent = (studentData) => {
-    const updatedPlacements = placements.map(p => 
-      p.id === selectedStudent.id ? { 
-        ...studentData, 
-        id: selectedStudent.id, 
+    const updatedPlacements = placements.map(p =>
+      p.id === selectedStudent.id ? {
+        ...studentData,
+        id: selectedStudent.id,
         department: departmentId,
         isDreamPlacement: parseFloat(studentData.package) >= 7 // Compare with 7 LPA for dream placement
       } : p
     );
-    
+   
     setPlacements(updatedPlacements);
     company.placements = updatedPlacements; // Update company.placements as well
-    
+   
     setSelectedStudent(null);
     setNotification({ type: 'success', message: 'Student details updated successfully!' });
     setTimeout(() => setNotification(null), 3000);
   };
 
+
   const handleDeleteStudent = () => {
     const updatedPlacements = placements.filter(p => p.id !== selectedStudent.id);
     setPlacements(updatedPlacements);
     company.placements = updatedPlacements; // Update company.placements as well
-    
+   
     setShowDeleteConfirm(false);
     setSelectedStudent(null);
     setNotification({ type: 'success', message: 'Student record deleted successfully!' });
     setTimeout(() => setNotification(null), 1000);
   };
+
+
 
 
     // Custom print function with dedicated print view
@@ -424,7 +583,7 @@ const CompanyCard = ({ company, departmentId }) => {
           <td class="border p-2">${student.isDreamPlacement ? 'Dream' : 'Regular'}</td>
         </tr>
       `).join('');
-  
+ 
       const printContent = `
         <!DOCTYPE html>
         <html>
@@ -465,11 +624,12 @@ const CompanyCard = ({ company, departmentId }) => {
           </body>
         </html>
       `;
-  
+ 
       printWindow.document.write(printContent);
       printWindow.document.close();
       printWindow.print();
     };
+
 
   return (
     <Card className="mb-6">
@@ -498,8 +658,9 @@ const CompanyCard = ({ company, departmentId }) => {
             </Tooltip>
           </TooltipProvider>
 
-          <Dialog 
-          open={showAddStudent} 
+
+          <Dialog
+          open={showAddStudent}
           onOpenChange={(open) => {
             setShowAddStudent(open);
             if (!open) setSelectedStudent(null);
@@ -515,7 +676,7 @@ const CompanyCard = ({ company, departmentId }) => {
               <DialogHeader>
                 <DialogTitle>Add New Student</DialogTitle>
               </DialogHeader>
-              <StudentForm 
+              <StudentForm
                 onSubmit={handleAddStudent}
                 onClose={() => setShowAddStudent(false)}
               />
@@ -570,7 +731,7 @@ const CompanyCard = ({ company, departmentId }) => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <a 
+                      <a
                         href={student.offerLetterLink}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -585,8 +746,8 @@ const CompanyCard = ({ company, departmentId }) => {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => setSelectedStudent(student)}
                               >
@@ -597,11 +758,12 @@ const CompanyCard = ({ company, departmentId }) => {
                           </Tooltip>
                         </TooltipProvider>
 
+
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                   setSelectedStudent(student);
@@ -623,8 +785,9 @@ const CompanyCard = ({ company, departmentId }) => {
           </ScrollArea>
         </div>
 
+
         {/* Edit Student Dialog */}
-        <Dialog open={selectedStudent && !showDeleteConfirm} 
+        <Dialog open={selectedStudent && !showDeleteConfirm}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedStudent(null);
@@ -636,7 +799,7 @@ const CompanyCard = ({ company, departmentId }) => {
             <DialogHeader>
               <DialogTitle>Edit Student Details</DialogTitle>
             </DialogHeader>
-            <StudentForm 
+            <StudentForm
               student={selectedStudent}
               onSubmit={handleEditStudent}
               onClose={() => setSelectedStudent(null)}
@@ -644,9 +807,10 @@ const CompanyCard = ({ company, departmentId }) => {
           </DialogContent>
         </Dialog>
 
+
         {/* Delete Confirmation Dialog */}
-        <Dialog 
-          open={showDeleteConfirm} 
+        <Dialog
+          open={showDeleteConfirm}
           onOpenChange={(open) => {
             setShowDeleteConfirm(open);
             if (!open) setSelectedStudent(null);
@@ -669,18 +833,20 @@ const CompanyCard = ({ company, departmentId }) => {
           </DialogContent>
         </Dialog>
 
+
         {/* Printable View */}
-        <PrintableStudentList 
+        <PrintableStudentList
           companyName={company.name}
           students={departmentPlacements}
         />
 
+
         {/* Notification */}
         {notification && (
-          <NotificationAlert 
+          <NotificationAlert
             type={notification.type}
-            message={notification.message} 
-            onClose={() => setNotification(null)} 
+            message={notification.message}
+            onClose={() => setNotification(null)}
           />
         )}
       </CardContent>
@@ -688,19 +854,22 @@ const CompanyCard = ({ company, departmentId }) => {
   );
 };
 
+
 // Main component
 const EnhancedDepartments = () => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState(initialCompanies);
 
-  const filteredCompanies = useMemo(() => 
-    companies.filter(company => 
+
+  const filteredCompanies = useMemo(() =>
+    companies.filter(company =>
       company.departments.includes(selectedDepartment?.id) &&
       company.name.toLowerCase().includes(searchTerm.toLowerCase())
     ),
     [companies, selectedDepartment, searchTerm]
   );
+
 
   return (
     <div className='flex'>
@@ -723,6 +892,7 @@ const EnhancedDepartments = () => {
             </div>
           </div>
 
+
           <div className="grid grid-cols-4 gap-4">
             {departments.map(dept => (
               <Button
@@ -740,9 +910,14 @@ const EnhancedDepartments = () => {
             ))}
           </div>
 
+
           {selectedDepartment && (
             <>
-              <DepartmentMetrics departmentId={selectedDepartment.id} />
+              <DepartmentMetrics
+                  departmentId={selectedDepartment.id}
+                  companies={companies}  // Pass companies prop here
+                />
+
 
               {filteredCompanies.map(company => (
                 <CompanyCard
@@ -751,6 +926,7 @@ const EnhancedDepartments = () => {
                   departmentId={selectedDepartment.id}
                 />
               ))}
+
 
               {filteredCompanies.length === 0 && (
                 <Card className="p-8 text-center">
@@ -767,5 +943,6 @@ const EnhancedDepartments = () => {
     </div>
   );
 };
+
 
 export default EnhancedDepartments;
