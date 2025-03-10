@@ -58,6 +58,9 @@ const Sidebar = () => {
     { icon: Calendar, label: 'Manage Interviews', path: '/manage-interviews' },
     { icon: BarChart3, label: 'Placement Records', path: '/placement-records' },
     { icon: UserCog, label: 'Coordinator Management', path: '/coordinator-management' },
+    { icon: FileText, label: 'Reports', path: '/reports' },
+    { icon: FileText, label: 'LogOut', path: '/logout', onClick: () => window.location.href = 'http://localhost:6400/logout' }
+
     { icon: FileText, label: 'General Queries', path: '/queries' },
   ];
 
