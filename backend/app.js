@@ -26,6 +26,12 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
+const corsOptions = {
+  origin: "http://localhost:3000", // Your React frontend URL
+  credentials: true, // Allow cookies & sessions to be sent
+};
+app.use(cors(corsOptions));
+
 // Connect to MongoDB
 async function connectDB() {
   try {
@@ -69,13 +75,18 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // **Passport Local Strategy**
-passport.use('student', studentInfo.createStrategy());
-passport.use('admin', adminInfo.createStrategy());
+passport.use("student", studentInfo.createStrategy());
+passport.use("admin", adminInfo.createStrategy());
 
 // Serialize & Deserialize properly for multiple strategies
 passport.serializeUser((user, done) => {
   console.log("🔹 Serializing User:", user.username);
-  done(null, { id: user._id, role: user._doc.role || (user.collection.name.includes('admin') ? 'admin' : 'student') });
+  done(null, {
+    id: user._id,
+    role:
+      user._doc.role ||
+      (user.collection.name.includes("admin") ? "admin" : "student"),
+  });
 });
 
 passport.deserializeUser(async (userData, done) => {
@@ -207,46 +218,67 @@ app.post("/signup-admin", async (req, res) => {
 app.post("/login", (req, res, next) => {
   const { username, password, role } = req.body;
   // console.log("📝 Login attempt details:", { username, role });
-  
+
   if (!role) {
     // console.log("❌ No role specified in request");
-    return res.status(400).json({ success: false, message: "Role is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Role is required" });
   }
-  
+
   // Use the pre-defined strategy from passport-local-mongoose
   passport.authenticate(role, (err, user, info) => {
     if (err) {
       console.error("❌ Passport Error:", err);
       return res.status(500).json({ success: false, message: "Server error" });
     }
-    
+
     if (!user) {
       console.log("❌ Authentication failed:", info);
-      return res.status(400).json({ success: false, message: info.message || "Invalid credentials" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: info.message || "Invalid credentials",
+        });
     }
-    
+
     req.logIn(user, (err) => {
       if (err) {
         console.error("❌ Login Error:", err);
-        return res.status(500).json({ success: false, message: "Login failed" });
+        return res
+          .status(500)
+          .json({ success: false, message: "Login failed" });
       }
-      
+
       req.session.user = {
         id: user._id,
         username: user.username,
-        role: role
+        role: role,
       };
-      
+
       // console.log("✅ Session Set:", req.session.user);
-      res.status(200).json({ success: true, message: "Login successful", user: req.session.user });
+      res
+        .status(200)
+        .json({
+          success: true,
+          message: "Login successful",
+          user: req.session.user,
+        });
     });
   })(req, res, next);
 });
 
-// **Test Route**
-app.get("/", (req, res) => {
-  res.send("Hello World");
+// Route to get currently logged-in user
+app.get("/current-user", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: "No user logged in" });
+  }
+
+  // Send the session user details to frontend
+  res.status(200).json({ success: true, user: req.session.user });
 });
+
 
 // **Server Listener**
 app.listen(port, () => {
