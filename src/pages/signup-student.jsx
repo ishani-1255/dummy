@@ -3,8 +3,7 @@
 import React from "react";
 import { GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-
+import axios from "axios";
 
 const InputField = ({
   label,
@@ -13,54 +12,75 @@ const InputField = ({
   required = true,
   className = "",
   name,
+  children, // For select options
 }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="text-sm font-medium text-gray-700">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
-    <input
-      type={type}
-      name={name} // Fix: Ensure the input field has a name
-      placeholder={placeholder}
-      required={required}
-      className="px-3 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-700 text-sm"
-    />
+    {type === "select" ? (
+      <select
+        name={name}
+        required={required}
+        className="px-3 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-700 text-sm"
+      >
+        {children}
+      </select>
+    ) : (
+      <input
+        type={type}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        className="px-3 py-2 rounded-md border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-gray-700 text-sm"
+      />
+    )}
   </div>
 );
-
 
 const SignUpForm = () => {
   const navigate = useNavigate();
 
+  // Function to generate year options dynamically
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = 2020; year <= currentYear; year++) {
+      years.push(
+        <option key={year} value={year}>
+          {year}
+        </option>
+      );
+    }
+    return years;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent page reload
-  
+
     try {
       const formData = new FormData(e.target); // Collect form data
       const userData = {
         name: formData.get("name"),
         email: formData.get("email"),
         phone: formData.get("phone"),
-        roll: formData.get("roll"),
+        registrationNumber: formData.get("registrationNumber"),
         branch: formData.get("branch"),
-        username: formData.get("username"),
-        password: formData.get("password"),
-        confirmPassword: formData.get("confirmPassword"),
+        semester: formData.get("semester"),
+        yearOfAdmission: formData.get("yearOfAdmission"),
+        lastSemGPA: formData.get("lastSemGPA"),
+        cgpa: formData.get("cgpa"),
+        feeDue: formData.get("feeDue"),
+        fatherName: formData.get("fatherName"),
       };
-  
-      // Validate passwords match
-      if (userData.password !== userData.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-      }
-  
+
       // Send POST request to backend
       const response = await axios.post(
         "http://localhost:6400/signup-student",
         userData,
         { headers: { "Content-Type": "application/json" } }
       );
-  
+
       if (response.data.success) {
         alert("Account created successfully!");
         navigate("/");
@@ -72,7 +92,6 @@ const SignUpForm = () => {
       alert("Registration failed. Please try again later.");
     }
   };
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
@@ -110,9 +129,14 @@ const SignUpForm = () => {
               />
               <InputField
                 label="Phone Number"
-                type="tel"
+                type="number"
                 name="phone"
                 placeholder="+1 (555) 000-0000"
+              />
+              <InputField
+                label="Father's Name"
+                name="fatherName"
+                placeholder="John Doe Sr."
               />
             </div>
 
@@ -124,44 +148,64 @@ const SignUpForm = () => {
                 </h2>
               </div>
               <InputField
-                label="College Roll Number / Student ID"
-                name="roll"
-                placeholder="e.g., 2021CS1001"
+                label="Registration Number"
+                name="registrationNumber"
+                placeholder="e.g., 20211001"
               />
               <InputField
                 label="Branch / Department"
+                type="select"
                 name="branch"
-                placeholder="e.g., Computer Science"
-              />
-            </div>
-          </div>
-
-          {/* Password Section - Full Width */}
-          <div className="space-y-6">
-            <div className="border-b pb-2">
-              <h2 className="text-sm font-medium text-gray-700">Security</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              >
+                <option value="CSE">Computer Science and Engineering (CSE)</option>
+                <option value="CE">Civil Engineering (CE)</option>
+                <option value="IT">Information Technology (IT)</option>
+                <option value="SFE">Safety and Fire (SFE)</option>
+                <option value="ME">Mechanical Engineering (ME)</option>
+                <option value="EEE">Electrical and Electronics Engineering (EEE)</option>
+                <option value="EC">Electronics and Communication (EC)</option>
+              </InputField>
               <InputField
-                label="username"
+                label="Semester"
+                type="select"
+                name="semester"
+              >
+                {[...Array(8).keys()].map((sem) => (
+                  <option key={sem + 1} value={sem + 1}>
+                    Semester {sem + 1}
+                  </option>
+                ))}
+              </InputField>
+              <InputField
+                label="Year of Admission"
+                type="select"
+                name="yearOfAdmission"
+              >
+                {generateYearOptions()}
+              </InputField>
+              <InputField
+                label="Last Semester GPA"
                 type="text"
-                name="username"
-                placeholder="johndoe"
-              />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <InputField
-                label="Password"
-                type="password"
-                name="password"
-                placeholder="••••••••"
+                name="lastSemGPA"
+                placeholder="e.g., 8.5"
+                pattern="^\d*(\.\d+)?$"
               />
               <InputField
-                label="Confirm Password"
-                type="password"
-                name="confirmPassword"
-                placeholder="••••••••"
+                label="CGPA"
+                type="text"
+                name="cgpa"
+                placeholder="e.g., 8.2"
+                pattern="^\d*(\.\d+)?$"
               />
+              <InputField
+                label="Fee Due"
+                type="select"
+                name="feeDue"
+              >
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </InputField>
+              
             </div>
           </div>
 

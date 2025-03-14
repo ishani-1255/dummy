@@ -5,7 +5,13 @@ if (process.env.NODE_ENV !== "production") {
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const studentInfo = require("./model/newStudent");
+const ce = require("./model/CE");
+const cse = require("./model/CSE");
+const it = require("./model/IT");
+const sfe = require("./model/SFE");
+const me = require("./model/ME");
+const eee = require("./model/EEE");
+const ec = require("./model/EC");
 const adminInfo = require("./model/newAdmin");
 const facultyInfo = require("./model/facultySchema");
 const session = require("express-session");
@@ -74,18 +80,71 @@ app.use(methodOverride("_method"));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// **Passport Local Strategy**
-passport.use("student", studentInfo.createStrategy());
+// **Passport Local Strategy for Admin**
 passport.use("admin", adminInfo.createStrategy());
+
+// **Custom Passport Local Strategy for Student**
+// **Custom Passport Local Strategy for Student**
+passport.use(
+  "student",
+  new LocalStrategy(
+    {
+      usernameField: "username", // Field name for username in the request body
+      passwordField: "password", // Field name for password in the request body
+      passReqToCallback: true, // Pass the request object to the callback
+    },
+    async (req, username, password, done) => {
+      try {
+        const { branch } = req.body; // Get branch from the request body
+
+        // Define the branch models
+        const branchModels = {
+          CE: ce,
+          CSE: cse,
+          IT: it,
+          SFE: sfe,
+          ME: me,
+          EEE: eee,
+          EC: ec,
+        };
+
+        // Check if the branch is valid
+        if (!branch || !branchModels[branch]) {
+          return done(null, false, { message: "Invalid branch" });
+        }
+
+        // Find the student in the specified branch collection
+        const student = await branchModels[branch].findOne({ username });
+
+        if (!student) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        // Check if the student is verified
+        if (student.verified !== "Yes") {
+          return done(null, false, { message: "Account not verified" });
+        }
+
+        // Verify password
+        const isValidPassword = await student.authenticate(password);
+        if (!isValidPassword) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        return done(null, student);
+      } catch (error) {
+        return done(error);
+      }
+    }
+  )
+);
 
 // Serialize & Deserialize properly for multiple strategies
 passport.serializeUser((user, done) => {
   console.log("🔹 Serializing User:", user.username);
   done(null, {
     id: user._id,
-    role:
-      user._doc.role ||
-      (user.collection.name.includes("admin") ? "admin" : "student"),
+    role: user.role || (user.collection.name.includes("admin") ? "admin" : "student"),
   });
 });
 
@@ -96,7 +155,12 @@ passport.deserializeUser(async (userData, done) => {
     if (userData.role === "admin") {
       user = await adminInfo.findById(userData.id);
     } else {
-      user = await studentInfo.findById(userData.id);
+      // Find the student in all branch collections
+      const branchModels = { ce, cse, it, sfe, me, eee, ec };
+      for (const model of Object.values(branchModels)) {
+        user = await model.findById(userData.id);
+        if (user) break; // Exit loop if user is found
+      }
     }
 
     if (!user) return done(null, false);
@@ -120,36 +184,67 @@ app.post("/signup-student", async (req, res) => {
       name,
       email,
       phone,
-      roll,
+      registrationNumber,
       branch,
-      username,
-      password,
-      confirmPassword,
+      semester,
+      yearOfAdmission,
+      lastSemGPA,
+      cgpa,
+      feeDue,
+      fatherName,
     } = req.body;
 
-    if (password !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Passwords do not match" });
+    const username = registrationNumber;
+    const password = registrationNumber;
+
+    // Mapping of branch names to their respective models
+    const branchModels = {
+      CSE: cse, // Ensure "CSE" matches the branch value in the request body
+      CE: ce,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    // Debugging: Log the branch and StudentModel
+    console.log("Branch:", branch);
+    const StudentModel = branchModels[branch];
+    console.log("StudentModel:", StudentModel);
+
+    if (!StudentModel) {
+      return res.status(400).json({ success: false, message: "Invalid branch" });
     }
 
-    const existingUser = await studentInfo.findOne({ username });
+    // Check if the username already exists
+    const existingUser = await StudentModel.findOne({ username });
     if (existingUser) {
       return res
         .status(400)
         .json({ success: false, message: "Username already taken" });
     }
 
-    const newStudent = new studentInfo({
+    // Create a new student
+    const newStudent = new StudentModel({
       name,
       email,
       phone,
-      roll,
+      registrationNumber,
       branch,
+      semester,
+      yearOfAdmission,
+      lastSemGPA,
+      cgpa,
+      feeDue,
+      fatherName,
       username,
+      verified: "No", // Default to "No" for new students
     });
 
-    await studentInfo.register(newStudent, password);
+    // Register the student with passport-local-mongoose
+    await StudentModel.register(newStudent, password);
+
     res
       .status(201)
       .json({ success: true, message: "Student registered successfully" });
@@ -159,74 +254,23 @@ app.post("/signup-student", async (req, res) => {
   }
 });
 
-app.post("/signup-admin", async (req, res) => {
-  try {
-    const {
-      name,
-      email,
-      phone,
-      designation,
-      department,
-      accessCode,
-      username,
-      password,
-      confirmPassword,
-    } = req.body;
-
-    if (password !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Passwords do not match" });
-    }
-
-    const existingUser = await adminInfo.findOne({ username });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Username already taken" });
-    }
-
-    const facultyUser = await facultyInfo.findOne({ phone });
-    if (!facultyUser || facultyUser.accessCode !== accessCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid faculty user or access code",
-      });
-    }
-
-    const newAdmin = new adminInfo({
-      name,
-      email,
-      phone,
-      designation,
-      department,
-      username,
-    });
-
-    await adminInfo.register(newAdmin, password);
-    res
-      .status(201)
-      .json({ success: true, message: "Admin registered successfully" });
-  } catch (error) {
-    console.error("❌ Signup error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
 // **Login Route**
-// Fix login route
 app.post("/login", (req, res, next) => {
-  const { username, password, role } = req.body;
-  // console.log("📝 Login attempt details:", { username, role });
+  const { username, password, role, branch } = req.body;
 
   if (!role) {
-    // console.log("❌ No role specified in request");
     return res
       .status(400)
       .json({ success: false, message: "Role is required" });
   }
 
-  // Use the pre-defined strategy from passport-local-mongoose
+  // If role is student, ensure branch is provided
+  if (role === "student" && !branch) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Branch is required for student login" });
+  }
+
   passport.authenticate(role, (err, user, info) => {
     if (err) {
       console.error("❌ Passport Error:", err);
@@ -237,10 +281,7 @@ app.post("/login", (req, res, next) => {
       console.log("❌ Authentication failed:", info);
       return res
         .status(400)
-        .json({
-          success: false,
-          message: info.message || "Invalid credentials",
-        });
+        .json({ success: false, message: info.message || "Invalid credentials" });
     }
 
     req.logIn(user, (err) => {
@@ -255,16 +296,12 @@ app.post("/login", (req, res, next) => {
         id: user._id,
         username: user.username,
         role: role,
+        branch: role === "student" ? branch : null, // Include branch only for students
       };
 
-      // console.log("✅ Session Set:", req.session.user);
       res
         .status(200)
-        .json({
-          success: true,
-          message: "Login successful",
-          user: req.session.user,
-        });
+        .json({ success: true, message: "Login successful", user: req.session.user });
     });
   })(req, res, next);
 });
@@ -275,10 +312,8 @@ app.get("/current-user", (req, res) => {
     return res.status(401).json({ success: false, message: "No user logged in" });
   }
 
-  // Send the session user details to frontend
   res.status(200).json({ success: true, user: req.session.user });
 });
-
 
 // **Server Listener**
 app.listen(port, () => {

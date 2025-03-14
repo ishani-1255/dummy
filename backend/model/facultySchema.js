@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const passportLocalMongoose = require("passport-local-mongoose"); // Import the plugin
 
 const facultySchema = new mongoose.Schema({
     name: { type: String, required: true },
