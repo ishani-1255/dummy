@@ -10,7 +10,7 @@ const InputField = ({
   placeholder, 
   icon: Icon, 
   required = true,
-  className = "" ,
+  className = "",
   name,
   value,
   onChange
@@ -65,25 +65,29 @@ const AdminSignUpForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); // Clear any previous error
 
     try {
       const response = await fetch('http://localhost:6400/signup-admin', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
+      const responseData = await response.json(); // Parse the response JSON
+
       if (response.ok) {
-        navigate('/admin');
+        // If the backend sends a success response
+        navigate('/admin'); // Redirect to admin page
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'An error occurred');
+        // If the backend sends an error response with a message
+        setError(responseData.message || 'An error occurred during registration.');
       }
     } catch (error) {
-      setError('An error occurred');
+      console.error('Registration error:', error);
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 

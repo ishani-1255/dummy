@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AtSign, Lock, Shield, UserCircle } from "lucide-react";
-import { Route, Routes } from "react-router-dom";
 
 const InputField = ({
   label,
@@ -14,6 +13,7 @@ const InputField = ({
   name,
   value,
   onChange,
+  children, // For select options
 }) => (
   <div className={`flex flex-col space-y-1 ${className}`}>
     <label className="text-sm font-medium text-gray-700">
@@ -25,18 +25,33 @@ const InputField = ({
           <Icon className="h-5 w-5 text-gray-400" />
         </div>
       )}
-      <input
-        type={type}
-        name={name}
-        placeholder={placeholder}
-        required={required}
-        value={value}
-        onChange={onChange}
-        className={`w-full rounded-md border border-gray-300 shadow-sm py-2 
-          ${Icon ? "pl-10 pr-3" : "px-3"}
-          focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
-          text-gray-900 text-sm placeholder-gray-400`}
-      />
+      {type === "select" ? (
+        <select
+          name={name}
+          required={required}
+          value={value}
+          onChange={onChange}
+          className={`w-full rounded-md border border-gray-300 shadow-sm py-2 
+            ${Icon ? "pl-10 pr-3" : "px-3"}
+            focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
+            text-gray-900 text-sm placeholder-gray-400`}
+        >
+          {children}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          placeholder={placeholder}
+          required={required}
+          value={value}
+          onChange={onChange}
+          className={`w-full rounded-md border border-gray-300 shadow-sm py-2 
+            ${Icon ? "pl-10 pr-3" : "px-3"}
+            focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
+            text-gray-900 text-sm placeholder-gray-400`}
+        />
+      )}
     </div>
   </div>
 );
@@ -47,6 +62,8 @@ const LoginForm = () => {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    role: "", // Added role to formData
+    branch: "", // Added branch to formData
   });
   const [error, setError] = useState("");
 
@@ -60,7 +77,7 @@ const LoginForm = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    setError(""); // Clear any previous error
 
     try {
       const response = await axios.post(
@@ -68,12 +85,26 @@ const LoginForm = () => {
         formData
       );
 
-      if (response.data) {
-        navigate("/Admin");
+      if (response.data.success) {
+        const role = response.data.user.role;
+        if (role === "student") {
+          navigate("/Profile");
+        } else {
+          navigate("/Admin");
+        }
+      } else {
+        // If the backend sends a success: false response with a message
+        setError(response.data.message || "Login failed. Please try again.");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("Invalid credentials. Please try again.");
+
+      // Handle backend error messages
+      if (error.response && error.response.data && error.response.data.message) {
+        setError(error.response.data.message); // Display the backend error message
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
     }
   };
 
@@ -153,6 +184,26 @@ const LoginForm = () => {
                 </label>
               </div>
             </div>
+
+            {/* Branch Dropdown (Conditional Rendering) */}
+            {formData.role === "student" && (
+              <InputField
+                label="Branch"
+                type="select"
+                name="branch"
+                value={formData.branch}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Branch</option>
+                <option value="CSE">Computer Science and Engineering (CSE)</option>
+                <option value="CE">Civil Engineering (CE)</option>
+                <option value="IT">Information Technology (IT)</option>
+                <option value="SFE">Software Engineering (SFE)</option>
+                <option value="ME">Mechanical Engineering (ME)</option>
+                <option value="EEE">Electrical and Electronics Engineering (EEE)</option>
+                <option value="EC">Electronics and Communication (EC)</option>
+              </InputField>
+            )}
 
             <div className="flex items-center justify-between pt-2">
               <label className="flex items-center">
