@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useUser } from "./UserContext";
 import { AtSign, Lock, Shield, UserCircle } from "lucide-react";
 
 const InputField = ({
@@ -58,6 +59,7 @@ const InputField = ({
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const { login, currentUser, loading } = useUser(); // Use the user context
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -66,6 +68,18 @@ const LoginForm = () => {
     branch: "", // Added branch to formData
   });
   const [error, setError] = useState("");
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (currentUser) {
+      // Redirect based on user role
+      if (currentUser.role === "student") {
+        navigate("/Profile");
+      } else {
+        navigate("/Admin");
+      }
+    }
+  }, [currentUser, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -80,38 +94,36 @@ const LoginForm = () => {
     setError(""); // Clear any previous error
 
     try {
-      const response = await axios.post(
-        "http://localhost:6400/login",
-        formData
-      );
+      // Use the login function from UserContext instead of axios directly
+      const result = await login(formData);
 
-      if (response.data.success) {
-        const role = response.data.user.role;
-        if (role === "student") {
-          navigate("/Profile");
-        } else {
-          navigate("/Admin");
-        }
+      if (result.success) {
+        // Navigation will be handled by the useEffect when currentUser updates
+        console.log("Login successful!");
       } else {
-        // If the backend sends a success: false response with a message
-        setError(response.data.message || "Login failed. Please try again.");
+        setError(result.message || "Login failed. Please try again.");
       }
     } catch (error) {
       console.error("Login error:", error);
-
-      // Handle backend error messages
-      if (error.response && error.response.data && error.response.data.message) {
-        setError(error.response.data.message); // Display the backend error message
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+      setError("An unexpected error occurred. Please try again.");
     }
   };
+
 
   const handleSignUp = (role) => {
     setIsModalOpen(false);
     navigate(role === "student" ? "/Student-SignUp" : "/Admin-SignUp");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
