@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useUser } from "../../pages/UserContext";
 import {
   LayoutDashboard,
   FileText,
@@ -15,16 +16,18 @@ import {
   PieChart,
   Bell,
   User,
-  ChevronRight
-} from 'lucide-react';
+  ChevronRight,
+} from "lucide-react";
 
 const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center space-x-3 px-4 py-3 text-sm transition-colors duration-200
-      ${isActive
-        ? 'bg-blue-600 text-white'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'}`}
+      ${
+        isActive
+          ? "bg-blue-600 text-white"
+          : "text-gray-600 hover:bg-gray-100 hover:text-blue-600"
+      }`}
   >
     <Icon className="h-5 w-5" />
     <span className="font-medium">{label}</span>
@@ -34,8 +37,10 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
       </span>
     )}
     {!badge && (
-      <ChevronRight className={`h-4 w-4 ml-auto transform transition-transform duration-200
-        ${isActive ? 'rotate-90' : ''}`} />
+      <ChevronRight
+        className={`h-4 w-4 ml-auto transform transition-transform duration-200
+        ${isActive ? "rotate-90" : ""}`}
+      />
     )}
   </button>
 );
@@ -43,8 +48,10 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout, currentUser } = useUser(); // Use the context
   const [activePath, setActivePath] = useState(location.pathname);
 
+  // Update active path when location changes
   useEffect(() => {
     setActivePath(location.pathname);
   }, [location.pathname]);
@@ -54,15 +61,33 @@ const Sidebar = () => {
     navigate(path);
   };
 
+  const handleLogout = async () => {
+    try {
+      const result = await logout(); // Use the logout function from context
+      if (result.success) {
+        navigate("/"); // Navigate to login page after successful logout
+      } else {
+        console.error("Logout failed:", result.message);
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
+
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/profile' },
-    { icon: Briefcase, label: 'Job Listings', path: '/all-companies', badge: '12' },
-    { icon: ScrollText, label: 'My Applications', path: '/applications' },
-    { icon: PieChart, label: 'Resume ATS Score', path: '/resume-score' },
-    { icon: Calendar, label: 'Interview Schedule', path: '/interviews' },
-    { icon: BookOpen, label: 'Learning Resources', path: '/resources' },
-    { icon: MessagesSquare, label: 'Ask Queries', path: '/ask-queries' },
-    
+    { icon: LayoutDashboard, label: "Dashboard", path: "/profile" },
+    {
+      icon: Briefcase,
+      label: "Job Listings",
+      path: "/all-companies",
+      badge: "12",
+    },
+    { icon: ScrollText, label: "My Applications", path: "/applications" },
+    { icon: PieChart, label: "Resume ATS Score", path: "/resume-score" },
+    { icon: Calendar, label: "Interview Schedule", path: "/interviews" },
+    { icon: BookOpen, label: "Learning Resources", path: "/resources" },
+    { icon: MessagesSquare, label: "Ask Queries", path: "/ask-queries" },
+    { icon: FileText, label: "LogOut", path: "/logout", onClick: handleLogout },
   ];
 
   return (
@@ -75,7 +100,6 @@ const Sidebar = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
-            
           </div>
         </div>
       </div>
@@ -90,7 +114,7 @@ const Sidebar = () => {
               label={item.label}
               path={item.path}
               isActive={activePath === item.path}
-              onClick={() => handleNavigation(item.path)}
+              onClick={item.onClick || (() => handleNavigation(item.path))}
               badge={item.badge}
             />
           ))}
@@ -104,9 +128,13 @@ const Sidebar = () => {
             <User className="h-5 w-5 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
-            <p className="text-xs text-gray-500 truncate">B.Tech Computer Science</p>
-            <p className="text-xs text-blue-600 font-medium">Roll: CS20B001</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+               {currentUser?.name || 'Student User'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+            {currentUser?.branch}
+            </p>
+            <p className="text-xs text-blue-600 font-medium">Registration no: {currentUser?.registrationNumber}</p>
           </div>
         </div>
       </div>

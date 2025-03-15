@@ -1,6 +1,8 @@
 import './index.css';
 import './App.css';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { UserProvider } from './pages/UserContext';
+import ProtectedRoute from './pages/ProtectedRoute';
 import StudentSignUpForm from './pages/signup-student';
 import AdminSignUpForm from './pages/signup-admin';
 import SignInForm from './pages/login';
@@ -14,7 +16,6 @@ import PlacementRecords from "./components/admin/PlacementRecords";
 import GeneralQueries from "./components/admin/GeneralQueries"
 import CoordinatorManagement from "./components/admin/CoordinatorManagement";
 
-
 import Profile from "./components/student/Profile";
 import Resume from './components/student/resume';
 import AskQueries from './components/student/askqueries';
@@ -23,37 +24,100 @@ import Resources from './components/student/learningresources';
 import JobListing from './components/student/joblisting';
 import Interview from './components/student/interview';
 
-
 function App() {
   return (
-    <BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes */}
+          <Route path='/' element={<SignInForm />} />
+          <Route path='/Student-SignUp' element={<StudentSignUpForm />} />
+          <Route path='/Admin-SignUp' element={<AdminSignUpForm />} />
 
-    <Routes>
-      <Route path ='/' element = {  <SignInForm/>} />
-      <Route path ='/Student-SignUp' element = {  <StudentSignUpForm/>} />
-      <Route path ='/Admin-SignUp' element = {<AdminSignUpForm/>} />
+          {/* Admin routes */}
+          <Route path='/Admin' element={
+            <ProtectedRoute requiredRole="admin">
+              <Admin />
+            </ProtectedRoute>
+          } />
+          <Route path="/manage-companies" element={
+            <ProtectedRoute requiredRole="admin">
+              <ManageCompanies />
+            </ProtectedRoute>
+          } />
+          <Route path="/search-student" element={
+            <ProtectedRoute requiredRole="admin">
+              <SearchStudent />
+            </ProtectedRoute>
+          } />
+          <Route path="/batches" element={
+            <ProtectedRoute requiredRole="admin">
+              <Batches />
+            </ProtectedRoute>
+          } />
+          <Route path="/manage-interviews" element={
+            <ProtectedRoute requiredRole="admin">
+              <ManageInterviews />
+            </ProtectedRoute>
+          } />
+          <Route path="/placement-records" element={
+            <ProtectedRoute requiredRole="admin">
+              <PlacementRecords />
+            </ProtectedRoute>
+          } />
+          <Route path="/coordinator-management" element={
+            <ProtectedRoute requiredRole="admin">
+              <CoordinatorManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/queries" element={
+            <ProtectedRoute requiredRole="admin">
+              <GeneralQueries />
+            </ProtectedRoute>
+          } />
 
-      <Route path ='/Admin' element = {<Admin/>} />
-      <Route path="/manage-companies" element={<ManageCompanies />} />
-      <Route path="/search-student" element={<SearchStudent />} />
-      <Route path="/batches" element={<Batches />} />
-      <Route path="/manage-interviews" element={<ManageInterviews />} />
-      <Route path="/placement-records" element={<PlacementRecords />} />
-      <Route path="/coordinator-management" element={<CoordinatorManagement />} />
-      <Route path="/queries" element={<GeneralQueries />} />
-      
-      <Route path="/profile" element={<Profile/>} />
-      <Route path="/all-companies" element={<JobListing/>} />
-      <Route path="/applications" element={<MyApplication/>} />
-      <Route path="/resume-score" element={<Resume/>} />
-      <Route path="/interviews" element={<Interview/>} />
-      <Route path="/resources" element={<Resources/>} />
-      <Route path="/ask-queries" element={<AskQueries/>} />
-     
-    </Routes>
+          {/* Student routes */}
+          <Route path="/profile" element={
+            <ProtectedRoute requiredRole="student">
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/all-companies" element={
+            <ProtectedRoute requiredRole="student">
+              <JobListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/applications" element={
+            <ProtectedRoute requiredRole="student">
+              <MyApplication />
+            </ProtectedRoute>
+          } />
+          <Route path="/resume-score" element={
+            <ProtectedRoute requiredRole="student">
+              <Resume />
+            </ProtectedRoute>
+          } />
+          <Route path="/interviews" element={
+            <ProtectedRoute requiredRole="student">
+              <Interview />
+            </ProtectedRoute>
+          } />
+          <Route path="/resources" element={
+            <ProtectedRoute requiredRole="student">
+              <Resources />
+            </ProtectedRoute>
+          } />
+          <Route path="/ask-queries" element={
+            <ProtectedRoute requiredRole="student">
+              <AskQueries />
+            </ProtectedRoute>
+          } />
 
-    </BrowserRouter>
-  
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useUser } from '../../pages/UserContext'; // Import useUser hook
 import {
   LayoutDashboard,
   Building2,
@@ -14,7 +15,6 @@ import {
   FileText,
   ChevronRight
 } from 'lucide-react';
-
 
 const NavItem = ({ icon: Icon, label, path, isActive, onClick }) => (
   <button
@@ -31,24 +31,34 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick }) => (
   </button>
 );
 
-
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout, currentUser } = useUser(); // Use the context
   const [activePath, setActivePath] = useState(location.pathname);
-
 
   // Update active path when location changes
   useEffect(() => {
     setActivePath(location.pathname);
   }, [location.pathname]);
 
-
   const handleNavigation = (path) => {
     setActivePath(path);
     navigate(path);
   };
 
+  const handleLogout = async () => {
+    try {
+      const result = await logout(); // Use the logout function from context
+      if (result.success) {
+        navigate('/'); // Navigate to login page after successful logout
+      } else {
+        console.error('Logout failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -59,11 +69,9 @@ const Sidebar = () => {
     { icon: BarChart3, label: 'Placement Records', path: '/placement-records' },
     { icon: UserCog, label: 'Coordinator Management', path: '/coordinator-management' },
     { icon: FileText, label: 'Reports', path: '/reports' },
-    { icon: FileText, label: 'LogOut', path: '/logout', onClick: () => window.location.href = 'http://localhost:6400/logout' },
-
     { icon: FileText, label: 'General Queries', path: '/queries' },
+    { icon: FileText, label: 'LogOut', path: '/logout', onClick: handleLogout },
   ];
-
 
   return (
     <div className="h-screen w-72 bg-white border-r border-gray-200 flex flex-col">
@@ -80,7 +88,6 @@ const Sidebar = () => {
         </div>
       </div>
 
-
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
         <div className="space-y-1">
@@ -91,12 +98,11 @@ const Sidebar = () => {
               label={item.label}
               path={item.path}
               isActive={activePath === item.path}
-              onClick={() => handleNavigation(item.path)}
+              onClick={item.onClick || (() => handleNavigation(item.path))}
             />
           ))}
         </div>
       </nav>
-
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
@@ -105,14 +111,17 @@ const Sidebar = () => {
             <UserCog className="h-4 w-4 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
-            <p className="text-xs text-gray-500 truncate">admin@example.com</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {currentUser?.username || 'Admin User'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {currentUser?.email || 'admin@example.com'}
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
 
 export default Sidebar;
