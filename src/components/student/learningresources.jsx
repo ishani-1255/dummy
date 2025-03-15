@@ -204,7 +204,7 @@ const PracticeCorner = () => {
   // Form view
   const renderForm = () => (
     <div className="p-6 bg-white rounded-lg shadow-md max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-indigo-700">Practice Corner</h2>
+      <h2 className="text-2xl font-bold mb-6 text-blue-700">Practice Corner</h2>
       <div className="mb-4">
         <label className="block text-gray-700 font-medium mb-2">
           Topic
@@ -232,7 +232,7 @@ const PracticeCorner = () => {
         />
       </div>
       <button
-        className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition duration-200"
+        className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-indigo-700 transition duration-200"
         onClick={generateQuiz}
         disabled={!topic || !questionCount}
       >
@@ -245,10 +245,10 @@ const PracticeCorner = () => {
   const renderQuiz = () => (
     <div className="p-6 bg-white rounded-lg shadow-md max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-indigo-700">
+        <h2 className="text-2xl font-bold text-blue-700">
           Quiz: {topic}
         </h2>
-        <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">
+        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
           {Object.keys(userAnswers).length}/{currentQuestions.length} Answered
         </span>
       </div>
@@ -264,7 +264,7 @@ const PracticeCorner = () => {
                 key={option} 
                 className={`p-3 rounded-md cursor-pointer transition duration-200 ${
                   userAnswers[q.id] === option 
-                    ? 'bg-indigo-200 border-indigo-300 border' 
+                    ? 'bg-blue-200 border-blue-300 border' 
                     : 'bg-white border hover:bg-gray-100'
                 }`}
                 onClick={() => handleAnswerSelect(q.id, option)}
@@ -284,7 +284,7 @@ const PracticeCorner = () => {
           Cancel
         </button>
         <button
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-200"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
           onClick={submitQuiz}
           disabled={Object.keys(userAnswers).length !== currentQuestions.length}
         >
@@ -298,7 +298,7 @@ const PracticeCorner = () => {
   const renderResults = () => (
     <div className="p-6 bg-white rounded-lg shadow-md max-w-2xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-indigo-700 mb-2">Quiz Results</h2>
+        <h2 className="text-2xl font-bold text-blue-700 mb-2">Quiz Results</h2>
         <div className="text-5xl font-bold mb-2">
           {results.score}/{results.totalQuestions}
         </div>
@@ -349,7 +349,7 @@ const PracticeCorner = () => {
       
       <div className="mt-8 flex justify-center">
         <button
-          className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-200"
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
           onClick={startOver}
         >
           Practice Again
