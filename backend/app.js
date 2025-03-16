@@ -64,22 +64,17 @@ store.on("error", (error) => {
 
 // Express Session Middleware
 // Express Session Middleware
-app.use(
-  session({
-    store,
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 1 Week
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
       httpOnly: true,
-      sameSite: 'lax', // For better cookie security
-      // Only set secure to true in production environment with HTTPS
-      secure: process.env.NODE_ENV === 'production'
-    },
-  })
-);
+      // Increase the timeout to 7 days (in milliseconds)
+      expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+      maxAge: 1000 * 60 * 60 * 24 * 7
+  }
+}));
 app.use(methodOverride("_method"));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -418,7 +413,7 @@ app.post("/login", async (req, res, next) => {
 
       userResponse.role = role;
 
-      console.log("User logged in:", userResponse);
+      // console.log("User logged in:", userResponse);
 
       res.status(200).json({ 
         success: true, 
@@ -432,10 +427,10 @@ app.post("/login", async (req, res, next) => {
 // Route to get currently logged-in user
 // Route to get currently logged-in user
 app.get("/current-user", async (req, res) => {
-  console.log("Current user API hit");
-  console.log("Session:", req.session);
-  console.log("User:", req.user);
-  console.log("Is authenticated:", req.isAuthenticated());
+  // console.log("Current user API hit");
+  // console.log("Session:", req.session);
+  // console.log("User:", req.user);
+  // console.log("Is authenticated:", req.isAuthenticated());
 
   if (!req.isAuthenticated()) {
     return res.status(200).json({ success: false, message: "No user logged in" });

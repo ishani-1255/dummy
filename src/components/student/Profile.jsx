@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUser } from "../../pages/UserContext";
 import {
   Building2, Users, Printer, FileText, Trash2, Edit, Plus,
   Mail, Bell, Phone, Globe, Linkedin, Github, Star,
@@ -6,6 +7,7 @@ import {
   ChartBar, GraduationCap, ExternalLink, Download, Search,
   Info, Building
 } from 'lucide-react';
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   Card, CardHeader1, CardHeader, CardTitle, CardContent,
@@ -20,15 +22,16 @@ import Sidebar from './Sidebar';
 
 const Profile = () => {
   // Existing states from the original component...
+  const { currentUser } = useUser();
   const [studentInfo, setStudentInfo] = useState({
-    name: "Ayush Kumar",
-    rollNo: "CS21B042",
-    email: "alex.k@university.edu",
-    phone: "+1234567890",
-    department: "Computer Science",
+    name: currentUser?.name || 'Student User',
+    rollNo: currentUser?.registrationNumber || 'regNo' ,
+    email: currentUser?.email || 'johndoe@gmail.com',
+    phone: currentUser?.phone || '1234567890',
+    department: currentUser?.branch,
     batch: "2021-25",
-    semester: 6,
-    cgpa: 8.92,
+    semester: currentUser?.semester || 1,
+    cgpa: currentUser?.cgpa || 10.0,
     profileImage: "/api/placeholder/150/150",
     about: "Passionate computer science student with interest in AI/ML and web development.",
     skills: ["React", "Python", "Machine Learning", "Node.js", "SQL"],
