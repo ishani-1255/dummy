@@ -72,6 +72,7 @@ const SignUpForm = () => {
         cgpa: formData.get("cgpa"),
         feeDue: formData.get("feeDue"),
         fatherName: formData.get("fatherName"),
+        backlog: formData.get("backlog"),
       };
 
       // Send POST request to backend
@@ -85,7 +86,9 @@ const SignUpForm = () => {
         alert("Account created successfully!");
         navigate("/");
       } else {
-        alert(response.data.message || "Registration failed. Please try again.");
+        alert(
+          response.data.message || "Registration failed. Please try again."
+        );
       }
     } catch (error) {
       console.error("Registration error:", error);
@@ -157,19 +160,19 @@ const SignUpForm = () => {
                 type="select"
                 name="branch"
               >
-                <option value="CSE">Computer Science and Engineering (CSE)</option>
+                <option value="CSE">
+                  Computer Science and Engineering (CSE)
+                </option>
                 <option value="CE">Civil Engineering (CE)</option>
                 <option value="IT">Information Technology (IT)</option>
                 <option value="SFE">Safety and Fire (SFE)</option>
                 <option value="ME">Mechanical Engineering (ME)</option>
-                <option value="EEE">Electrical and Electronics Engineering (EEE)</option>
+                <option value="EEE">
+                  Electrical and Electronics Engineering (EEE)
+                </option>
                 <option value="EC">Electronics and Communication (EC)</option>
               </InputField>
-              <InputField
-                label="Semester"
-                type="select"
-                name="semester"
-              >
+              <InputField label="Semester" type="select" name="semester">
                 {[...Array(8).keys()].map((sem) => (
                   <option key={sem + 1} value={sem + 1}>
                     Semester {sem + 1}
@@ -194,18 +197,20 @@ const SignUpForm = () => {
                 label="CGPA"
                 type="text"
                 name="cgpa"
-                placeholder="e.g., 8.2"
+                placeholder="e.g., 8.5"
                 pattern="^\d*(\.\d+)?$"
               />
               <InputField
-                label="Fee Due"
-                type="select"
-                name="feeDue"
-              >
+                label="Number of Backlogs"
+                type="number"
+                name="backlog"
+                placeholder="e.g., 0"
+                min="0"
+              />
+              <InputField label="Fee Due" type="select" name="feeDue">
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
               </InputField>
-              
             </div>
           </div>
 
