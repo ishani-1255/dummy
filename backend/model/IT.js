@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const passportLocalMongoose = require("passport-local-mongoose"); // Import the plugin
+const passportLocalMongoose = require("passport-local-mongoose"); 
 
 const studentSchema = new mongoose.Schema({
   name: {
@@ -48,6 +48,12 @@ const studentSchema = new mongoose.Schema({
     required: true,
     min: 0,
     max: 10, // CGPA range validation
+  },
+  backlog: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 0, // Default value is 0 backlogs
   },
   feeDue: {
     type: String,

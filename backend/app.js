@@ -21,7 +21,8 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const methodOverride = require("method-override");
 const mongoose = require("mongoose");
-const { isLoggedIn } = require('./middleware');
+const { isLoggedIn } = require("./middleware");
+const Company = require("./model/companySchema");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -64,17 +65,19 @@ store.on("error", (error) => {
 
 // Express Session Middleware
 // Express Session Middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "your-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
       httpOnly: true,
       // Increase the timeout to 7 days (in milliseconds)
       expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-      maxAge: 1000 * 60 * 60 * 24 * 7
-  }
-}));
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
+  })
+);
 app.use(methodOverride("_method"));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -128,10 +131,10 @@ passport.use(
         if (!isValidPassword) {
           return done(null, false, { message: "Invalid username or password" });
         }
-        
+
         // Add branch information to the student object for serialization
         student.branch = branch;
-        
+
         return done(null, student);
       } catch (error) {
         return done(error);
@@ -148,18 +151,18 @@ passport.serializeUser((user, done) => {
   if (user.collection && user.collection.name.includes("admin")) {
     role = "admin";
   }
-  
+
   // Save branch information for students
   const userData = {
     id: user._id,
-    role: role
+    role: role,
   };
-  
+
   // If it's a student, store the branch
   if (role === "student" && user.branch) {
     userData.branch = user.branch;
   }
-  
+
   done(null, userData);
 });
 
@@ -180,7 +183,7 @@ passport.deserializeUser(async (userData, done) => {
         EEE: eee,
         EC: ec,
       };
-      
+
       const StudentModel = branchModels[userData.branch];
       if (StudentModel) {
         user = await StudentModel.findById(userData.id);
@@ -195,12 +198,12 @@ passport.deserializeUser(async (userData, done) => {
     }
 
     if (!user) return done(null, false);
-    
+
     console.log("🔹 Deserializing User:", user.username);
     // Add role information to the user object
     user = user.toObject();
     user.role = userData.role;
-    
+
     done(null, user);
   } catch (error) {
     done(error);
@@ -215,7 +218,10 @@ app.use((req, res, next) => {
 
 // Example of a protected route
 app.get("/protected-route", isLoggedIn, (req, res) => {
-  res.status(200).json({ success: true, message: "You have access to this protected route" });
+  res.status(200).json({
+    success: true,
+    message: "You have access to this protected route",
+  });
 });
 
 // **Signup Routes**
@@ -231,6 +237,7 @@ app.post("/signup-student", async (req, res) => {
       yearOfAdmission,
       lastSemGPA,
       cgpa,
+      backlog,
       feeDue,
       fatherName,
     } = req.body;
@@ -255,7 +262,9 @@ app.post("/signup-student", async (req, res) => {
     console.log("StudentModel:", StudentModel);
 
     if (!StudentModel) {
-      return res.status(400).json({ success: false, message: "Invalid branch" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid branch" });
     }
 
     // Check if the username already exists
@@ -277,6 +286,7 @@ app.post("/signup-student", async (req, res) => {
       yearOfAdmission,
       lastSemGPA,
       cgpa,
+      backlog,
       feeDue,
       fatherName,
       username,
@@ -361,9 +371,10 @@ app.post("/login", async (req, res, next) => {
 
   // If role is student, ensure branch is provided
   if (role === "student" && !branch) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Branch is required for student login" });
+    return res.status(400).json({
+      success: false,
+      message: "Branch is required for student login",
+    });
   }
 
   passport.authenticate(role, (err, user, info) => {
@@ -374,9 +385,10 @@ app.post("/login", async (req, res, next) => {
 
     if (!user) {
       console.log("❌ Authentication failed:", info);
-      return res
-        .status(400)
-        .json({ success: false, message: info.message || "Invalid credentials" });
+      return res.status(400).json({
+        success: false,
+        message: info.message || "Invalid credentials",
+      });
     }
 
     req.logIn(user, async (err) => {
@@ -393,13 +405,13 @@ app.post("/login", async (req, res, next) => {
           return await adminInfo.findById(user._id).lean();
         } else if (role === "student" && branch) {
           const branchModels = {
-        CE: ce,
-        CSE: cse,
-        IT: it,
-        SFE: sfe,
-        ME: me,
-        EEE: eee,
-        EC: ec,
+            CE: ce,
+            CSE: cse,
+            IT: it,
+            SFE: sfe,
+            ME: me,
+            EEE: eee,
+            EC: ec,
           };
           const StudentModel = branchModels[branch];
           return await StudentModel.findById(user._id).lean();
@@ -408,24 +420,25 @@ app.post("/login", async (req, res, next) => {
       })();
 
       if (!userResponse) {
-        return res.status(400).json({ success: false, message: "User not found" });
+        return res
+          .status(400)
+          .json({ success: false, message: "User not found" });
       }
 
       userResponse.role = role;
 
       // console.log("User logged in:", userResponse);
 
-      res.status(200).json({ 
-        success: true, 
-        message: "Login successful", 
-        user: userResponse
+      res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: userResponse,
       });
     });
   })(req, res, next);
 });
 
-// Route to get currently logged-in user
-// Route to get currently logged-in user
+
 app.get("/current-user", async (req, res) => {
   // console.log("Current user API hit");
   // console.log("Session:", req.session);
@@ -433,13 +446,15 @@ app.get("/current-user", async (req, res) => {
   // console.log("Is authenticated:", req.isAuthenticated());
 
   if (!req.isAuthenticated()) {
-    return res.status(200).json({ success: false, message: "No user logged in" });
+    return res
+      .status(200)
+      .json({ success: false, message: "No user logged in" });
   }
 
   try {
     // Create a simplified user object
     let user = null;
-    
+
     if (req.user.role === "admin") {
       user = await adminInfo.findById(req.user._id).lean();
     } else if (req.user.role === "student") {
@@ -452,7 +467,7 @@ app.get("/current-user", async (req, res) => {
         EEE: eee,
         EC: ec,
       };
-      
+
       // Use branch from session if available
       const branch = req.user.branch;
       if (branch && branchModels[branch]) {
@@ -473,7 +488,9 @@ app.get("/current-user", async (req, res) => {
     }
 
     if (!user) {
-      return res.status(200).json({ success: false, message: "User data not found" });
+      return res
+        .status(200)
+        .json({ success: false, message: "User data not found" });
     }
 
     // Add role information from session
@@ -485,7 +502,9 @@ app.get("/current-user", async (req, res) => {
     res.status(200).json({ success: true, user: user });
   } catch (error) {
     console.error("Error fetching current user:", error);
-    res.status(500).json({ success: false, message: "Error fetching user data" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching user data" });
   }
 });
 
@@ -501,10 +520,92 @@ app.get("/logout", (req, res, next) => {
       }
       console.log("🔵 Logged out successfully");
       // Clear the cookie on client side
-      res.clearCookie('connect.sid');
-      res.status(200).json({ success: true, message: "Logged out successfully" });
+      res.clearCookie("connect.sid");
+      res
+        .status(200)
+        .json({ success: true, message: "Logged out successfully" });
     });
   });
+});
+
+
+// Get all companies
+app.get("/api/companies", async (req, res) => {
+  try {
+    const companies = await Company.find({});
+    res.status(200).json(companies);
+  } catch (error) {
+    console.error("Error fetching companies:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching companies", error: error.message });
+  }
+});
+
+// Get a single company by ID
+app.get("/api/companies/:id", async (req, res) => {
+  try {
+    const company = await Company.findById(req.params.id);
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+    res.status(200).json(company);
+  } catch (error) {
+    console.error("Error fetching company:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching company", error: error.message });
+  }
+});
+
+// Create a new company
+app.post("/api/companies", async (req, res) => {
+  try {
+    const newCompany = new Company(req.body);
+    const savedCompany = await newCompany.save();
+    res.status(201).json(savedCompany);
+  } catch (error) {
+    console.error("Error creating company:", error);
+    res
+      .status(500)
+      .json({ message: "Error creating company", error: error.message });
+  }
+});
+
+// Update a company
+app.put("/api/companies/:id", async (req, res) => {
+  try {
+    const updatedCompany = await Company.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedCompany) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+    res.status(200).json(updatedCompany);
+  } catch (error) {
+    console.error("Error updating company:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating company", error: error.message });
+  }
+});
+
+// Delete a company
+app.delete("/api/companies/:id", async (req, res) => {
+  try {
+    const deletedCompany = await Company.findByIdAndDelete(req.params.id);
+    if (!deletedCompany) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+    res.status(200).json({ message: "Company deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting company:", error);
+    res
+      .status(500)
+      .json({ message: "Error deleting company", error: error.message });
+  }
 });
 
 // **Server Listener**
