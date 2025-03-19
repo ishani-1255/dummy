@@ -29,10 +29,10 @@ const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
   // Format date to display in a readable format
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -115,10 +115,10 @@ const CompanyDetailsModal = ({ company, onClose }) => {
   // Format date to display in a readable format
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -174,6 +174,23 @@ const CompanyDetailsModal = ({ company, onClose }) => {
                 <h3 className="text-sm font-medium text-gray-500">Location</h3>
                 <p className="mt-1 text-gray-600">{company.location}</p>
               </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">
+                  Eligible Departments
+                </h3>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {company.department &&
+                    company.department.map((dept) => (
+                      <span
+                        key={dept}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                      >
+                        {dept}
+                      </span>
+                    ))}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -206,20 +223,35 @@ const CompanyDetailsModal = ({ company, onClose }) => {
                 <h3 className="text-sm font-medium text-gray-500">
                   Visit Date
                 </h3>
-                <p className="mt-1 text-gray-600">{formatDate(company.visitingDate)}</p>
+                <p className="mt-1 text-gray-600">
+                  {formatDate(company.visitingDate)}
+                </p>
               </div>
             </div>
           </div>
 
           <div>
             <h3 className="text-sm font-medium text-gray-500">About Company</h3>
-            <p className="mt-1 text-gray-600">{company.description || "No description available"}</p>
+            <p className="mt-1 text-gray-600">
+              {company.description || "No description available"}
+            </p>
           </div>
 
           <div>
             <h3 className="text-sm font-medium text-gray-500">Requirements</h3>
-            <p className="mt-1 text-gray-600">{company.requirements || "No specific requirements provided"}</p>
+            <p className="mt-1 text-gray-600">
+              {company.requirements || "No specific requirements provided"}
+            </p>
           </div>
+
+          {company.updates && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Updates</h3>
+              <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-gray-700">{company.updates}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -238,17 +270,37 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
     visitingDate: "",
     description: "",
     requirements: "",
+    updates: "", // Add updates field to formData
     package: "",
     minimumCgpa: "",
-    backlogsAllowed: 0
+    backlogsAllowed: 0,
+    department: [],
   });
+
+  const handleDepartmentChange = (dept) => {
+    if (formData.department.includes(dept)) {
+      setFormData({
+        ...formData,
+        department: formData.department.filter((d) => d !== dept),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        department: [...formData.department, dept],
+      });
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.department.length === 0) {
+      alert("Please select at least one department");
+      return;
+    }
     onAdd({
       ...formData,
       minimumCgpa: parseFloat(formData.minimumCgpa),
-      backlogsAllowed: parseInt(formData.backlogsAllowed)
+      backlogsAllowed: parseInt(formData.backlogsAllowed),
     });
     onClose();
   };
@@ -366,6 +418,31 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Eligible Departments
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {["CE", "CSE", "IT", "SFE", "ME", "EEE", "EC"].map((dept) => (
+                  <div key={dept} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`dept-${dept}`}
+                      checked={formData.department.includes(dept)}
+                      onChange={() => handleDepartmentChange(dept)}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <label
+                      htmlFor={`dept-${dept}`}
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      {dept}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -381,7 +458,7 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
                   }
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Visiting Date
@@ -416,7 +493,7 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
                   }
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Backlogs Allowed
@@ -428,7 +505,10 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
                   className="mt-1 w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.backlogsAllowed}
                   onChange={(e) =>
-                    setFormData({ ...formData, backlogsAllowed: e.target.value })
+                    setFormData({
+                      ...formData,
+                      backlogsAllowed: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -444,6 +524,21 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
                 value={formData.requirements}
                 onChange={(e) =>
                   setFormData({ ...formData, requirements: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Updates
+              </label>
+              <textarea
+                className="mt-1 w-full rounded-md border border-gray-300 shadow-sm p-2"
+                rows="3"
+                placeholder="Add any updates or important information for students"
+                value={formData.updates}
+                onChange={(e) =>
+                  setFormData({ ...formData, updates: e.target.value })
                 }
               />
             </div>
@@ -488,19 +583,39 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
 const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     ...company,
-    visitingDate: company.visitingDate ? new Date(company.visitingDate).toISOString().split('T')[0] : ''
+    visitingDate: company.visitingDate
+      ? new Date(company.visitingDate).toISOString().split("T")[0]
+      : "",
   });
+
+  const handleDepartmentChange = (dept) => {
+    if (formData.department.includes(dept)) {
+      setFormData({
+        ...formData,
+        department: formData.department.filter((d) => d !== dept),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        department: [...formData.department, dept],
+      });
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.department.length === 0) {
+      alert("Please select at least one department");
+      return;
+    }
     onSave({
       ...formData,
       minimumCgpa: parseFloat(formData.minimumCgpa),
-      backlogsAllowed: parseInt(formData.backlogsAllowed)
+      backlogsAllowed: parseInt(formData.backlogsAllowed),
     });
     onClose();
   };
-  
+
   if (!isOpen) return null;
 
   return (
@@ -614,6 +729,31 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Eligible Departments
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {["CE", "CSE", "IT", "SFE", "ME", "EEE", "EC"].map((dept) => (
+                  <div key={dept} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`edit-dept-${dept}`}
+                      checked={formData.department.includes(dept)}
+                      onChange={() => handleDepartmentChange(dept)}
+                      className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                    />
+                    <label
+                      htmlFor={`edit-dept-${dept}`}
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      {dept}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -629,7 +769,7 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
                   }
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Visiting Date
@@ -664,7 +804,7 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
                   }
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Backlogs Allowed
@@ -676,7 +816,10 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
                   className="mt-1 w-full rounded-md border border-gray-300 shadow-sm p-2"
                   value={formData.backlogsAllowed}
                   onChange={(e) =>
-                    setFormData({ ...formData, backlogsAllowed: e.target.value })
+                    setFormData({
+                      ...formData,
+                      backlogsAllowed: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -692,6 +835,21 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
                 value={formData.requirements}
                 onChange={(e) =>
                   setFormData({ ...formData, requirements: e.target.value })
+                }
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Updates
+              </label>
+              <textarea
+                className="mt-1 w-full rounded-md border border-gray-300 shadow-sm p-2"
+                rows="3"
+                placeholder="Add any updates or important information for students"
+                value={formData.updates}
+                onChange={(e) =>
+                  setFormData({ ...formData, updates: e.target.value })
                 }
               />
             </div>
@@ -824,7 +982,10 @@ const ManageCompany = () => {
 
   const handleAddCompany = async (newCompany) => {
     try {
-      const response = await axios.post("http://localhost:6400/api/companies", newCompany);
+      const response = await axios.post(
+        "http://localhost:6400/api/companies",
+        newCompany
+      );
       setCompanies([...companies, response.data]);
     } catch (err) {
       console.error("Error adding company:", err);
@@ -839,7 +1000,10 @@ const ManageCompany = () => {
 
   const handleSaveEdit = async (updatedCompany) => {
     try {
-      const response = await axios.put(`http://localhost:6400/api/companies/${updatedCompany._id}`, updatedCompany);
+      const response = await axios.put(
+        `http://localhost:6400/api/companies/${updatedCompany._id}`,
+        updatedCompany
+      );
       setCompanies(
         companies.map((company) =>
           company._id === updatedCompany._id ? response.data : company
@@ -855,11 +1019,15 @@ const ManageCompany = () => {
     setCompanyToDelete(companyToDelete);
     setDeleteModalOpen(true);
   };
-  
+
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:6400/api/companies/${companyToDelete._id}`);
-      setCompanies(companies.filter(company => company._id !== companyToDelete._id));
+      await axios.delete(
+        `http://localhost:6400/api/companies/${companyToDelete._id}`
+      );
+      setCompanies(
+        companies.filter((company) => company._id !== companyToDelete._id)
+      );
       setDeleteModalOpen(false);
       setCompanyToDelete(null);
     } catch (err) {
@@ -867,18 +1035,20 @@ const ManageCompany = () => {
       alert("Failed to delete company. Please try again.");
     }
   };
-  
+
   const handleViewDetails = (company) => {
     setSelectedCompany(company);
   };
-  
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Manage Companies</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Manage Companies
+            </h1>
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -887,7 +1057,7 @@ const ManageCompany = () => {
               <span>Add Company</span>
             </button>
           </div>
-  
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -899,7 +1069,7 @@ const ManageCompany = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-  
+
             <div className="flex items-center space-x-2">
               <Filter className="h-5 w-5 text-gray-500" />
               <select
@@ -916,7 +1086,7 @@ const ManageCompany = () => {
               </select>
             </div>
           </div>
-  
+
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <p className="text-gray-500">Loading companies...</p>
@@ -928,7 +1098,9 @@ const ManageCompany = () => {
           ) : filteredCompanies.length === 0 ? (
             <div className="bg-gray-50 p-6 rounded-lg text-center">
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No companies found</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                No companies found
+              </h3>
               <p className="mt-1 text-gray-500">
                 {searchTerm || filterIndustry
                   ? "Try adjusting your search or filter"
@@ -949,7 +1121,7 @@ const ManageCompany = () => {
             </div>
           )}
         </div>
-  
+
         {/* Details Modal */}
         {selectedCompany && (
           <CompanyDetailsModal
@@ -957,14 +1129,14 @@ const ManageCompany = () => {
             onClose={() => setSelectedCompany(null)}
           />
         )}
-  
+
         {/* Add Modal */}
         <AddCompanyModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onAdd={handleAddCompany}
         />
-  
+
         {/* Edit Modal */}
         {editingCompany && (
           <EditCompanyModal
@@ -977,7 +1149,7 @@ const ManageCompany = () => {
             onSave={handleSaveEdit}
           />
         )}
-  
+
         {/* Delete Confirmation Modal */}
         <DeleteConfirmationModal
           isOpen={deleteModalOpen}
@@ -991,6 +1163,6 @@ const ManageCompany = () => {
       </div>
     </div>
   );
-  };
-  
-  export default ManageCompany;
+};
+
+export default ManageCompany;
