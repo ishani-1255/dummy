@@ -33,9 +33,19 @@ const companySchema = new mongoose.Schema({
   requirements: {
     type: String,
   },
+  updates: {
+    type: String,
+    default: "",
+    // Field for company updates, interview notifications, etc.
+  },
   package: {
     type: String,
     required: true,
+  },
+  department: {
+    type: [String],
+    required: true,
+    enum: ["CE", "CSE", "IT", "SFE", "ME", "EEE", "EC"],
   },
   minimumCgpa: {
     type: Number,

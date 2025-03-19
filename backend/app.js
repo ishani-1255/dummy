@@ -23,6 +23,7 @@ const methodOverride = require("method-override");
 const mongoose = require("mongoose");
 const { isLoggedIn } = require("./middleware");
 const Company = require("./model/companySchema");
+const Application = require("./model/applicationSchema");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -438,7 +439,6 @@ app.post("/login", async (req, res, next) => {
   })(req, res, next);
 });
 
-
 app.get("/current-user", async (req, res) => {
   // console.log("Current user API hit");
   // console.log("Session:", req.session);
@@ -528,11 +528,17 @@ app.get("/logout", (req, res, next) => {
   });
 });
 
-
-// Get all companies
+// Get all companies with optional department filter
 app.get("/api/companies", async (req, res) => {
   try {
-    const companies = await Company.find({});
+    const { department } = req.query;
+    let query = {};
+
+    if (department) {
+      query.department = department;
+    }
+
+    const companies = await Company.find(query);
     res.status(200).json(companies);
   } catch (error) {
     console.error("Error fetching companies:", error);
@@ -605,6 +611,159 @@ app.delete("/api/companies/:id", async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting company", error: error.message });
+  }
+});
+
+// Application endpoints
+// Create a new application
+app.post("/api/applications", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res
+        .status(403)
+        .json({ message: "Only students can apply for jobs" });
+    }
+
+    const { companyId, resume, coverLetter, additionalInfo } = req.body;
+
+    // Check if student has already applied
+    const existingApplication = await Application.findOne({
+      student: req.user._id,
+      company: companyId,
+      studentModel: req.user.branch,
+    });
+
+    if (existingApplication) {
+      return res
+        .status(400)
+        .json({ message: "You have already applied for this job" });
+    }
+
+    // Create new application
+    const newApplication = new Application({
+      student: req.user._id,
+      studentModel: req.user.branch,
+      company: companyId,
+      resume,
+      coverLetter,
+      additionalInfo,
+    });
+
+    await newApplication.save();
+    res.status(201).json(newApplication);
+  } catch (error) {
+    console.error("Error creating application:", error);
+    res
+      .status(500)
+      .json({ message: "Error creating application", error: error.message });
+  }
+});
+
+// Get applications for current student
+app.get("/api/applications", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res
+        .status(403)
+        .json({ message: "Only students can view their applications" });
+    }
+
+    const applications = await Application.find({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    }).populate("company");
+
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error("Error fetching applications:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching applications", error: error.message });
+  }
+});
+
+// Get a specific application by ID
+app.get("/api/applications/:id", isLoggedIn, async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id).populate(
+      "company"
+    );
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Check if the application belongs to the current user
+    if (
+      req.user.role === "student" &&
+      application.student.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    res.status(200).json(application);
+  } catch (error) {
+    console.error("Error fetching application:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching application", error: error.message });
+  }
+});
+
+// Delete an application
+app.delete("/api/applications/:id", isLoggedIn, async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Check if the application belongs to the current user
+    if (
+      req.user.role === "student" &&
+      application.student.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await Application.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Application deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting application:", error);
+    res
+      .status(500)
+      .json({ message: "Error deleting application", error: error.message });
+  }
+});
+
+// Check if student has applied to a company
+app.get("/api/applications/check/:companyId", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res
+        .status(403)
+        .json({ message: "Only students can check application status" });
+    }
+
+    const application = await Application.findOne({
+      student: req.user._id,
+      company: req.params.companyId,
+      studentModel: req.user.branch,
+    });
+
+    res.status(200).json({
+      hasApplied: !!application,
+      application: application,
+    });
+  } catch (error) {
+    console.error("Error checking application status:", error);
+    res
+      .status(500)
+      .json({
+        message: "Error checking application status",
+        error: error.message,
+      });
   }
 });
 

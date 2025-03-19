@@ -1,53 +1,78 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
-  Building2, Users, Printer, FileText, Trash2, Edit, Plus,
-  AlertTriangle, CheckCircle, X, BookOpen, Briefcase, Server, Search,
-  Database, Ruler, Network, AlertCircle, FlaskConical, Calendar, MapPin, DollarSign, Award, Star,
-  Filter, Clock, Download, ExternalLink, ChevronDown
-} from 'lucide-react';
+  Building2,
+  Users,
+  Printer,
+  FileText,
+  Trash2,
+  Edit,
+  Plus,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  BookOpen,
+  Briefcase,
+  Server,
+  Search,
+  Database,
+  Ruler,
+  Network,
+  AlertCircle,
+  FlaskConical,
+  Calendar,
+  MapPin,
+  DollarSign,
+  Award,
+  Star,
+  Filter,
+  Clock,
+  Download,
+  ExternalLink,
+  ChevronDown,
+} from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '../admin/UIComponents';
-import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '../admin/UIComponents';
-
-import Sidebar from './Sidebar';
+} from "../admin/UIComponents";
+import axios from "axios";
+import Sidebar from "./Sidebar";
 
 // Application Status Badge Component
 const StatusBadge = ({ status }) => {
   const statusColors = {
-    'Applied': 'bg-blue-100 text-blue-800',
-    'Under Review': 'bg-yellow-100 text-yellow-800',
-    'Interview Scheduled': 'bg-purple-100 text-purple-800',
-    'Interviewed': 'bg-indigo-100 text-indigo-800',
-    'Offered': 'bg-green-100 text-green-800',
-    'Rejected': 'bg-red-100 text-red-800',
-    'Accepted': 'bg-emerald-100 text-emerald-800',
-    'Declined': 'bg-gray-100 text-gray-800'
+    Applied: "bg-blue-100 text-blue-800",
+    "Under Review": "bg-yellow-100 text-yellow-800",
+    "Interview Scheduled": "bg-purple-100 text-purple-800",
+    Interviewed: "bg-indigo-100 text-indigo-800",
+    Offered: "bg-green-100 text-green-800",
+    Rejected: "bg-red-100 text-red-800",
+    Accepted: "bg-emerald-100 text-emerald-800",
+    Declined: "bg-gray-100 text-gray-800",
   };
 
   const statusIcons = {
-    'Applied': <FileText className="h-4 w-4 mr-1" />,
-    'Under Review': <BookOpen className="h-4 w-4 mr-1" />,
-    'Interview Scheduled': <Calendar className="h-4 w-4 mr-1" />,
-    'Interviewed': <CheckCircle className="h-4 w-4 mr-1" />,
-    'Offered': <Award className="h-4 w-4 mr-1" />,
-    'Rejected': <X className="h-4 w-4 mr-1" />,
-    'Accepted': <Star className="h-4 w-4 mr-1" />,
-    'Declined': <AlertCircle className="h-4 w-4 mr-1" />
+    Applied: <FileText className="h-4 w-4 mr-1" />,
+    "Under Review": <BookOpen className="h-4 w-4 mr-1" />,
+    "Interview Scheduled": <Calendar className="h-4 w-4 mr-1" />,
+    Interviewed: <CheckCircle className="h-4 w-4 mr-1" />,
+    Offered: <Award className="h-4 w-4 mr-1" />,
+    Rejected: <X className="h-4 w-4 mr-1" />,
+    Accepted: <Star className="h-4 w-4 mr-1" />,
+    Declined: <AlertCircle className="h-4 w-4 mr-1" />,
   };
 
   return (
-    <span className={`flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status]}`}>
+    <span
+      className={`flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status]}`}
+    >
       {statusIcons[status]}
       {status}
     </span>
@@ -68,7 +93,7 @@ const initialApplications = [
     jobDescription: "Developing web applications using React and Node.js",
     requiredSkills: ["JavaScript", "React", "Node.js", "Git"],
     applicationNotes: "Completed technical assessment with 95% score",
-    feedback: "Strong problem-solving skills demonstrated during interview"
+    feedback: "Strong problem-solving skills demonstrated during interview",
   },
   {
     id: 2,
@@ -79,10 +104,11 @@ const initialApplications = [
     applicationDate: "2024-02-15",
     interviewDate: "2024-03-01",
     status: "Interview Scheduled",
-    jobDescription: "Analyze large datasets and create visualization dashboards",
+    jobDescription:
+      "Analyze large datasets and create visualization dashboards",
     requiredSkills: ["SQL", "Python", "Tableau", "Statistics"],
     applicationNotes: "Submitted portfolio of previous data projects",
-    feedback: ""
+    feedback: "",
   },
   {
     id: 3,
@@ -96,7 +122,7 @@ const initialApplications = [
     jobDescription: "Design user interfaces for mobile and web applications",
     requiredSkills: ["Figma", "Adobe XD", "Prototyping", "User Research"],
     applicationNotes: "Submitted design portfolio and case studies",
-    feedback: "Need more experience with enterprise applications"
+    feedback: "Need more experience with enterprise applications",
   },
   {
     id: 4,
@@ -110,7 +136,7 @@ const initialApplications = [
     jobDescription: "Develop and deploy machine learning models for production",
     requiredSkills: ["Python", "TensorFlow", "PyTorch", "Docker"],
     applicationNotes: "Highlighted ML projects from GitHub in cover letter",
-    feedback: ""
+    feedback: "",
   },
   {
     id: 5,
@@ -123,8 +149,9 @@ const initialApplications = [
     status: "Interviewed",
     jobDescription: "Design and implement scalable backend services",
     requiredSkills: ["Java", "Spring Boot", "AWS", "Microservices"],
-    applicationNotes: "Technical interview scheduled after initial phone screening",
-    feedback: "Good technical knowledge but could improve system design skills"
+    applicationNotes:
+      "Technical interview scheduled after initial phone screening",
+    feedback: "Good technical knowledge but could improve system design skills",
   },
   {
     id: 6,
@@ -138,7 +165,8 @@ const initialApplications = [
     jobDescription: "Manage CI/CD pipelines and cloud infrastructure",
     requiredSkills: ["Kubernetes", "Docker", "Jenkins", "Terraform"],
     applicationNotes: "Highlighted previous DevOps experience in resume",
-    feedback: "Strong understanding of containerization and infrastructure as code"
+    feedback:
+      "Strong understanding of containerization and infrastructure as code",
   },
   {
     id: 7,
@@ -152,8 +180,8 @@ const initialApplications = [
     jobDescription: "Develop native iOS applications using Swift",
     requiredSkills: ["Swift", "iOS SDK", "CoreData", "UI/UX Design"],
     applicationNotes: "Submitted portfolio of published apps on App Store",
-    feedback: ""
-  }
+    feedback: "",
+  },
 ];
 
 // Application Detail Modal Component
@@ -168,7 +196,10 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
             <Briefcase className="h-5 w-5 text-blue-600" />
             <h2 className="text-xl font-bold">{application.jobTitle}</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -210,12 +241,16 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Applied on:</span>
-                  <span>{new Date(application.applicationDate).toLocaleDateString()}</span>
+                  <span>
+                    {new Date(application.applicationDate).toLocaleDateString()}
+                  </span>
                 </div>
                 {application.interviewDate && (
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Interview date:</span>
-                    <span>{new Date(application.interviewDate).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(application.interviewDate).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
               </div>
@@ -241,7 +276,10 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {application.requiredSkills.map((skill, index) => (
-                <span key={index} className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm">
+                <span
+                  key={index}
+                  className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm"
+                >
                   {skill}
                 </span>
               ))}
@@ -273,17 +311,13 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
         </div>
 
         <div className="flex justify-end mt-6 space-x-3">
-          <button 
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-          >
+          <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
             <div className="flex items-center space-x-2">
               <Printer className="h-4 w-4" />
               <span>Print Details</span>
             </div>
           </button>
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
+          <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             <div className="flex items-center space-x-2">
               <Edit className="h-4 w-4" />
               <span>Update Status</span>
@@ -296,7 +330,12 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
 };
 
 // Delete Confirmation Modal
-const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, application }) => {
+const DeleteConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  application,
+}) => {
   if (!isOpen || !application) return null;
 
   return (
@@ -307,12 +346,17 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, application }) =>
             <AlertTriangle className="h-6 w-6 text-red-600" />
           </div>
         </div>
-        
-        <h2 className="text-lg font-semibold text-center mb-2">Delete Application</h2>
+
+        <h2 className="text-lg font-semibold text-center mb-2">
+          Delete Application
+        </h2>
         <p className="text-sm text-gray-500 text-center mb-6">
-          Are you sure you want to delete your application for <span className="font-medium">{application.jobTitle}</span> at <span className="font-medium">{application.company}</span>? This action cannot be undone.
+          Are you sure you want to delete your application for{" "}
+          <span className="font-medium">{application.jobTitle}</span> at{" "}
+          <span className="font-medium">{application.company}</span>? This
+          action cannot be undone.
         </p>
-        
+
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
@@ -334,92 +378,161 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, application }) =>
 
 // Main Component
 const MyApplications = () => {
-  const [applications, setApplications] = useState(initialApplications);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'applicationDate', direction: 'desc' });
-  const [selectedView, setSelectedView] = useState('all');
-  
+  const [applications, setApplications] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortConfig, setSortConfig] = useState({
+    key: "appliedDate",
+    direction: "desc",
+  });
+  const [selectedView, setSelectedView] = useState("all");
+
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch student applications
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+
+        const response = await axios.get(
+          "http://localhost:5000/api/applications",
+          {
+            withCredentials: true,
+          }
+        );
+
+        if (response.data) {
+          // Transform API data to match our component structure
+          const transformedApplications = response.data.map((app) => ({
+            id: app._id,
+            jobTitle: app.company.name,
+            company: app.company.industry,
+            location: app.company.location,
+            salary: app.company.package,
+            applicationDate: new Date(app.appliedDate)
+              .toISOString()
+              .split("T")[0],
+            interviewDate: app.interviewDate
+              ? new Date(app.interviewDate).toISOString().split("T")[0]
+              : null,
+            status: app.status,
+            jobDescription: app.company.description,
+            requiredSkills: app.company.requirements
+              ? app.company.requirements.split("\n")
+              : [],
+            applicationNotes: app.additionalInfo || "",
+            feedback: app.feedback || "",
+            updates: app.company.updates || "",
+          }));
+
+          setApplications(transformedApplications);
+        }
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+        setError("Failed to load your applications. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, []);
 
   // Stats calculation
   const stats = useMemo(() => {
     return {
       total: applications.length,
-      interviews: applications.filter(app => 
-        app.status === 'Interview Scheduled' || app.status === 'Interviewed').length,
-      offers: applications.filter(app => 
-        app.status === 'Offered' || app.status === 'Accepted').length,
-      pending: applications.filter(app => 
-        app.status === 'Applied' || app.status === 'Under Review').length
+      interviews: applications.filter(
+        (app) =>
+          app.status === "Interview Scheduled" || app.status === "Interviewed"
+      ).length,
+      offers: applications.filter(
+        (app) => app.status === "Offered" || app.status === "Accepted"
+      ).length,
+      pending: applications.filter(
+        (app) => app.status === "Applied" || app.status === "Under Review"
+      ).length,
     };
   }, [applications]);
 
   // Filtering and sorting applications
   const filteredApplications = useMemo(() => {
     let filtered = [...applications];
-    
+
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(app => 
-        app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.company.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (app) =>
+          app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.company.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     // Apply status filter
     if (statusFilter) {
-      filtered = filtered.filter(app => app.status === statusFilter);
+      filtered = filtered.filter((app) => app.status === statusFilter);
     }
-    
+
     // Apply view filter
-    if (selectedView === 'active') {
-      filtered = filtered.filter(app => 
-        !['Rejected', 'Declined'].includes(app.status)
+    if (selectedView === "active") {
+      filtered = filtered.filter(
+        (app) => !["Rejected", "Declined"].includes(app.status)
       );
-    } else if (selectedView === 'interviews') {
-      filtered = filtered.filter(app => 
-        ['Interview Scheduled', 'Interviewed'].includes(app.status)
+    } else if (selectedView === "interviews") {
+      filtered = filtered.filter((app) =>
+        ["Interview Scheduled", "Interviewed"].includes(app.status)
       );
-    } else if (selectedView === 'offers') {
-      filtered = filtered.filter(app => 
-        ['Offered', 'Accepted'].includes(app.status)
+    } else if (selectedView === "offers") {
+      filtered = filtered.filter((app) =>
+        ["Offered", "Accepted"].includes(app.status)
       );
     }
-    
+
     // Sort applications
     if (sortConfig.key) {
       filtered.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
+          return sortConfig.direction === "asc" ? -1 : 1;
         }
         if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          return sortConfig.direction === "asc" ? 1 : -1;
         }
         return 0;
       });
     }
-    
+
     return filtered;
   }, [applications, searchTerm, statusFilter, selectedView, sortConfig]);
 
   // Handler for sorting
   const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
     }
     setSortConfig({ key, direction });
   };
 
   // Handle delete application
-  const handleDeleteApplication = (id) => {
-    setApplications(applications.filter(app => app.id !== id));
-    setIsDeleteModalOpen(false);
-    setSelectedApplication(null);
+  const handleDeleteApplication = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/applications/${id}`, {
+        withCredentials: true,
+      });
+
+      setApplications(applications.filter((app) => app.id !== id));
+      setIsDeleteModalOpen(false);
+      setSelectedApplication(null);
+    } catch (err) {
+      console.error("Error deleting application:", err);
+      alert("Failed to delete application. Please try again.");
+    }
   };
 
   // Handle view application details
@@ -428,13 +541,52 @@ const MyApplications = () => {
     setIsDetailModalOpen(true);
   };
 
+  if (loading) {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your applications...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center">
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 max-w-md">
+            <h3 className="font-bold flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              Error
+            </h3>
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-4 rounded"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex">
       <Sidebar />
       <div className="min-h-screen w-full bg-gray-50">
         <div className="max-w-7xl mx-auto p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">My Applications</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              My Applications
+            </h1>
           </div>
 
           {/* Stats Overview */}
@@ -443,43 +595,51 @@ const MyApplications = () => {
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Applications</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      Total Applications
+                    </p>
                     <p className="text-2xl font-bold">{stats.total}</p>
                   </div>
                   <FileText className="h-8 w-8 text-blue-500" />
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Pending Applications</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      Pending Applications
+                    </p>
                     <p className="text-2xl font-bold">{stats.pending}</p>
                   </div>
                   <Clock className="h-8 w-8 text-yellow-500" />
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Interviews</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      Interviews
+                    </p>
                     <p className="text-2xl font-bold">{stats.interviews}</p>
                   </div>
                   <Calendar className="h-8 w-8 text-purple-500" />
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Offers Received</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      Offers Received
+                    </p>
                     <p className="text-2xl font-bold">{stats.offers}</p>
                   </div>
                   <Award className="h-8 w-8 text-green-500" />
@@ -500,7 +660,7 @@ const MyApplications = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="flex space-x-4">
               <select
                 className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg appearance-none bg-white"
@@ -520,26 +680,42 @@ const MyApplications = () => {
 
               <div className="flex rounded-lg border border-gray-300 overflow-hidden">
                 <button
-                  onClick={() => setSelectedView('all')}
-                  className={`px-4 py-2 ${selectedView === 'all' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setSelectedView("all")}
+                  className={`px-4 py-2 ${
+                    selectedView === "all"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-white text-gray-600"
+                  }`}
                 >
                   All
                 </button>
                 <button
-                  onClick={() => setSelectedView('active')}
-                  className={`px-4 py-2 ${selectedView === 'active' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setSelectedView("active")}
+                  className={`px-4 py-2 ${
+                    selectedView === "active"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-white text-gray-600"
+                  }`}
                 >
                   Active
                 </button>
                 <button
-                  onClick={() => setSelectedView('interviews')}
-                  className={`px-4 py-2 ${selectedView === 'interviews' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setSelectedView("interviews")}
+                  className={`px-4 py-2 ${
+                    selectedView === "interviews"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-white text-gray-600"
+                  }`}
                 >
                   Interviews
                 </button>
                 <button
-                  onClick={() => setSelectedView('offers')}
-                  className={`px-4 py-2 ${selectedView === 'offers' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-600'}`}
+                  onClick={() => setSelectedView("offers")}
+                  className={`px-4 py-2 ${
+                    selectedView === "offers"
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-white text-gray-600"
+                  }`}
                 >
                   Offers
                 </button>
@@ -554,67 +730,87 @@ const MyApplications = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead 
+                      <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort('jobTitle')}
+                        onClick={() => handleSort("jobTitle")}
                       >
                         <div className="flex items-center space-x-1">
                           <span>Job Title</span>
-                          {sortConfig.key === 'jobTitle' && (
-                            <ChevronDown 
-                              className={`h-4 w-4 ${sortConfig.direction === 'desc' ? 'transform rotate-180' : ''}`} 
+                          {sortConfig.key === "jobTitle" && (
+                            <ChevronDown
+                              className={`h-4 w-4 ${
+                                sortConfig.direction === "desc"
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           )}
                         </div>
                       </TableHead>
-                      <TableHead 
+                      <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort('company')}
+                        onClick={() => handleSort("company")}
                       >
                         <div className="flex items-center space-x-1">
                           <span>Company</span>
-                          {sortConfig.key === 'company' && (
-                            <ChevronDown 
-                              className={`h-4 w-4 ${sortConfig.direction === 'desc' ? 'transform rotate-180' : ''}`} 
+                          {sortConfig.key === "company" && (
+                            <ChevronDown
+                              className={`h-4 w-4 ${
+                                sortConfig.direction === "desc"
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           )}
                         </div>
                       </TableHead>
-                      <TableHead 
+                      <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort('applicationDate')}
+                        onClick={() => handleSort("applicationDate")}
                       >
                         <div className="flex items-center space-x-1">
                           <span>Applied On</span>
-                          {sortConfig.key === 'applicationDate' && (
-                            <ChevronDown 
-                              className={`h-4 w-4 ${sortConfig.direction === 'desc' ? 'transform rotate-180' : ''}`} 
+                          {sortConfig.key === "applicationDate" && (
+                            <ChevronDown
+                              className={`h-4 w-4 ${
+                                sortConfig.direction === "desc"
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           )}
                         </div>
                       </TableHead>
-                      <TableHead 
+                      <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort('interviewDate')}
+                        onClick={() => handleSort("interviewDate")}
                       >
                         <div className="flex items-center space-x-1">
                           <span>Interview Date</span>
-                          {sortConfig.key === 'interviewDate' && (
-                            <ChevronDown 
-                              className={`h-4 w-4 ${sortConfig.direction === 'desc' ? 'transform rotate-180' : ''}`} 
+                          {sortConfig.key === "interviewDate" && (
+                            <ChevronDown
+                              className={`h-4 w-4 ${
+                                sortConfig.direction === "desc"
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           )}
                         </div>
                       </TableHead>
-                      <TableHead 
+                      <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort('status')}
+                        onClick={() => handleSort("status")}
                       >
                         <div className="flex items-center space-x-1">
                           <span>Status</span>
-                          {sortConfig.key === 'status' && (
-                            <ChevronDown 
-                              className={`h-4 w-4 ${sortConfig.direction === 'desc' ? 'transform rotate-180' : ''}`} 
+                          {sortConfig.key === "status" && (
+                            <ChevronDown
+                              className={`h-4 w-4 ${
+                                sortConfig.direction === "desc"
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
                             />
                           )}
                         </div>
@@ -625,13 +821,24 @@ const MyApplications = () => {
                   <TableBody>
                     {filteredApplications.length > 0 ? (
                       filteredApplications.map((application) => (
-                        <TableRow key={application.id} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">{application.jobTitle}</TableCell>
+                        <TableRow
+                          key={application.id}
+                          className="hover:bg-gray-50"
+                        >
+                          <TableCell className="font-medium">
+                            {application.jobTitle}
+                          </TableCell>
                           <TableCell>{application.company}</TableCell>
-                          <TableCell>{new Date(application.applicationDate).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            {application.interviewDate 
-                              ? new Date(application.interviewDate).toLocaleDateString() 
+                            {new Date(
+                              application.applicationDate
+                            ).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {application.interviewDate
+                              ? new Date(
+                                  application.interviewDate
+                                ).toLocaleDateString()
                               : "Not scheduled"}
                           </TableCell>
                           <TableCell>
@@ -662,12 +869,19 @@ const MyApplications = () => {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-8 text-gray-500"
+                        >
                           <div className="flex flex-col items-center justify-center">
                             <FileText className="h-10 w-10 mb-2 text-gray-400" />
                             <p>No applications found</p>
-                            {searchTerm || statusFilter || selectedView !== 'all' ? (
-                              <p className="text-sm mt-1">Try adjusting your filters</p>
+                            {searchTerm ||
+                            statusFilter ||
+                            selectedView !== "all" ? (
+                              <p className="text-sm mt-1">
+                                Try adjusting your filters
+                              </p>
                             ) : (
                               <button className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                 <div className="flex items-center space-x-2">
