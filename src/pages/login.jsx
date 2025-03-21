@@ -109,7 +109,6 @@ const LoginForm = () => {
     }
   };
 
-
   const handleSignUp = (role) => {
     setIsModalOpen(false);
     navigate(role === "student" ? "/Student-SignUp" : "/Admin-SignUp");
@@ -207,12 +206,16 @@ const LoginForm = () => {
                 onChange={handleInputChange}
               >
                 <option value="">Select Branch</option>
-                <option value="CSE">Computer Science and Engineering (CSE)</option>
+                <option value="CSE">
+                  Computer Science and Engineering (CSE)
+                </option>
                 <option value="CE">Civil Engineering (CE)</option>
                 <option value="IT">Information Technology (IT)</option>
                 <option value="SFE">Software Engineering (SFE)</option>
                 <option value="ME">Mechanical Engineering (ME)</option>
-                <option value="EEE">Electrical and Electronics Engineering (EEE)</option>
+                <option value="EEE">
+                  Electrical and Electronics Engineering (EEE)
+                </option>
                 <option value="EC">Electronics and Communication (EC)</option>
               </InputField>
             )}

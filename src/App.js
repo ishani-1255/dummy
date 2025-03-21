@@ -16,6 +16,7 @@ import PlacementRecords from "./components/admin/PlacementRecords";
 import GeneralQueries from "./components/admin/GeneralQueries";
 import CoordinatorManagement from "./components/admin/CoordinatorManagement";
 import DepartmentApplications from "./components/admin/DepartmentApplications";
+import CompanyApplicationsPage from "./components/admin/CompanyApplicationsPage";
 
 import Profile from "./components/student/Profile";
 import Resume from "./components/student/resume";
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <DepartmentApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/applications/:companyId"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <CompanyApplicationsPage />
               </ProtectedRoute>
             }
           />

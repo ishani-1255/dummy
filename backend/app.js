@@ -209,6 +209,11 @@ passport.deserializeUser(async (userData, done) => {
     user = user.toObject();
     user.role = userData.role;
 
+    // Explicitly add branch information if it's a student
+    if (userData.role === "student" && userData.branch) {
+      user.branch = userData.branch;
+    }
+
     done(null, user);
   } catch (error) {
     done(error);
@@ -443,296 +448,6 @@ app.post("/login", async (req, res, next) => {
   })(req, res, next);
 });
 
-// OTP storage (in a real app, you'd use Redis or a database table)
-const otpStore = new Map();
-
-// Helper function to generate OTP
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Helper function to send email (mock implementation - replace with actual email service)
-async function sendEmailOTP(email, otp) {
-  console.log(`📧 Sending OTP ${otp} to email: ${email}`);
-  // In a real implementation, use a service like Nodemailer, SendGrid, etc.
-  return true;
-}
-
-// Helper function to send SMS (mock implementation - replace with actual SMS service)
-async function sendSMSOTP(phone, otp) {
-  console.log(`📱 Sending OTP ${otp} to phone: ${phone}`);
-  // In a real implementation, use a service like Twilio, MessageBird, etc.
-  return true;
-}
-
-// Request password reset for student
-app.post("/forgot-password/student", async (req, res) => {
-  try {
-    const { registrationNumber, branch } = req.body;
-
-    if (!registrationNumber || !branch) {
-      return res.status(400).json({
-        success: false,
-        message: "Registration number and branch are required",
-      });
-    }
-
-    // Map branch to appropriate model
-    const branchModels = {
-      CE: ce,
-      CSE: cse,
-      IT: it,
-      SFE: sfe,
-      ME: me,
-      EEE: eee,
-      EC: ec,
-    };
-
-    const StudentModel = branchModels[branch];
-    if (!StudentModel) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid branch",
-      });
-    }
-
-    // Find student by registration number
-    const student = await StudentModel.findOne({ registrationNumber });
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-
-    // Store OTP with user info and expiration time (10 minutes)
-    otpStore.set(`student_${registrationNumber}_${branch}`, {
-      otp,
-      expiry: Date.now() + 10 * 60 * 1000, // 10 minutes
-      userId: student._id,
-      email: student.email,
-      phone: student.phone,
-    });
-
-    // Send OTP via email and SMS
-    await Promise.all([
-      sendEmailOTP(student.email, otp),
-      sendSMSOTP(student.phone, otp),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent to your registered email and phone number",
-      maskedEmail: student.email.replace(/(?<=.).(?=.*@)/g, "*"),
-      maskedPhone: student.phone.replace(/(?<=.{3}).(?=.{3}$)/g, "*"),
-    });
-  } catch (error) {
-    console.error("Error in forgot password:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send OTP. Please try again later.",
-    });
-  }
-});
-
-// Request password reset for admin
-app.post("/forgot-password/admin", async (req, res) => {
-  try {
-    const { username } = req.body;
-
-    if (!username) {
-      return res.status(400).json({
-        success: false,
-        message: "Username is required",
-      });
-    }
-
-    // Find admin by username
-    const admin = await adminInfo.findOne({ username });
-    if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-
-    // Store OTP with user info and expiration time (10 minutes)
-    otpStore.set(`admin_${username}`, {
-      otp,
-      expiry: Date.now() + 10 * 60 * 1000, // 10 minutes
-      userId: admin._id,
-      email: admin.email,
-      phone: admin.phone,
-    });
-
-    // Send OTP via email and SMS
-    await Promise.all([
-      sendEmailOTP(admin.email, otp),
-      sendSMSOTP(admin.phone, otp),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent to your registered email and phone number",
-      maskedEmail: admin.email.replace(/(?<=.).(?=.*@)/g, "*"),
-      maskedPhone: admin.phone.replace(/(?<=.{3}).(?=.{3}$)/g, "*"),
-    });
-  } catch (error) {
-    console.error("Error in forgot password:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send OTP. Please try again later.",
-    });
-  }
-});
-
-// Verify OTP and reset password for student
-app.post("/reset-password/student", async (req, res) => {
-  try {
-    const { registrationNumber, branch, otp, newPassword } = req.body;
-
-    if (!registrationNumber || !branch || !otp || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
-
-    // Check if OTP exists and is valid
-    const otpKey = `student_${registrationNumber}_${branch}`;
-    const otpData = otpStore.get(otpKey);
-
-    if (!otpData || otpData.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-    }
-
-    if (Date.now() > otpData.expiry) {
-      otpStore.delete(otpKey);
-      return res.status(400).json({
-        success: false,
-        message: "OTP has expired",
-      });
-    }
-
-    // Map branch to appropriate model
-    const branchModels = {
-      CE: ce,
-      CSE: cse,
-      IT: it,
-      SFE: sfe,
-      ME: me,
-      EEE: eee,
-      EC: ec,
-    };
-
-    const StudentModel = branchModels[branch];
-    if (!StudentModel) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid branch",
-      });
-    }
-
-    // Find student
-    const student = await StudentModel.findOne({ registrationNumber });
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    // Reset password using passport-local-mongoose's method
-    await student.setPassword(newPassword);
-    await student.save();
-
-    // Clean up OTP
-    otpStore.delete(otpKey);
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Password reset successful. You can now log in with your new password.",
-    });
-  } catch (error) {
-    console.error("Error in reset password:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to reset password. Please try again later.",
-    });
-  }
-});
-
-// Verify OTP and reset password for admin
-app.post("/reset-password/admin", async (req, res) => {
-  try {
-    const { username, otp, newPassword } = req.body;
-
-    if (!username || !otp || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
-    }
-
-    // Check if OTP exists and is valid
-    const otpKey = `admin_${username}`;
-    const otpData = otpStore.get(otpKey);
-
-    if (!otpData || otpData.otp !== otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-    }
-
-    if (Date.now() > otpData.expiry) {
-      otpStore.delete(otpKey);
-      return res.status(400).json({
-        success: false,
-        message: "OTP has expired",
-      });
-    }
-
-    // Find admin
-    const admin = await adminInfo.findOne({ username });
-    if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
-    }
-
-    // Reset password using passport-local-mongoose's method
-    await admin.setPassword(newPassword);
-    await admin.save();
-
-    // Clean up OTP
-    otpStore.delete(otpKey);
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Password reset successful. You can now log in with your new password.",
-    });
-  } catch (error) {
-    console.error("Error in reset password:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to reset password. Please try again later.",
-    });
-  }
-});
-
 app.get("/current-user", async (req, res) => {
   // console.log("Current user API hit");
   // console.log("Session:", req.session);
@@ -775,6 +490,8 @@ app.get("/current-user", async (req, res) => {
             user = foundUser;
             // Store branch for future reference
             user.branch = branchName;
+            // Also update session
+            req.user.branch = branchName;
             break;
           }
         }
@@ -1021,6 +738,30 @@ app.post("/api/applications", isLoggedIn, async (req, res) => {
       additionalInfo,
     });
 
+    // Ensure branch is in user object for future requests
+    if (!req.user.branch && req.user.role === "student") {
+      // Try to determine branch if not already set
+      const branchModels = {
+        CE: ce,
+        CSE: cse,
+        IT: it,
+        SFE: sfe,
+        ME: me,
+        EEE: eee,
+        EC: ec,
+      };
+
+      // Look for user in each collection
+      for (const [branchName, model] of Object.entries(branchModels)) {
+        const foundUser = await model.findById(req.user._id);
+        if (foundUser) {
+          req.user.branch = branchName;
+          newApplication.studentModel = branchName;
+          break;
+        }
+      }
+    }
+
     await newApplication.save();
     res.status(201).json(newApplication);
   } catch (error) {
@@ -1116,6 +857,28 @@ app.get("/api/applications/check/:companyId", isLoggedIn, async (req, res) => {
       return res
         .status(403)
         .json({ message: "Only students can check application status" });
+    }
+
+    // Ensure we have the branch information
+    if (!req.user.branch) {
+      // Try to determine the student's branch
+      const branchModels = {
+        CE: ce,
+        CSE: cse,
+        IT: it,
+        SFE: sfe,
+        ME: me,
+        EEE: eee,
+        EC: ec,
+      };
+
+      for (const [branchName, model] of Object.entries(branchModels)) {
+        const foundUser = await model.findById(req.user._id);
+        if (foundUser) {
+          req.user.branch = branchName;
+          break;
+        }
+      }
     }
 
     const application = await Application.findOne({

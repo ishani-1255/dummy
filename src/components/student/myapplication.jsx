@@ -324,53 +324,6 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
   );
 };
 
-// Delete Confirmation Modal
-const DeleteConfirmationModal = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  application,
-}) => {
-  if (!isOpen || !application) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-md p-6">
-        <div className="flex items-center justify-center mb-4">
-          <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-          </div>
-        </div>
-
-        <h2 className="text-lg font-semibold text-center mb-2">
-          Delete Application
-        </h2>
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Are you sure you want to delete your application for{" "}
-          <span className="font-medium">{application.jobTitle}</span> at{" "}
-          <span className="font-medium">{application.company}</span>? This
-          action cannot be undone.
-        </p>
-
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onConfirm(application.id)}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Main Component
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -384,7 +337,6 @@ const MyApplications = () => {
 
   // Modal states
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -513,22 +465,6 @@ const MyApplications = () => {
       direction = "desc";
     }
     setSortConfig({ key, direction });
-  };
-
-  // Handle delete application
-  const handleDeleteApplication = async (id) => {
-    try {
-      await axios.delete(`http://localhost:6400/api/applications/${id}`, {
-        withCredentials: true,
-      });
-
-      setApplications(applications.filter((app) => app.id !== id));
-      setIsDeleteModalOpen(false);
-      setSelectedApplication(null);
-    } catch (err) {
-      console.error("Error deleting application:", err);
-      alert("Failed to delete application. Please try again.");
-    }
   };
 
   // Handle view application details
@@ -837,16 +773,6 @@ const MyApplications = () => {
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedApplication(application);
-                                  setIsDeleteModalOpen(true);
-                                }}
-                                className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                title="Delete Application"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -893,16 +819,6 @@ const MyApplications = () => {
           setIsDetailModalOpen(false);
           setSelectedApplication(null);
         }}
-        application={selectedApplication}
-      />
-
-      <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedApplication(null);
-        }}
-        onConfirm={handleDeleteApplication}
         application={selectedApplication}
       />
     </div>

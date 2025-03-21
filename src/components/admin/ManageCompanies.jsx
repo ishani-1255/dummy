@@ -128,6 +128,21 @@ const CompanyCard = ({
           <span>Visiting: {formatDate(company.visitingDate)}</span>
         </div>
       </div>
+
+      <div className="mt-4 pt-3 border-t flex justify-between items-center">
+        <div className="flex space-x-2">
+          <a
+            href={`/admin/applications/${company._id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            View Applications
+          </a>
+        </div>
+      </div>
     </div>
   );
 };
@@ -994,8 +1009,8 @@ const ApplicationUpdateModal = ({ isOpen, onClose, application, onUpdate }) => {
         feedback,
       };
 
-      // Include package if status is Offered or Accepted
-      if (status === "Accepted" || status === "Offered") {
+      // Only include package if status is Accepted
+      if (status === "Accepted") {
         updateData.packageOffered = packageOffered;
       }
 
@@ -1068,7 +1083,7 @@ const ApplicationUpdateModal = ({ isOpen, onClose, application, onUpdate }) => {
             </select>
           </div>
 
-          {(status === "Accepted" || status === "Offered") && (
+          {status === "Accepted" && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Package Offered
@@ -1230,8 +1245,7 @@ const ApplicationsModal = ({ company, isOpen, onClose }) => {
   // Handle application update
   const handleUpdateApplication = async (updatedApplication) => {
     try {
-      // Update application in the local state with the updated application
-      // that includes the full student data from the API response
+      // Update application in the local state
       setApplications(
         applications.map((app) =>
           app._id === updatedApplication._id ? updatedApplication : app
@@ -1503,9 +1517,7 @@ const ApplicationsModal = ({ company, isOpen, onClose }) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 flex flex-col space-y-2">
-                            {(app.status === "Accepted" ||
-                              app.status === "Offered") &&
-                            app.packageOffered ? (
+                            {app.status === "Accepted" && app.packageOffered ? (
                               <span className="font-medium text-green-600">
                                 {app.packageOffered}
                               </span>
@@ -1656,6 +1668,11 @@ const ManageCompany = () => {
   const handleViewApplications = (company) => {
     setSelectedApplicationsCompany(company);
     setApplicationsModalOpen(true);
+  };
+
+  // Function to open applications in a new tab
+  const handleOpenApplicationsTab = (companyId) => {
+    window.open(`/admin/applications/${companyId}`, "_blank");
   };
 
   return (
