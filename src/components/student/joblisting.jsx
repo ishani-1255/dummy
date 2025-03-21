@@ -1021,18 +1021,26 @@ const JobListing = () => {
         // Add the new application to the applications state
         const newApplication = {
           ...response.data,
-          company: selectedJob.id, // Ensure we have the company ID
+          company: selectedJob.id, // Set company to the ID for consistency with hasAppliedToJob
         };
+
+        // Update applications state immediately to reflect the change
         setApplications((prevApplications) => [
           ...prevApplications,
           newApplication,
         ]);
+
+        // Close the modal
         setIsModalOpen(false);
 
+        // Show success message
         setAlert({
           type: "success",
           message: `Your application for ${selectedJob.title} has been submitted successfully!`,
         });
+
+        // Optional: Refresh applications from server to ensure data consistency
+        fetchApplications();
       }
     } catch (err) {
       console.error("Error submitting application:", err);
@@ -1046,6 +1054,10 @@ const JobListing = () => {
           type: "warning",
           message: "You have already applied for this job.",
         });
+
+        // Even if there's an error because user already applied, refresh the applications list
+        // to make sure our UI shows the correct state
+        fetchApplications();
       } else {
         setAlert({
           type: "error",
@@ -1061,6 +1073,45 @@ const JobListing = () => {
     }, 5000);
   };
 
+  // Add a separate function to fetch applications that can be called after submission
+  const fetchApplications = async () => {
+    try {
+      const applicationsResponse = await axios.get(
+        "http://localhost:6400/api/applications",
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (applicationsResponse.data) {
+        // Transform applications to ensure company is an ID string for comparison
+        const transformedApplications = applicationsResponse.data.map(
+          (app) => ({
+            ...app,
+            company: app.company._id || app.company, // Handle both object and string cases
+          })
+        );
+        setApplications(transformedApplications);
+      }
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+    }
+  };
+
+  // Check if user has applied to a job
+  const hasAppliedToJob = (jobId) => {
+    return applications.some((app) => {
+      // Handle case where company might be an object or string
+      const companyId =
+        typeof app.company === "object" ? app.company._id : app.company;
+      return (
+        companyId === jobId &&
+        app.status !== "Rejected" &&
+        app.status !== "Declined"
+      );
+    });
+  };
+
   // Reset filters
   const handleResetFilters = () => {
     setFilters({
@@ -1073,16 +1124,6 @@ const JobListing = () => {
       deadline: "",
     });
     setSearchQuery("");
-  };
-
-  // Check if user has applied to a job
-  const hasAppliedToJob = (jobId) => {
-    return applications.some(
-      (app) =>
-        app.company === jobId &&
-        app.status !== "Rejected" &&
-        app.status !== "Declined"
-    );
   };
 
   if (loading) {
