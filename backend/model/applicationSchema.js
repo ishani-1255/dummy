@@ -51,6 +51,10 @@ const applicationSchema = new Schema({
   feedback: {
     type: String,
   },
+  packageOffered: {
+    type: String,
+    // Will contain the package offered to the student when status is "Accepted"
+  },
 });
 
 const Application = mongoose.model("Application", applicationSchema);

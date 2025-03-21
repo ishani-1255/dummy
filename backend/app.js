@@ -65,20 +65,23 @@ store.on("error", (error) => {
 });
 
 // Express Session Middleware
-// Express Session Middleware
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: false,
+    store: store, // Using the MongoDB store we already configured
     cookie: {
       httpOnly: true,
-      // Increase the timeout to 7 days (in milliseconds)
-      expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
+      secure: process.env.NODE_ENV === "production", // Set secure in production
+      // Increase session timeout to 7 days (in milliseconds)
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
+    rolling: true, // Reset expiration on every response
   })
 );
+
 app.use(methodOverride("_method"));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -758,12 +761,81 @@ app.get("/api/applications/check/:companyId", isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error("Error checking application status:", error);
-    res
-      .status(500)
-      .json({
-        message: "Error checking application status",
+    res.status(500).json({
+      message: "Error checking application status",
+      error: error.message,
+    });
+  }
+});
+
+// Admin routes for managing applications
+// Get all applications for a company
+app.get(
+  "/api/admin/applications/company/:companyId",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "admin") {
+        return res
+          .status(403)
+          .json({ message: "Unauthorized - Admin access only" });
+      }
+
+      const applications = await Application.find({
+        company: req.params.companyId,
+      })
+        .populate({
+          path: "student",
+          // This will determine which student collection to use based on studentModel field
+          refPath: "studentModel",
+        })
+        .populate("company");
+
+      res.status(200).json(applications);
+    } catch (error) {
+      console.error("Error fetching company applications:", error);
+      res.status(500).json({
+        message: "Error fetching company applications",
         error: error.message,
       });
+    }
+  }
+);
+
+// Update application status and package by admin
+app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    const { status, packageOffered, feedback } = req.body;
+
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (feedback) updateData.feedback = feedback;
+    if (status === "Accepted" && packageOffered)
+      updateData.packageOffered = packageOffered;
+
+    const application = await Application.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate("company");
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    res.status(200).json(application);
+  } catch (error) {
+    console.error("Error updating application:", error);
+    res.status(500).json({
+      message: "Error updating application",
+      error: error.message,
+    });
   }
 });
 
