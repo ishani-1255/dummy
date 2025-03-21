@@ -102,8 +102,8 @@ const ApplicationUpdateModal = ({ isOpen, onClose, application, onUpdate }) => {
         feedback,
       };
 
-      // Only include package if status is Accepted
-      if (status === "Accepted") {
+      // Only include package if status is Accepted or Offered
+      if (status === "Accepted" || status === "Offered") {
         updateData.packageOffered = packageOffered;
       }
 
@@ -179,7 +179,7 @@ const ApplicationUpdateModal = ({ isOpen, onClose, application, onUpdate }) => {
             </Select>
           </div>
 
-          {status === "Accepted" && (
+          {(status === "Accepted" || status === "Offered") && (
             <div className="mb-4">
               <Label htmlFor="packageOffered">Package Offered</Label>
               <Input

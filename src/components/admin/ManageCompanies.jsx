@@ -17,13 +17,26 @@ import {
   AlertTriangle,
   BookOpen,
   Award,
+  Download,
+  User,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Info,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import axios from "axios"; // Make sure to install axios
 
 // Company Card Component with Actions
-const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
+const CompanyCard = ({
+  company,
+  onViewDetails,
+  onEdit,
+  onDelete,
+  onViewApplications,
+}) => {
   const [showActions, setShowActions] = useState(false);
 
   // Format date to display in a readable format
@@ -67,6 +80,17 @@ const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
 
           {showActions && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewApplications(company);
+                  setShowActions(false);
+                }}
+                className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Users className="h-4 w-4" />
+                <span>View Applications</span>
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -937,6 +961,591 @@ const DeleteConfirmationModal = ({
   );
 };
 
+// Application Update Modal Component
+const ApplicationUpdateModal = ({ isOpen, onClose, application, onUpdate }) => {
+  const [status, setStatus] = useState(application ? application.status : "");
+  const [packageOffered, setPackageOffered] = useState(
+    application ? application.packageOffered || "" : ""
+  );
+  const [feedback, setFeedback] = useState(
+    application ? application.feedback || "" : ""
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (application) {
+      setStatus(application.status);
+      setPackageOffered(application.packageOffered || "");
+      setFeedback(application.feedback || "");
+    }
+  }, [application]);
+
+  if (!isOpen || !application) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const updateData = {
+        status,
+        feedback,
+      };
+
+      // Include package if status is Offered or Accepted
+      if (status === "Accepted" || status === "Offered") {
+        updateData.packageOffered = packageOffered;
+      }
+
+      const response = await axios.put(
+        `http://localhost:6400/api/admin/applications/${application._id}`,
+        updateData,
+        { withCredentials: true }
+      );
+
+      onUpdate(response.data);
+      onClose();
+    } catch (err) {
+      console.error("Error updating application:", err);
+      setError(
+        err.response?.data?.message || "Failed to update application status"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Update Application Status</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Student
+            </label>
+            <div className="text-gray-700 p-2 border rounded-md bg-gray-50">
+              {application.student?.name || "Unknown Student"}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+              required
+            >
+              <option value="">Select Status</option>
+              <option value="Applied">Applied</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Interviewed">Interviewed</option>
+              <option value="Offered">Offered</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Declined">Declined</option>
+            </select>
+          </div>
+
+          {(status === "Accepted" || status === "Offered") && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Package Offered
+              </label>
+              <input
+                type="text"
+                value={packageOffered}
+                onChange={(e) => setPackageOffered(e.target.value)}
+                placeholder="e.g. ₹6 LPA"
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feedback
+            </label>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Provide feedback to the student about their application (optional)"
+              className="w-full p-2 border border-gray-300 rounded-md h-24"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+              disabled={loading}
+            >
+              {loading && (
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              )}
+              Update Status
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ApplicationsModal Component
+const ApplicationsModal = ({ company, isOpen, onClose }) => {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  const fetchApplications = async () => {
+    if (!company || !isOpen) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(
+        `http://localhost:6400/api/admin/applications/company/${company._id}`,
+        { withCredentials: true }
+      );
+      setApplications(response.data);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+      setError(
+        "Failed to load applications. " +
+          (err.response?.data?.message || err.message)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApplications();
+  }, [company, isOpen]);
+
+  const handleRetry = () => {
+    fetchApplications();
+  };
+
+  const handleDownloadExcel = () => {
+    // Prepare data for Excel export
+    const exportData = applications.map((app) => ({
+      "Student Name": app.student?.name || "N/A",
+      "Registration Number": app.student?.registrationNumber || "N/A",
+      Department: app.studentModel || "N/A",
+      "Year of Admission": app.student?.yearOfAdmission || "N/A",
+      Semester: app.student?.semester || "N/A",
+      CGPA: app.student?.cgpa || "N/A",
+      "Last Sem GPA": app.student?.lastSemGPA || "N/A",
+      Backlogs: app.student?.backlog || "0",
+      Email: app.student?.email || "N/A",
+      Phone: app.student?.phone || "N/A",
+      "Father Name": app.student?.fatherName || "N/A",
+      "Applied Date": new Date(app.appliedDate).toLocaleDateString(),
+      Status: app.status || "Applied",
+      "Package Offered": app.packageOffered || "N/A",
+      "Resume Link": app.resume || "Not provided",
+      "Cover Letter": app.coverLetter ? "Provided" : "Not provided",
+      "Additional Info": app.additionalInfo || "None",
+      Feedback: app.feedback || "None",
+    }));
+
+    // Generate CSV content
+    const headers = Object.keys(exportData[0] || {}).join(",");
+    const rows = exportData.map((row) =>
+      Object.values(row)
+        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+        .join(",")
+    );
+    const csvContent = [headers, ...rows].join("\n");
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${company.name}-applications.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle opening update modal
+  const handleOpenUpdateModal = (application) => {
+    setSelectedApplication(application);
+    setIsUpdateModalOpen(true);
+  };
+
+  // Handle application update
+  const handleUpdateApplication = async (updatedApplication) => {
+    try {
+      // Update application in the local state with the updated application
+      // that includes the full student data from the API response
+      setApplications(
+        applications.map((app) =>
+          app._id === updatedApplication._id ? updatedApplication : app
+        )
+      );
+      setIsUpdateModalOpen(false);
+      setSelectedApplication(null);
+    } catch (error) {
+      console.error("Error updating application:", error);
+    }
+  };
+
+  // Get status badge component
+  const StatusBadge = ({ status }) => {
+    let color = "";
+    let icon = null;
+
+    switch (status) {
+      case "Applied":
+        color = "bg-blue-100 text-blue-800";
+        icon = <Clock className="h-3 w-3 mr-1" />;
+        break;
+      case "Under Review":
+        color = "bg-yellow-100 text-yellow-800";
+        icon = <Info className="h-3 w-3 mr-1" />;
+        break;
+      case "Interview Scheduled":
+        color = "bg-purple-100 text-purple-800";
+        icon = <Calendar className="h-3 w-3 mr-1" />;
+        break;
+      case "Interviewed":
+        color = "bg-indigo-100 text-indigo-800";
+        icon = <FileText className="h-3 w-3 mr-1" />;
+        break;
+      case "Offered":
+      case "Accepted":
+        color = "bg-green-100 text-green-800";
+        icon = <CheckCircle className="h-3 w-3 mr-1" />;
+        break;
+      case "Rejected":
+      case "Declined":
+        color = "bg-red-100 text-red-800";
+        icon = <XCircle className="h-3 w-3 mr-1" />;
+        break;
+      default:
+        color = "bg-gray-100 text-gray-800";
+    }
+
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}
+      >
+        {icon}
+        {status}
+      </span>
+    );
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Building2 className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {company.name} - Applications
+                </h2>
+                <p className="text-gray-500">
+                  {applications.length} applications received
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <p className="text-gray-500">Loading applications...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 p-6 rounded-md">
+              <div className="flex flex-col items-center">
+                <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+                <h3 className="text-lg font-medium text-red-800 mb-2">
+                  Error Loading Applications
+                </h3>
+                <p className="text-red-700 mb-4 text-center">{error}</p>
+                <button
+                  onClick={handleRetry}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="bg-gray-50 p-6 rounded-lg text-center">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">
+                No applications found
+              </h3>
+              <p className="mt-1 text-gray-500">
+                No students have applied to this company yet.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleDownloadExcel}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Excel</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Student
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Department
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Year Details
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Academic Details
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Contact
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Applied On
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Package & Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {applications.map((app) => (
+                      <tr key={app._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <User className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {app.student?.name || "N/A"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {app.student?.registrationNumber || "N/A"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {app.studentModel}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>
+                              Year of Admission:{" "}
+                              {app.student?.yearOfAdmission || "N/A"}
+                            </div>
+                            <div>
+                              Semester: {app.student?.semester || "N/A"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>
+                              CGPA:
+                              <span
+                                className={`font-medium ${
+                                  parseFloat(app.student?.cgpa) >= 8.5
+                                    ? "text-green-600"
+                                    : parseFloat(app.student?.cgpa) >= 7.0
+                                    ? "text-blue-600"
+                                    : parseFloat(app.student?.cgpa) >= 6.0
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {app.student?.cgpa || "N/A"}
+                              </span>
+                            </div>
+                            <div>
+                              Backlogs:
+                              <span
+                                className={`${
+                                  parseInt(app.student?.backlog) === 0
+                                    ? "text-green-600"
+                                    : parseInt(app.student?.backlog) <= 2
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {app.student?.backlog || 0}
+                              </span>
+                            </div>
+                            <div>
+                              Last Sem GPA: {app.student?.lastSemGPA || "N/A"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>Email: {app.student?.email || "N/A"}</div>
+                            <div>Phone: {app.student?.phone || "N/A"}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(app.appliedDate).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <StatusBadge status={app.status} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 flex flex-col space-y-2">
+                            {(app.status === "Accepted" ||
+                              app.status === "Offered") &&
+                            app.packageOffered ? (
+                              <span className="font-medium text-green-600">
+                                {app.packageOffered}
+                              </span>
+                            ) : (
+                              <span>-</span>
+                            )}
+                            <button
+                              onClick={() => handleOpenUpdateModal(app)}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                            >
+                              Update Status
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Application Update Modal */}
+        {selectedApplication && (
+          <ApplicationUpdateModal
+            isOpen={isUpdateModalOpen}
+            onClose={() => {
+              setIsUpdateModalOpen(false);
+              setSelectedApplication(null);
+            }}
+            application={selectedApplication}
+            onUpdate={handleUpdateApplication}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Main ManageCompany Component
 const ManageCompany = () => {
   const [companies, setCompanies] = useState([]);
@@ -945,11 +1554,14 @@ const ManageCompany = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterIndustry, setFilterIndustry] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [applicationsModalOpen, setApplicationsModalOpen] = useState(false);
+  const [selectedApplicationsCompany, setSelectedApplicationsCompany] =
+    useState(null);
 
   // Fetch companies from API
   useEffect(() => {
@@ -973,12 +1585,13 @@ const ManageCompany = () => {
     const matchesSearch =
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesIndustry =
-      !filterIndustry || company.industry === filterIndustry;
-    return matchesSearch && matchesIndustry;
+    const matchesDepartment =
+      !filterDepartment ||
+      (company.department && company.department.includes(filterDepartment));
+    return matchesSearch && matchesDepartment;
   });
 
-  const industries = [...new Set(companies.map((company) => company.industry))];
+  const departments = ["CE", "CSE", "IT", "SFE", "ME", "EEE", "EC"];
 
   const handleAddCompany = async (newCompany) => {
     try {
@@ -1040,6 +1653,11 @@ const ManageCompany = () => {
     setSelectedCompany(company);
   };
 
+  const handleViewApplications = (company) => {
+    setSelectedApplicationsCompany(company);
+    setApplicationsModalOpen(true);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -1071,16 +1689,16 @@ const ManageCompany = () => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5 text-gray-500" />
+              <Users className="h-5 w-5 text-gray-500" />
               <select
                 className="border border-gray-300 rounded-md px-3 py-2"
-                value={filterIndustry}
-                onChange={(e) => setFilterIndustry(e.target.value)}
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
               >
-                <option value="">All Industries</option>
-                {industries.map((industry) => (
-                  <option key={industry} value={industry}>
-                    {industry}
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
                   </option>
                 ))}
               </select>
@@ -1102,7 +1720,7 @@ const ManageCompany = () => {
                 No companies found
               </h3>
               <p className="mt-1 text-gray-500">
-                {searchTerm || filterIndustry
+                {searchTerm || filterDepartment
                   ? "Try adjusting your search or filter"
                   : "Add a company to get started"}
               </p>
@@ -1116,6 +1734,7 @@ const ManageCompany = () => {
                   onViewDetails={handleViewDetails}
                   onEdit={handleEditCompany}
                   onDelete={handleDeleteCompany}
+                  onViewApplications={handleViewApplications}
                 />
               ))}
             </div>
@@ -1147,6 +1766,18 @@ const ManageCompany = () => {
               setEditingCompany(null);
             }}
             onSave={handleSaveEdit}
+          />
+        )}
+
+        {/* Applications Modal */}
+        {selectedApplicationsCompany && (
+          <ApplicationsModal
+            company={selectedApplicationsCompany}
+            isOpen={applicationsModalOpen}
+            onClose={() => {
+              setApplicationsModalOpen(false);
+              setSelectedApplicationsCompany(null);
+            }}
           />
         )}
 
