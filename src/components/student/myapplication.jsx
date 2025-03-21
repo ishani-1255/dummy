@@ -253,6 +253,15 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
                     </span>
                   </div>
                 )}
+                {application.status === "Accepted" &&
+                  application.packageOffered && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-gray-600">Package Offered:</span>
+                      <span className="font-medium text-green-600">
+                        {application.packageOffered}
+                      </span>
+                    </div>
+                  )}
               </div>
             </CardContent>
           </Card>
@@ -401,7 +410,7 @@ const MyApplications = () => {
         setLoading(true);
 
         const response = await axios.get(
-          "http://localhost:5000/api/applications",
+          "http://localhost:6400/api/applications",
           {
             withCredentials: true,
           }
@@ -429,6 +438,7 @@ const MyApplications = () => {
             applicationNotes: app.additionalInfo || "",
             feedback: app.feedback || "",
             updates: app.company.updates || "",
+            packageOffered: app.packageOffered || "",
           }));
 
           setApplications(transformedApplications);
@@ -522,7 +532,7 @@ const MyApplications = () => {
   // Handle delete application
   const handleDeleteApplication = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/applications/${id}`, {
+      await axios.delete(`http://localhost:6400/api/applications/${id}`, {
         withCredentials: true,
       });
 
@@ -735,7 +745,7 @@ const MyApplications = () => {
                         onClick={() => handleSort("jobTitle")}
                       >
                         <div className="flex items-center space-x-1">
-                          <span>Job Title</span>
+                          <span>Company Name</span>
                           {sortConfig.key === "jobTitle" && (
                             <ChevronDown
                               className={`h-4 w-4 ${
@@ -752,7 +762,7 @@ const MyApplications = () => {
                         onClick={() => handleSort("company")}
                       >
                         <div className="flex items-center space-x-1">
-                          <span>Company</span>
+                          <span>Industry</span>
                           {sortConfig.key === "company" && (
                             <ChevronDown
                               className={`h-4 w-4 ${
@@ -783,23 +793,6 @@ const MyApplications = () => {
                       </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort("interviewDate")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Interview Date</span>
-                          {sortConfig.key === "interviewDate" && (
-                            <ChevronDown
-                              className={`h-4 w-4 ${
-                                sortConfig.direction === "desc"
-                                  ? "transform rotate-180"
-                                  : ""
-                              }`}
-                            />
-                          )}
-                        </div>
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer hover:bg-gray-50"
                         onClick={() => handleSort("status")}
                       >
                         <div className="flex items-center space-x-1">
@@ -815,6 +808,7 @@ const MyApplications = () => {
                           )}
                         </div>
                       </TableHead>
+                      <TableHead>Package Offered</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -835,14 +829,17 @@ const MyApplications = () => {
                             ).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
-                            {application.interviewDate
-                              ? new Date(
-                                  application.interviewDate
-                                ).toLocaleDateString()
-                              : "Not scheduled"}
+                            <StatusBadge status={application.status} />
                           </TableCell>
                           <TableCell>
-                            <StatusBadge status={application.status} />
+                            {application.status === "Accepted" &&
+                            application.packageOffered ? (
+                              <span className="text-green-600 font-medium">
+                                {application.packageOffered}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">

@@ -270,13 +270,17 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
                 disabled={!isEligible || hasApplied}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${
                   hasApplied
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    ? "bg-green-500 text-white cursor-not-allowed"
                     : isEligible
                     ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-red-500 text-white cursor-not-allowed"
                 }`}
               >
-                {hasApplied ? "Applied" : "Apply Now"}
+                {hasApplied
+                  ? "Applied"
+                  : isEligible
+                  ? "Apply Now"
+                  : "Not Eligible"}
               </button>
             </div>
           </div>
@@ -495,7 +499,7 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
 
 // Application Modal Component
 const ApplicationModal = ({ isOpen, onClose, onSubmit, job }) => {
-  const [resume, setResume] = useState(null);
+  const [resumeLink, setResumeLink] = useState("");
   const [coverLetter, setCoverLetter] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
 
@@ -518,55 +522,31 @@ const ApplicationModal = ({ isOpen, onClose, onSubmit, job }) => {
           onSubmit={(e) => {
             e.preventDefault();
             onSubmit({
-              jobId: job.id,
-              resume,
+              companyId: job.id,
+              resume: resumeLink,
               coverLetter,
               additionalInfo,
-              appliedDate: new Date().toISOString(),
             });
           }}
         >
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">
-                Resume/CV
+                Resume/CV Link
               </label>
-              <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
-                {resume ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-blue-500 mr-2" />
-                      <span>{resume.name}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setResume(null)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <FileText className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-2">
-                      Drag and drop your resume/CV here or
-                    </p>
-                    <label className="px-4 py-2 bg-blue-50 text-blue-600 rounded-md cursor-pointer hover:bg-blue-100">
-                      <span>Browse files</span>
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files[0]) {
-                            setResume(e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                )}
+              <div className="border border-gray-300 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-2">
+                  Please provide a public link to your resume/CV document
+                  (Google Drive, Dropbox, etc.)
+                </p>
+                <input
+                  type="url"
+                  placeholder="https://drive.google.com/your-resume-link"
+                  value={resumeLink}
+                  onChange={(e) => setResumeLink(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                  required
+                />
               </div>
             </div>
 
@@ -608,7 +588,7 @@ const ApplicationModal = ({ isOpen, onClose, onSubmit, job }) => {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              disabled={!resume}
+              disabled={!resumeLink}
             >
               Submit Application
             </button>
@@ -895,7 +875,14 @@ const JobListing = () => {
           );
 
           if (applicationsResponse.data) {
-            setApplications(applicationsResponse.data);
+            // Transform applications to include company IDs
+            const transformedApplications = applicationsResponse.data.map(
+              (app) => ({
+                ...app,
+                company: app.company._id, // Ensure we have the company ID
+              })
+            );
+            setApplications(transformedApplications);
           }
         }
       } catch (err) {
@@ -1017,25 +1004,29 @@ const JobListing = () => {
   // Submit application
   const handleSubmitApplication = async (applicationData) => {
     try {
-      const formData = new FormData();
-      formData.append("companyId", selectedJob.id);
-      formData.append("resume", applicationData.resume);
-      formData.append("coverLetter", applicationData.coverLetter);
-      formData.append("additionalInfo", applicationData.additionalInfo);
-
       const response = await axios.post(
         "http://localhost:6400/api/applications",
-        formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          companyId: selectedJob.id,
+          resume: applicationData.resume,
+          coverLetter: applicationData.coverLetter,
+          additionalInfo: applicationData.additionalInfo,
+        },
+        {
           withCredentials: true,
         }
       );
 
       if (response.status === 201) {
-        setApplications([...applications, response.data]);
+        // Add the new application to the applications state
+        const newApplication = {
+          ...response.data,
+          company: selectedJob.id, // Ensure we have the company ID
+        };
+        setApplications((prevApplications) => [
+          ...prevApplications,
+          newApplication,
+        ]);
         setIsModalOpen(false);
 
         setAlert({
@@ -1046,12 +1037,23 @@ const JobListing = () => {
     } catch (err) {
       console.error("Error submitting application:", err);
 
-      setAlert({
-        type: "error",
-        message:
-          err.response?.data?.message ||
-          "Failed to submit application. Please try again.",
-      });
+      // Check if the error is due to already having applied
+      if (
+        err.response?.status === 400 &&
+        err.response?.data?.message === "You have already applied for this job"
+      ) {
+        setAlert({
+          type: "warning",
+          message: "You have already applied for this job.",
+        });
+      } else {
+        setAlert({
+          type: "error",
+          message:
+            err.response?.data?.message ||
+            "Failed to submit application. Please try again.",
+        });
+      }
     }
 
     setTimeout(() => {
@@ -1075,7 +1077,12 @@ const JobListing = () => {
 
   // Check if user has applied to a job
   const hasAppliedToJob = (jobId) => {
-    return applications.some((app) => app.company === jobId);
+    return applications.some(
+      (app) =>
+        app.company === jobId &&
+        app.status !== "Rejected" &&
+        app.status !== "Declined"
+    );
   };
 
   if (loading) {
