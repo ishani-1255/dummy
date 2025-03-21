@@ -253,7 +253,8 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
                     </span>
                   </div>
                 )}
-                {application.status === "Accepted" &&
+                {(application.status === "Accepted" ||
+                  application.status === "Offered") &&
                   application.packageOffered && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-gray-600">Package Offered:</span>
@@ -317,21 +318,6 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
               </p>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="flex justify-end mt-6 space-x-3">
-          <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
-            <div className="flex items-center space-x-2">
-              <Printer className="h-4 w-4" />
-              <span>Print Details</span>
-            </div>
-          </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            <div className="flex items-center space-x-2">
-              <Edit className="h-4 w-4" />
-              <span>Update Status</span>
-            </div>
-          </button>
         </div>
       </div>
     </div>
@@ -832,7 +818,8 @@ const MyApplications = () => {
                             <StatusBadge status={application.status} />
                           </TableCell>
                           <TableCell>
-                            {application.status === "Accepted" &&
+                            {(application.status === "Accepted" ||
+                              application.status === "Offered") &&
                             application.packageOffered ? (
                               <span className="text-green-600 font-medium">
                                 {application.packageOffered}
