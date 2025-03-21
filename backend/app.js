@@ -24,6 +24,7 @@ const mongoose = require("mongoose");
 const { isLoggedIn } = require("./middleware");
 const Company = require("./model/companySchema");
 const Application = require("./model/applicationSchema");
+const Notification = require("./model/notificationSchema");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -584,14 +585,92 @@ app.post("/api/companies", async (req, res) => {
 // Update a company
 app.put("/api/companies/:id", async (req, res) => {
   try {
+    // Get the current company data before update
+    const currentCompany = await Company.findById(req.params.id);
+    if (!currentCompany) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
     const updatedCompany = await Company.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
-    if (!updatedCompany) {
-      return res.status(404).json({ message: "Company not found" });
+
+    // Check which fields were updated
+    const updatedFields = [];
+    if (
+      req.body.description &&
+      req.body.description !== currentCompany.description
+    ) {
+      updatedFields.push("Company Description");
     }
+    if (req.body.updates && req.body.updates !== currentCompany.updates) {
+      updatedFields.push("Updates");
+    }
+    if (req.body.package && req.body.package !== currentCompany.package) {
+      updatedFields.push("Package");
+    }
+    if (
+      req.body.requirements &&
+      req.body.requirements !== currentCompany.requirements
+    ) {
+      updatedFields.push("Requirements");
+    }
+    if (
+      req.body.visitingDate &&
+      new Date(req.body.visitingDate).toISOString() !==
+        new Date(currentCompany.visitingDate).toISOString()
+    ) {
+      updatedFields.push("Visiting Date");
+    }
+
+    // If there are any updated fields, create notifications for eligible students
+    if (updatedFields.length > 0) {
+      // Get all eligible students based on department criteria
+      const eligibleDepartments = updatedCompany.department;
+
+      // For each department, find students and create notifications
+      for (const dept of eligibleDepartments) {
+        const StudentModel =
+          dept === "CE"
+            ? ce
+            : dept === "CSE"
+            ? cse
+            : dept === "IT"
+            ? it
+            : dept === "SFE"
+            ? sfe
+            : dept === "ME"
+            ? me
+            : dept === "EEE"
+            ? eee
+            : dept === "EC"
+            ? ec
+            : null;
+
+        if (StudentModel) {
+          const students = await StudentModel.find({});
+
+          // Create notifications for each student
+          const notifications = students.map((student) => ({
+            student: student._id,
+            studentModel: dept,
+            type: "company",
+            title: `${updatedCompany.name} Update`,
+            message: `${
+              updatedCompany.name
+            } has updated the following: ${updatedFields.join(", ")}`,
+            company: updatedCompany._id,
+          }));
+
+          if (notifications.length > 0) {
+            await Notification.insertMany(notifications);
+          }
+        }
+      }
+    }
+
     res.status(200).json(updatedCompany);
   } catch (error) {
     console.error("Error updating company:", error);
@@ -836,6 +915,163 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
       message: "Error updating application",
       error: error.message,
     });
+  }
+});
+
+// Notification routes
+
+// Get all notifications for the current student
+app.get("/api/notifications", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const notifications = await Notification.find({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    }).sort({ createdAt: -1 }); // Sort by newest first
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching notifications", error: error.message });
+  }
+});
+
+// Mark all notifications as read
+app.put("/api/notifications/mark-all-read", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    await Notification.updateMany(
+      {
+        student: req.user._id,
+        studentModel: req.user.branch,
+        status: "unread",
+      },
+      { status: "read" }
+    );
+
+    res.status(200).json({ message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating notifications", error: error.message });
+  }
+});
+
+// Mark a notification as read
+app.put("/api/notifications/:id/read", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        student: req.user._id,
+        studentModel: req.user.branch,
+      },
+      { status: "read" },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.status(200).json(notification);
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating notification", error: error.message });
+  }
+});
+
+// Clear all notifications for a student
+app.delete("/api/notifications/clear-all", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    await Notification.deleteMany({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    res.status(200).json({ message: "All notifications cleared successfully" });
+  } catch (error) {
+    console.error("Error clearing notifications:", error);
+    res.status(500).json({ message: "Error clearing notifications" });
+  }
+});
+
+// Delete a specific notification
+app.delete("/api/notifications/:id", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.status(200).json({ message: "Notification deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    res
+      .status(500)
+      .json({ message: "Error deleting notification", error: error.message });
+  }
+});
+
+// Create a test notification (FOR TESTING ONLY)
+app.post("/api/test-notification", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { title, message, type } = req.body;
+
+    // Create a test notification for the current student
+    const notification = new Notification({
+      student: req.user._id,
+      studentModel: req.user.branch,
+      type: type || "company",
+      title: title || "Test Notification",
+      message:
+        message ||
+        "This is a test notification to verify the system is working.",
+      status: "unread",
+    });
+
+    await notification.save();
+    res.status(201).json(notification);
+  } catch (error) {
+    console.error("Error creating test notification:", error);
+    res
+      .status(500)
+      .json({
+        message: "Error creating test notification",
+        error: error.message,
+      });
   }
 });
 

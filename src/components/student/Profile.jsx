@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useUser } from "../../pages/UserContext";
 import {
   Building2,
@@ -64,6 +64,7 @@ import {
   ScrollArea,
 } from "../admin/UIComponents";
 import Sidebar from "./Sidebar";
+import axios from "axios";
 
 const Profile = () => {
   // Existing states from the original component...
@@ -177,34 +178,134 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sample notifications
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "interview",
-      title: "Interview Scheduled",
-      message:
-        "Your interview with Google has been scheduled for tomorrow at 2:00 PM.",
-      timestamp: "2 hours ago",
-      status: "unread",
-    },
-    {
-      id: 2,
-      type: "placement",
-      title: "Placement Update",
-      message: "Congratulations! You have been placed at Microsoft.",
-      timestamp: "1 day ago",
-      status: "read",
-    },
-    {
-      id: 3,
-      type: "company",
-      title: "New Company Registration",
-      message: "Amazon has registered for campus placements.",
-      timestamp: "2 days ago",
-      status: "read",
-    },
-  ]);
+  // Replace static notifications with dynamic state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  // Fetch notifications from backend
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        console.log("Fetching notifications...");
+        const response = await axios.get(
+          "http://localhost:6400/api/notifications",
+          { withCredentials: true }
+        );
+
+        console.log("Notifications response:", response);
+
+        if (response.data) {
+          setNotifications(response.data);
+          // Count unread notifications
+          const unread = response.data.filter(
+            (notification) => notification.status === "unread"
+          ).length;
+          setUnreadCount(unread);
+          console.log(
+            `Found ${response.data.length} notifications, ${unread} unread`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+        if (error.response) {
+          console.error("Response data:", error.response.data);
+          console.error("Response status:", error.response.status);
+        } else if (error.request) {
+          console.error(
+            "Request made but no response received:",
+            error.request
+          );
+        } else {
+          console.error("Error setting up request:", error.message);
+        }
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+
+    // Poll for new notifications every 5 minutes
+    const intervalId = setInterval(fetchNotifications, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(
+        `http://localhost:6400/api/notifications/${notificationId}/read`,
+        {},
+        { withCredentials: true }
+      );
+
+      // Update local state
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) =>
+          notification._id === notificationId
+            ? { ...notification, status: "read" }
+            : notification
+        )
+      );
+
+      // Update unread count
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      await axios.put(
+        "http://localhost:6400/api/notifications/mark-all-read",
+        {},
+        { withCredentials: true }
+      );
+
+      // Update local state
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) => ({
+          ...notification,
+          status: "read",
+        }))
+      );
+
+      // Reset unread count
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  // Function to remove notification
+  const removeNotification = async (notificationId) => {
+    try {
+      await axios.delete(
+        `http://localhost:6400/api/notifications/${notificationId}`,
+        { withCredentials: true }
+      );
+
+      // Update local state
+      setNotifications((prevNotifications) =>
+        prevNotifications.filter(
+          (notification) => notification._id !== notificationId
+        )
+      );
+
+      // Update unread count if needed
+      const removed = notifications.find((n) => n._id === notificationId);
+      if (removed && removed.status === "unread") {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error removing notification:", error);
+    }
+  };
 
   // Function to handle filtered notifications
   const filteredNotifications = notifications.filter((notification) => {
@@ -215,22 +316,6 @@ const Profile = () => {
 
     return matchesSearch && matchesTab;
   });
-
-  // Function to handle notification actions
-  const removeNotification = (id) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({
-        ...notification,
-        status: "read",
-      }))
-    );
-  };
 
   // Function to handle interest deletion
   const handleDeleteInterest = (index) => {
@@ -307,6 +392,21 @@ const Profile = () => {
     },
   ];
 
+  // Function to clear all notifications
+  const clearAllNotifications = async () => {
+    try {
+      await axios.delete("http://localhost:6400/api/notifications/clear-all", {
+        withCredentials: true,
+      });
+
+      // Update local state
+      setNotifications([]);
+      setUnreadCount(0); // Reset unread count when clearing all notifications
+    } catch (error) {
+      console.error("Error clearing all notifications:", error);
+    }
+  };
+
   return (
     <div className="flex">
       <Sidebar />
@@ -332,10 +432,15 @@ const Profile = () => {
                   <Mail className="h-4 w-4" />
                 </Button>
                 <Button
-                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  className="bg-blue-600 text-white hover:bg-blue-700 relative"
                   onClick={() => setNotificationsOpen(true)}
                 >
-                  <Bell className="h-4 w-4 " />
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Button>
               </div>
             </div>
@@ -1261,15 +1366,24 @@ const Profile = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="company">Companies</TabsTrigger>
                 <TabsTrigger value="interview">Interviews</TabsTrigger>
                 <TabsTrigger value="placement">Placements</TabsTrigger>
-                <TabsTrigger value="company">Companies</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              Mark all as read
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                Mark all as read
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={clearAllNotifications}
+              >
+                Clear All
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2 mb-4">
@@ -1284,7 +1398,12 @@ const Profile = () => {
 
           <ScrollArea className="max-h-[50vh]">
             <div className="space-y-3 pr-3">
-              {filteredNotifications.length === 0 ? (
+              {notificationsLoading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                  <p>Loading notifications...</p>
+                </div>
+              ) : filteredNotifications.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <Bell className="h-10 w-10 mx-auto mb-3 opacity-20" />
                   <p>No notifications found</p>
@@ -1292,12 +1411,16 @@ const Profile = () => {
               ) : (
                 filteredNotifications.map((notification) => (
                   <div
-                    key={notification.id}
+                    key={notification._id}
                     className={`p-3 rounded-lg border ${
                       notification.status === "unread"
                         ? "bg-blue-50 border-blue-100"
                         : "bg-white"
                     }`}
+                    onClick={() =>
+                      notification.status === "unread" &&
+                      markAsRead(notification._id)
+                    }
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex gap-3">
@@ -1326,8 +1449,19 @@ const Profile = () => {
                           <p className="text-sm text-gray-600">
                             {notification.message}
                           </p>
+                          {notification.company &&
+                            notification.type === "company" && (
+                              <a
+                                href="/all-companies"
+                                className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Check job listings for more info
+                              </a>
+                            )}
                           <p className="text-xs text-gray-500 mt-1">
-                            {notification.timestamp}
+                            {new Date(notification.createdAt).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -1335,7 +1469,10 @@ const Profile = () => {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => removeNotification(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeNotification(notification._id);
+                        }}
                       >
                         <X className="h-3 w-3" />
                       </Button>
