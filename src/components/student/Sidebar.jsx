@@ -23,26 +23,31 @@ import {
 const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center space-x-3 px-4 py-3 text-sm transition-colors duration-200
+    className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200
       ${
         isActive
           ? "bg-blue-600 text-white"
           : "text-gray-600 hover:bg-gray-100 hover:text-blue-600"
       }`}
   >
-    <Icon className="h-5 w-5" />
-    <span className="font-medium">{label}</span>
-    {badge && (
-      <span className="ml-auto bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">
-        {badge}
-      </span>
-    )}
-    {!badge && (
-      <ChevronRight
-        className={`h-4 w-4 ml-auto transform transition-transform duration-200
-        ${isActive ? "rotate-90" : ""}`}
-      />
-    )}
+    {/* Left Section: Icon and Label */}
+    <div className="flex items-center space-x-3">
+      <Icon className="h-5 w-5" />
+      <span className="font-medium">{label}</span>
+    </div>
+
+    {/* Right Section: Badge or Chevron */}
+    <div>
+      {badge ? (
+        <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">
+          {badge}
+        </span>
+      ) : (
+        <ChevronRight
+          className={`h-4 w-4 transform transition-transform duration-200 ${isActive ? "rotate-90" : ""}`}
+        />
+      )}
+    </div>
   </button>
 );
 
@@ -106,7 +111,7 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
-        <div className="space-y-1">
+        <div className="space-y-2">
           {navItems.map((item) => (
             <NavItem
               key={item.path}
