@@ -671,27 +671,7 @@ const FilterSidebar = ({ filters, setFilters, onReset }) => {
           </div>
         </div>
 
-        <div>
-          <h4 className="text-sm font-medium mb-2">Department</h4>
-          <div className="space-y-2">
-            {departments.map((dept) => (
-              <label key={dept} className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={filters.departments.includes(dept)}
-                  onChange={() => {
-                    const newDepartments = filters.departments.includes(dept)
-                      ? filters.departments.filter((d) => d !== dept)
-                      : [...filters.departments, dept];
-                    setFilters({ ...filters, departments: newDepartments });
-                  }}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
-                />
-                <span className="ml-2 text-sm text-gray-700">{dept}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+        
 
         <div>
           <h4 className="text-sm font-medium mb-2">Location</h4>
