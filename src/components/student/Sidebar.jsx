@@ -17,6 +17,7 @@ import {
   Bell,
   User,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 
 const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
@@ -87,7 +88,6 @@ const Sidebar = () => {
     { icon: Calendar, label: "Interview Schedule", path: "/interviews" },
     { icon: BookOpen, label: "Learning Resources", path: "/resources" },
     { icon: MessagesSquare, label: "Ask Queries", path: "/ask-queries" },
-    { icon: FileText, label: "LogOut", path: "/logout", onClick: handleLogout },
   ];
 
   return (
@@ -121,22 +121,31 @@ const Sidebar = () => {
         </div>
       </nav>
 
-      {/* Profile Section */}
+      {/* Profile Section with Logout Button */}
       <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50">
+        <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50 mb-3">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
             <User className="h-5 w-5 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-               {currentUser?.name || 'Student User'}
+              {currentUser?.name || 'Student User'}
             </p>
             <p className="text-xs text-gray-500 truncate">
-            {currentUser?.branch}
+              {currentUser?.branch}
             </p>
             <p className="text-xs text-blue-600 font-medium">Registration no: {currentUser?.registrationNumber}</p>
           </div>
         </div>
+        
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="font-medium">Logout</span>
+        </button>
       </div>
     </div>
   );
