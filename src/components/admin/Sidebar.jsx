@@ -13,7 +13,8 @@ import {
   DollarSign,
   UserCog,
   FileText,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
 
 const NavItem = ({ icon: Icon, label, path, isActive, onClick }) => (
@@ -70,7 +71,6 @@ const Sidebar = () => {
     { icon: UserCog, label: 'Coordinator Management', path: '/coordinator-management' },
     { icon: FileText, label: 'Reports', path: '/reports' },
     { icon: FileText, label: 'General Queries', path: '/queries' },
-    { icon: FileText, label: 'LogOut', path: '/logout', onClick: handleLogout },
   ];
 
   return (
@@ -104,9 +104,9 @@ const Sidebar = () => {
         </div>
       </nav>
 
-      {/* Footer */}
+      {/* Footer with User Info and Logout Button */}
       <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50">
+        <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50 mb-3">
           <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
             <UserCog className="h-4 w-4 text-blue-600" />
           </div>
@@ -119,6 +119,15 @@ const Sidebar = () => {
             </p>
           </div>
         </div>
+        
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="font-medium">Logout</span>
+        </button>
       </div>
     </div>
   );
