@@ -1,20 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, 
   Clock, 
   MapPin, 
-  Briefcase, 
-  ChevronDown, 
-  ChevronRight, 
-  Check, 
-  AlertCircle, 
   FileText, 
+  Trash2, 
+  Edit, 
+  Plus, 
+  AlertTriangle, 
+  CheckCircle, 
+  X,
+  Info,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronRight,
+  Check,
+  AlertCircle,
   Award,
   Bell,
-  X,
-  Info
+  Menu,
+  ExternalLink,
+  Briefcase,
+  Building2,
+  Star
 } from 'lucide-react';
-import Sidebar from "./Sidebar";
 import {
   Card,
   CardContent,
@@ -36,37 +46,48 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TabsContent
-} from "../admin/UIComponents"
+  TabsContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../admin/UIComponents";
+import Sidebar from "./Sidebar";
 
-const InterviewScheduler = () => {
+const InterviewPage = () => {
   // Sample data for scheduled interviews
   const [interviews, setInterviews] = useState([
     {
       id: 1,
       companyName: "Tech Innovators Inc.",
       position: "Software Developer Intern",
-      date: "2025-03-18",
+      date: "2025-03-28",
       time: "10:00 AM - 11:30 AM",
       location: "Online (Zoom)",
       round: "Technical Interview",
       status: "upcoming",
       documents: ["Resume", "Portfolio"],
       confirmed: true,
-      notes: "Prepare coding examples in React and Python. Review system design concepts."
+      notes: "Prepare coding examples in React and Python. Review system design concepts.",
+      interviewer: "Sarah Johnson",
+      interviewerRole: "Senior Engineering Manager"
     },
     {
       id: 2,
       companyName: "Global Finance Corp",
       position: "Data Analyst",
-      date: "2025-03-20",
+      date: "2025-03-30",
       time: "2:00 PM - 3:00 PM",
       location: "Room 302, Placement Block",
       round: "First Round",
       status: "upcoming",
       documents: ["Resume", "Case Study", "Transcript"],
       confirmed: false,
-      notes: "Research company background. Prepare for financial metrics questions."
+      notes: "Research company background. Prepare for financial metrics questions.",
+      interviewer: "Michael Chen",
+      interviewerRole: "Data Science Lead"
     },
     {
       id: 3,
@@ -79,12 +100,47 @@ const InterviewScheduler = () => {
       status: "completed",
       documents: ["Portfolio", "Design Case Studies"],
       confirmed: true,
-      notes: "Discuss design process and user research methodologies."
+      notes: "Discussed design process and user research methodologies.",
+      interviewer: "Emily Roberts",
+      interviewerRole: "Design Director",
+      feedback: "Strong portfolio, impressed with user-centered approach. Moving to next round."
+    },
+    {
+      id: 4,
+      companyName: "Innovative Healthcare Solutions",
+      position: "Healthcare Data Analyst",
+      date: "2025-03-18",
+      time: "9:30 AM - 10:30 AM",
+      location: "Building C, Room 405",
+      round: "Second Round",
+      status: "completed",
+      documents: ["Resume", "Case Study Response"],
+      confirmed: true,
+      notes: "Prepared analysis on healthcare data trends.",
+      interviewer: "Dr. Robert Lee",
+      interviewerRole: "Head of Data Analytics",
+      feedback: "Good analytical skills, needs improvement in healthcare domain knowledge."
+    },
+    {
+      id: 5,
+      companyName: "Future Tech Startups",
+      position: "Frontend Developer",
+      date: "2025-04-05",
+      time: "3:00 PM - 4:30 PM",
+      location: "Online (Google Meet)",
+      round: "Technical Assessment",
+      status: "upcoming",
+      documents: ["Resume", "Code Samples"],
+      confirmed: false,
+      notes: "Review React hooks, state management, and responsive design patterns.",
+      interviewer: "Alex Martinez",
+      interviewerRole: "CTO"
     }
   ]);
 
   const [expandedInterview, setExpandedInterview] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'upcoming', 'completed'
+  const [searchTerm, setSearchTerm] = useState("");
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [interviewToConfirm, setInterviewToConfirm] = useState(null);
   const [notifications, setNotifications] = useState([
@@ -94,14 +150,36 @@ const InterviewScheduler = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showInterviewDetails, setShowInterviewDetails] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Check screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Simulate loading
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Interview statistics
-  const stats = {
-    total: interviews.length,
-    upcoming: interviews.filter(i => i.status === 'upcoming').length,
-    completed: interviews.filter(i => i.status === 'completed').length,
-    confirmed: interviews.filter(i => i.confirmed).length
-  };
+  const stats = useMemo(() => {
+    return {
+      total: interviews.length,
+      upcoming: interviews.filter(i => i.status === 'upcoming').length,
+      completed: interviews.filter(i => i.status === 'completed').length,
+      confirmed: interviews.filter(i => i.confirmed).length
+    };
+  }, [interviews]);
 
   const toggleExpand = (id) => {
     if (expandedInterview === id) {
@@ -129,17 +207,30 @@ const InterviewScheduler = () => {
     setShowConfirmationModal(true);
   };
 
-  const filteredInterviews = interviews.filter(interview => {
-    if (filter === 'all') return true;
-    return interview.status === filter;
-  });
-
-  // Sort interviews by date (upcoming first)
-  const sortedInterviews = [...filteredInterviews].sort((a, b) => {
-    if (a.status === 'upcoming' && b.status !== 'upcoming') return -1;
-    if (a.status !== 'upcoming' && b.status === 'upcoming') return 1;
-    return new Date(a.date) - new Date(b.date);
-  });
+  const filteredInterviews = useMemo(() => {
+    let filtered = [...interviews];
+    
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (interview) =>
+          interview.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          interview.position.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply status filter
+    if (filter !== 'all') {
+      filtered = filtered.filter(interview => interview.status === filter);
+    }
+    
+    // Sort interviews by date (upcoming first)
+    return filtered.sort((a, b) => {
+      if (a.status === 'upcoming' && b.status !== 'upcoming') return -1;
+      if (a.status !== 'upcoming' && b.status === 'upcoming') return 1;
+      return new Date(a.date) - new Date(b.date);
+    });
+  }, [interviews, searchTerm, filter]);
 
   const formatDate = (dateString) => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -207,15 +298,65 @@ const InterviewScheduler = () => {
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
+  const handleDeleteInterview = (id) => {
+    setInterviews(interviews.filter(interview => interview.id !== id));
+    addNotification("Interview has been deleted successfully.");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen">
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+        <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your interviews...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      {/* Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-6">
+        {/* Mobile header */}
+        <div className="md:hidden bg-white p-4 flex items-center justify-between border-b">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="text-lg font-bold">Interview Scheduler</h1>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto p-4 md:p-6">
           {/* Header with Notification */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="hidden md:flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
               Interview Scheduler
             </h1>
@@ -306,70 +447,84 @@ const InterviewScheduler = () => {
           )}
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
             <Card>
-              <CardContent className="pt-6 pb-6">
+              <CardContent className="pt-4 pb-4 px-3 md:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">
                       Total Interviews
                     </p>
-                    <p className="text-3xl font-bold mt-1">{stats.total}</p>
+                    <p className="text-xl sm:text-3xl font-bold mt-1">{stats.total}</p>
                   </div>
-                  <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-blue-600" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6 pb-6">
+              <CardContent className="pt-4 pb-4 px-3 md:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Upcoming Interviews
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">
+                      Upcoming
                     </p>
-                    <p className="text-3xl font-bold mt-1">{stats.upcoming}</p>
+                    <p className="text-xl sm:text-3xl font-bold mt-1">{stats.upcoming}</p>
                   </div>
-                  <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-yellow-600" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6 pb-6">
+              <CardContent className="pt-4 pb-4 px-3 md:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">
                       Completed
                     </p>
-                    <p className="text-3xl font-bold mt-1">{stats.completed}</p>
+                    <p className="text-xl sm:text-3xl font-bold mt-1">{stats.completed}</p>
                   </div>
-                  <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <Check className="h-6 w-6 text-green-600" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <Check className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="pt-6 pb-6">
+              <CardContent className="pt-4 pb-4 px-3 md:px-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
+                    <p className="text-xs sm:text-sm font-medium text-gray-500">
                       Confirmed
                     </p>
-                    <p className="text-3xl font-bold mt-1">{stats.confirmed}</p>
+                    <p className="text-xl sm:text-3xl font-bold mt-1">{stats.confirmed}</p>
                   </div>
-                  <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Check className="h-6 w-6 text-purple-600" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 bg-purple-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* Search and Filters */}
+          <div className="mb-6 flex flex-col space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by company or position..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
           
           {/* Filter Tabs */}
@@ -377,12 +532,12 @@ const InterviewScheduler = () => {
             <CardContent className="p-0">
               <Tabs defaultValue="all" onValueChange={setFilter} className="w-full">
                 <div className="border-b">
-                  <div className="px-6 pt-6 pb-2">
-                    <h2 className="text-lg font-medium text-gray-800">
+                  <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+                    <h2 className="text-base sm:text-lg font-medium text-gray-800">
                       Your Interviews
                     </h2>
                   </div>
-                  <TabsList className="w-full bg-transparent border-b border-gray-100 pl-6 rounded-none">
+                  <TabsList className="w-full bg-transparent border-b border-gray-100 px-4 sm:px-6 rounded-none overflow-x-auto">
                     <TabsTrigger 
                       value="all" 
                       className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:shadow-none"
@@ -406,40 +561,76 @@ const InterviewScheduler = () => {
                 
                 {/* Tab Content */}
                 <TabsContent value="all" className="mt-0 pt-0">
-                  <InterviewList 
-                    interviews={sortedInterviews} 
-                    expandedInterview={expandedInterview}
-                    toggleExpand={toggleExpand}
-                    handleConfirmClick={handleConfirmClick}
-                    handleInterviewClick={handleInterviewClick}
-                    formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
-                    getDaysUntil={getDaysUntil}
-                  />
+                  {isMobile ? (
+                    <MobileInterviewList 
+                      interviews={filteredInterviews} 
+                      handleInterviewClick={handleInterviewClick}
+                      handleConfirmClick={handleConfirmClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                    />
+                  ) : (
+                    <DesktopInterviewList 
+                      interviews={filteredInterviews} 
+                      expandedInterview={expandedInterview}
+                      toggleExpand={toggleExpand}
+                      handleConfirmClick={handleConfirmClick}
+                      handleInterviewClick={handleInterviewClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                      handleDeleteInterview={handleDeleteInterview}
+                    />
+                  )}
                 </TabsContent>
                 <TabsContent value="upcoming" className="mt-0 pt-0">
-                  <InterviewList 
-                    interviews={sortedInterviews} 
-                    expandedInterview={expandedInterview}
-                    toggleExpand={toggleExpand}
-                    handleConfirmClick={handleConfirmClick}
-                    handleInterviewClick={handleInterviewClick}
-                    formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
-                    getDaysUntil={getDaysUntil}
-                  />
+                  {isMobile ? (
+                    <MobileInterviewList 
+                      interviews={filteredInterviews} 
+                      handleInterviewClick={handleInterviewClick}
+                      handleConfirmClick={handleConfirmClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                    />
+                  ) : (
+                    <DesktopInterviewList 
+                      interviews={filteredInterviews} 
+                      expandedInterview={expandedInterview}
+                      toggleExpand={toggleExpand}
+                      handleConfirmClick={handleConfirmClick}
+                      handleInterviewClick={handleInterviewClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                      handleDeleteInterview={handleDeleteInterview}
+                    />
+                  )}
                 </TabsContent>
                 <TabsContent value="completed" className="mt-0 pt-0">
-                  <InterviewList 
-                    interviews={sortedInterviews} 
-                    expandedInterview={expandedInterview}
-                    toggleExpand={toggleExpand}
-                    handleConfirmClick={handleConfirmClick}
-                    handleInterviewClick={handleInterviewClick}
-                    formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
-                    getDaysUntil={getDaysUntil}
-                  />
+                  {isMobile ? (
+                    <MobileInterviewList 
+                      interviews={filteredInterviews} 
+                      handleInterviewClick={handleInterviewClick}
+                      handleConfirmClick={handleConfirmClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                    />
+                  ) : (
+                    <DesktopInterviewList 
+                      interviews={filteredInterviews} 
+                      expandedInterview={expandedInterview}
+                      toggleExpand={toggleExpand}
+                      handleConfirmClick={handleConfirmClick}
+                      handleInterviewClick={handleInterviewClick}
+                      formatDate={formatDate}
+                      getStatusBadge={getStatusBadge}
+                      getDaysUntil={getDaysUntil}
+                      handleDeleteInterview={handleDeleteInterview}
+                    />
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -517,49 +708,17 @@ const InterviewScheduler = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center mb-3">
-                      <Calendar className="h-5 w-5 text-gray-500 mr-2" />
-                      <h3 className="font-medium">Date & Time</h3>
+                      <FileText className="h-5 w-5 text-gray-500 mr-2" />
+                      <h3 className="font-medium">Required Documents</h3>
                     </div>
-                    <div className="space-y-2 pl-7">
-                      <p className="text-gray-800">{formatDate(selectedInterview.date)}</p>
-                      <p className="text-gray-800">{selectedInterview.time}</p>
-                      {selectedInterview.status === 'upcoming' && (
-                        <p className="text-blue-600 text-sm font-medium mt-1">
-                          {getDaysUntil(selectedInterview.date)}
-                        </p>
-                      )}
+                    <div className="flex flex-wrap gap-2 pl-7">
+                      {selectedInterview.documents.map((doc, index) => (
+                        <Badge key={index} className="bg-gray-100 text-gray-800 hover:bg-gray-200">
+                          <FileText className="h-3 w-3 mr-1.5" />
+                          {doc}
+                        </Badge>
+                      ))}
                     </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center mb-3">
-                      <MapPin className="h-5 w-5 text-gray-500 mr-2" />
-                      <h3 className="font-medium">Location</h3>
-                    </div>
-                    <div className="space-y-2 pl-7">
-                      <p className="text-gray-800">{selectedInterview.location}</p>
-                      {selectedInterview.location.includes("Online") && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="mt-2 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
-                        >
-                          Join Meeting
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <h3 className="font-medium text-gray-800">Required Documents</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedInterview.documents.map((doc, index) => (
-                      <Badge key={index} className="bg-gray-100 text-gray-800 hover:bg-gray-200">
-                        <FileText className="h-3 w-3 mr-1.5" />
-                        {doc}
-                      </Badge>
-                    ))}
                   </div>
                 </div>
                 
@@ -568,6 +727,15 @@ const InterviewScheduler = () => {
                     <h3 className="font-medium text-gray-800">Notes</h3>
                     <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
                       {selectedInterview.notes}
+                    </p>
+                  </div>
+                )}
+                
+                {selectedInterview.feedback && (
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-gray-800">Feedback</h3>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
+                      {selectedInterview.feedback}
                     </p>
                   </div>
                 )}
@@ -584,7 +752,7 @@ const InterviewScheduler = () => {
                 )}
               </div>
               
-              <div className="flex justify-end space-x-4 mt-6">
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
                 <Button
                   variant="outline"
                   onClick={() => setShowInterviewDetails(false)}
@@ -608,19 +776,97 @@ const InterviewScheduler = () => {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Mobile Add Button */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6">
+          <button
+            className="h-14 w-14 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg hover:bg-blue-700"
+            aria-label="Add Interview"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-// Interview List Component
-const InterviewList = ({ 
-  interviews, 
-  expandedInterview, 
-  toggleExpand, 
+// Mobile Interview Card Component
+const MobileInterviewCard = ({ 
+  interview, 
+  handleInterviewClick, 
   handleConfirmClick,
+  formatDate,
+  getStatusBadge,
+  getDaysUntil
+}) => {
+  return (
+    <Card className="mb-4 hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-medium text-lg">{interview.companyName}</h3>
+            <p className="text-sm text-gray-600">{interview.position}</p>
+          </div>
+          {getStatusBadge(interview.status, interview.confirmed)}
+        </div>
+        
+        <div className="text-sm space-y-2 mb-4">
+          <div className="flex items-center">
+            <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+            <span>{formatDate(interview.date)}</span>
+          </div>
+          <div className="flex items-center">
+            <Clock className="h-4 w-4 text-gray-500 mr-2" />
+            <span>{interview.time}</span>
+          </div>
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+            <span>{interview.location}</span>
+          </div>
+          {interview.status === 'upcoming' && (
+            <div className="flex items-center">
+              <Info className="h-4 w-4 text-blue-500 mr-2" />
+              <span className="text-blue-600 font-medium">{getDaysUntil(interview.date)}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleInterviewClick(interview)}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <ExternalLink className="h-4 w-4 mr-1.5" />
+            Details
+          </Button>
+          
+          {interview.status === 'upcoming' && !interview.confirmed && (
+            <Button 
+              size="sm"
+              onClick={() => handleConfirmClick(interview.id)}
+              className="bg-green-500 hover:bg-green-600 text-white"
+            >
+              <Check className="h-4 w-4 mr-1.5" />
+              Confirm
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Mobile Interview List
+const MobileInterviewList = ({ 
+  interviews, 
   handleInterviewClick,
-  formatDate, 
-  getStatusBadge, 
+  handleConfirmClick,
+  formatDate,
+  getStatusBadge,
   getDaysUntil
 }) => {
   if (interviews.length === 0) {
@@ -638,125 +884,202 @@ const InterviewList = ({
   }
 
   return (
-    <div className="divide-y divide-gray-200">
+    <div className="p-3 sm:p-4">
       {interviews.map(interview => (
-        <div key={interview.id} className="hover:bg-gray-50 transition duration-150">
-          <div className="p-4 cursor-pointer">
-            <div className="flex flex-col md:flex-row md:items-center">
-              <div className="md:w-1/3 mb-3 md:mb-0">
-                <div className="flex items-center space-x-2">
-                  {getStatusBadge(interview.status, interview.confirmed)}
-                  <span className="text-sm font-medium text-gray-500">
-                    {interview.round}
-                  </span>
-                  {interview.status === 'upcoming' && (
-                    <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">
-                      {getDaysUntil(interview.date)}
-                    </span>
-                  )}
-                </div>
-                
-                <h3 className="font-medium text-gray-900 mt-2 text-lg">
-                  {interview.companyName}
-                </h3>
-                <div className="text-sm text-gray-600 mt-1">
-                  {interview.position}
-                </div>
-              </div>
-              
-              <div className="md:w-1/3 flex flex-col space-y-2 md:space-y-0 md:flex-row md:space-x-6 mb-3 md:mb-0">
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">
-                    {formatDate(interview.date)}
-                  </span>
-                </div>
-                
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">
-                    {interview.time}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="md:w-1/6 flex items-center mb-3 md:mb-0">
-                <MapPin className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                <span className="text-sm text-gray-600">
-                  {interview.location}
-                </span>
-              </div>
-              
-              <div className="md:w-1/6 flex items-center justify-end space-x-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleInterviewClick(interview)}
-                  className="text-blue-600 hover:bg-blue-50"
-                >
-                  Details
-                </Button>
-                
-                {interview.status === 'upcoming' && !interview.confirmed && (
-                  <Button 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleConfirmClick(interview.id);
-                    }}
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    Confirm
-                  </Button>
-                )}
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleExpand(interview.id)}
-                >
-                  {expandedInterview === interview.id ? (
-                    <ChevronDown className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {expandedInterview === interview.id && (
-            <div className="px-4 pb-4 pt-1 bg-gray-50">
-              <div className="border-t border-gray-200 pt-3">
-                <h4 className="font-medium text-gray-800 mb-2">
-                  Required Documents
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {interview.documents.map((doc, index) => (
-                    <Badge key={index} className="bg-gray-100 text-gray-800">
-                      <FileText className="h-3 w-3 mr-1" />
-                      {doc}
-                    </Badge>
-                  ))}
-                </div>
-                
-                {interview.notes && (
-                  <div className="mt-4">
-                    <h4 className="font-medium text-gray-800 mb-2">
-                      Notes
-                    </h4>
-                    <p className="text-sm text-gray-700 bg-white p-3 rounded-md border border-gray-100">
-                      {interview.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <MobileInterviewCard
+          key={interview.id}
+          interview={interview}
+          handleInterviewClick={handleInterviewClick}
+          handleConfirmClick={handleConfirmClick}
+          formatDate={formatDate}
+          getStatusBadge={getStatusBadge}
+          getDaysUntil={getDaysUntil}
+        />
       ))}
     </div>
   );
 };
 
-export default InterviewScheduler;
+// Desktop Interview List Component
+const DesktopInterviewList = ({ 
+  interviews, 
+  expandedInterview, 
+  toggleExpand, 
+  handleConfirmClick,
+  handleInterviewClick,
+  formatDate, 
+  getStatusBadge, 
+  getDaysUntil,
+  handleDeleteInterview
+}) => {
+  if (interviews.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <div className="flex flex-col items-center justify-center">
+          <Calendar className="h-10 w-10 mb-2 text-gray-400" />
+          <p>No interviews found</p>
+          <p className="text-sm mt-1">
+            Try adjusting your filters
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[25%]">Company & Position</TableHead>
+          <TableHead className="w-[20%]">Date & Time</TableHead>
+          <TableHead className="w-[20%]">Location</TableHead>
+          <TableHead className="w-[15%]">Interview Round</TableHead>
+          <TableHead className="w-[10%]">Status</TableHead>
+          <TableHead className="w-[10%] text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {interviews.map(interview => (
+          <React.Fragment key={interview.id}>
+            <TableRow className="hover:bg-gray-50">
+              <TableCell>
+                <div className="font-medium">{interview.companyName}</div>
+                <div className="text-sm text-gray-500">{interview.position}</div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm">{formatDate(interview.date)}</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm">{interview.time}</span>
+                </div>
+                {interview.status === 'upcoming' && (
+                  <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded mt-1 inline-block">
+                    {getDaysUntil(interview.date)}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm">{interview.location}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm">{interview.round}</span>
+              </TableCell>
+              <TableCell>
+                {getStatusBadge(interview.status, interview.confirmed)}
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleInterviewClick(interview)}
+                    className="text-blue-600 hover:bg-blue-50"
+                  >
+                    Details
+                  </Button>
+                  
+                  {interview.status === 'upcoming' && !interview.confirmed && (
+                    <Button 
+                      size="sm"
+                      onClick={() => handleConfirmClick(interview.id)}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      Confirm
+                    </Button>
+                  )}
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => toggleExpand(interview.id)}
+                  >
+                    {expandedInterview === interview.id ? (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+            
+            {expandedInterview === interview.id && (
+              <TableRow>
+                <TableCell colSpan={6} className="bg-gray-50 p-0">
+                  <div className="px-4 py-3">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">
+                          Interviewer
+                        </h4>
+                        <p className="text-sm">
+                          {interview.interviewer} <span className="text-gray-500">({interview.interviewerRole})</span>
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium text-gray-800 mb-2">
+                          Required Documents
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {interview.documents.map((doc, index) => (
+                            <Badge key={index} className="bg-gray-100 text-gray-800">
+                              <FileText className="h-3 w-3 mr-1" />
+                              {doc}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end items-start">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteInterview(interview.id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {interview.notes && (
+                      <div className="mt-4">
+                        <h4 className="font-medium text-gray-800 mb-2">
+                          Notes
+                        </h4>
+                        <p className="text-sm text-gray-700 bg-white p-3 rounded-md border border-gray-100">
+                          {interview.notes}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {interview.feedback && (
+                      <div className="mt-4">
+                        <h4 className="font-medium text-gray-800 mb-2">
+                          Feedback
+                        </h4>
+                        <p className="text-sm text-gray-700 bg-white p-3 rounded-md border border-gray-100">
+                          {interview.feedback}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </React.Fragment>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
+
+export default InterviewPage; 

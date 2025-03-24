@@ -410,7 +410,7 @@ const Profile = () => {
   return (
     <div className="flex">
       <Sidebar />
-      <div className="flex-1 min-h-screen bg-gray-50 max-md:mt-12">
+      <div className="flex-1 min-h-screen bg-gray-50 ">
         <div className="max-w-7xl mx-auto p-6 ">
           {/* Enhanced Header with Stats */}
           <div className="mb-8 ">
