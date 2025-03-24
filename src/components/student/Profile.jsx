@@ -410,11 +410,11 @@ const Profile = () => {
   return (
     <div className="flex">
       <Sidebar />
-      <div className="flex-1 min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
+      <div className="flex-1 min-h-screen bg-gray-50 max-md:mt-12">
+        <div className="max-w-7xl mx-auto p-6 ">
           {/* Enhanced Header with Stats */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
+          <div className="mb-8 ">
+            <div className="flex justify-between items-center mb-6 ">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">
                   Student Profile
@@ -446,7 +446,7 @@ const Profile = () => {
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 max-md:grid-cols-2 lg:grid-cols-4 gap-4">
               {stats.map((stat, index) => (
                 <Card key={index}>
                   <CardContent className="p-4 flex pt-4 items-center space-x-4">
@@ -466,7 +466,7 @@ const Profile = () => {
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-4 gap-6">
+          <div className="flex flex-row gap-6 max-md:flex  max-md:flex-col">
             {/* Left Column - Profile Card */}
             <div className="col-span-1">
               <Card className="sticky top-6">

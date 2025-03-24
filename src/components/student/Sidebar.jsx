@@ -18,6 +18,8 @@ import {
   User,
   ChevronRight,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
 const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
@@ -56,15 +58,44 @@ const Sidebar = () => {
   const location = useLocation();
   const { logout, currentUser } = useUser(); // Use the context
   const [activePath, setActivePath] = useState(location.pathname);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Update active path when location changes
   useEffect(() => {
     setActivePath(location.pathname);
   }, [location.pathname]);
 
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const sidebar = document.getElementById("mobile-sidebar");
+      const hamburger = document.getElementById("hamburger-button");
+      if (
+        isOpen &&
+        sidebar &&
+        !sidebar.contains(event.target) &&
+        hamburger &&
+        !hamburger.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    // Close sidebar when route changes on mobile
+    if (isOpen) {
+      setIsOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [location.pathname]);
+
   const handleNavigation = (path) => {
     setActivePath(path);
     navigate(path);
+    setIsOpen(false); // Close sidebar on navigation for mobile
   };
 
   const handleLogout = async () => {
@@ -95,38 +126,85 @@ const Sidebar = () => {
     { icon: MessagesSquare, label: "Ask Queries", path: "/ask-queries" },
   ];
 
+  // Hamburger button for mobile
+  const hamburgerButton = (
+    <button
+      id="hamburger-button"
+      onClick={() => setIsOpen(!isOpen)}
+      className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-100"
+    >
+      {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+    </button>
+  );
+
   return (
-    <div className="h-screen w-72 bg-white border-r border-gray-200 flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
-          </div>
-        </div>
+    <>
+      {/* Hamburger Button */}
+      {hamburgerButton}
+
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar for desktop */}
+      <div className="hidden lg:block h-screen w-72 bg-white border-r border-gray-200 flex flex-col">
+        {renderSidebarContent()}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
-        <div className="space-y-2">
-          {navItems.map((item) => (
-            <NavItem
-              key={item.path}
-              icon={item.icon}
-              label={item.label}
-              path={item.path}
-              isActive={activePath === item.path}
-              onClick={item.onClick || (() => handleNavigation(item.path))}
-              badge={item.badge}
-            />
-          ))}
-        </div>
-      </nav>
+      {/* Sidebar for mobile - slides in from left */}
+      <div
+        id="mobile-sidebar"
+        className={`lg:hidden fixed inset-y-0 left-0 w-72 bg-white z-40 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        } shadow-xl flex flex-col`}
+      >
+        {renderSidebarContent()}
+      </div>
+    </>
+  );
 
-      {/* Profile Section with Logout Button */}
+  function renderSidebarContent() {
+    return (
+      <>
+       
+    <div className="flex flex-col h-full justify-between">
+      {/* First div: Header and Navigation */}
+      <div>
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <GraduationCap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          <div className="space-y-2">
+            {navItems.map((item) => (
+              <NavItem
+                key={item.path}
+                icon={item.icon}
+                label={item.label}
+                path={item.path}
+                isActive={activePath === item.path}
+                onClick={item.onClick || (() => handleNavigation(item.path))}
+                badge={item.badge}
+              />
+            ))}
+          </div>
+        </nav>
+      </div>
+
+      {/* Second div: Profile Section */}
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50 mb-3">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -134,15 +212,17 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {currentUser?.name || 'Student User'}
+              {currentUser?.name || "Student User"}
             </p>
             <p className="text-xs text-gray-500 truncate">
               {currentUser?.branch}
             </p>
-            <p className="text-xs text-blue-600 font-medium">Registration no: {currentUser?.registrationNumber}</p>
+            <p className="text-xs text-blue-600 font-medium">
+              Registration no: {currentUser?.registrationNumber}
+            </p>
           </div>
         </div>
-        
+
         {/* Logout Button */}
         <button
           onClick={handleLogout}
@@ -153,7 +233,10 @@ const Sidebar = () => {
         </button>
       </div>
     </div>
-  );
+  
+      </>
+    );
+  }
 };
 
 export default Sidebar;

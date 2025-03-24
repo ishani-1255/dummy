@@ -124,29 +124,29 @@ const LoginForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="flex w-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-6">
+      <div className="flex flex-col md:flex-row w-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Left Side - College Logo Section */}
-        <div className="w-1/2 bg-blue-50 flex flex-col items-center justify-center p-8">
-          <div className="mb-6">
+        <div className="w-full md:w-1/2 bg-blue-50 flex flex-col items-center justify-center p-6 md:p-8">
+          <div className="mb-4 md:mb-6">
             {/* Replace with your actual college logo */}
             <img 
               src="https://upload.wikimedia.org/wikipedia/en/6/6f/Cochin_University_of_Science_and_Technology_Logo.png" 
               alt="College Logo" 
-              className="w-40 h-40 object-contain"
+              className="w-24 h-24 md:w-40 md:h-40 object-contain"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 text-center">Cochin University of Science and Tecnology</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800 text-center">Cochin University of Science and Technology</h1>
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="w-1/2 p-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+        <div className="w-full md:w-1/2 p-6 md:p-8">
+          <div className="text-center mb-4 md:mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Welcome Back</h2>
             <p className="mt-1 text-sm text-gray-600">Sign in to your account</p>
           </div>
 
-          <form className="space-y-5" onSubmit={handleLogin}>
+          <form className="space-y-4 md:space-y-5" onSubmit={handleLogin}>
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
                 {error}
@@ -219,7 +219,7 @@ const LoginForm = () => {
               </InputField>
             )}
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-1 space-y-2 sm:space-y-0">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -257,7 +257,7 @@ const LoginForm = () => {
           </form>
 
           {/* Security Notice */}
-          <div className="mt-6 text-center text-xs text-gray-500">
+          <div className="mt-4 md:mt-6 text-center text-xs text-gray-500">
             <p>This is a secure login portal.</p>
             <p>All login attempts are monitored and logged.</p>
           </div>
@@ -266,25 +266,25 @@ const LoginForm = () => {
 
       {/* Modal for Signup Selection */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full mx-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 max-w-sm w-full mx-4">
             <div className="flex justify-center mb-4">
-              <Shield className="h-12 w-12 text-blue-600" />
+              <Shield className="h-10 w-10 md:h-12 md:w-12 text-blue-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 text-center mb-6">
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 text-center mb-4 md:mb-6">
               Choose Account Type
             </h2>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:gap-4">
               <button
                 onClick={() => handleSignUp("student")}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md 
+                className="w-full py-2.5 md:py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md 
                   shadow-sm transition-colors duration-200 font-medium"
               >
                 Sign up as Student
               </button>
               <button
                 onClick={() => handleSignUp("admin")}
-                className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-md 
+                className="w-full py-2.5 md:py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-md 
                   shadow-sm transition-colors duration-200 font-medium"
               >
                 Sign up as Admin
