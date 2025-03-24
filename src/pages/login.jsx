@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useUser } from "./UserContext";
 import { AtSign, Lock, Shield, UserCircle } from "lucide-react";
 
@@ -125,30 +124,34 @@ const LoginForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-sm p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <UserCircle className="h-12 w-12 text-blue-600" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex w-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* Left Side - College Logo Section */}
+        <div className="w-1/2 bg-blue-50 flex flex-col items-center justify-center p-8">
+          <div className="mb-6">
+            {/* Replace with your actual college logo */}
+            <img 
+              src="https://upload.wikimedia.org/wikipedia/en/6/6f/Cochin_University_of_Science_and_Technology_Logo.png" 
+              alt="College Logo" 
+              className="w-40 h-40 object-contain"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-800 text-center">Cochin University of Science and Tecnology</h1>
         </div>
 
-        <form className="space-y-6" onSubmit={handleLogin}>
-          {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-              {error}
-            </div>
-          )}
+        {/* Right Side - Login Form */}
+        <div className="w-1/2 p-8">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+            <p className="mt-1 text-sm text-gray-600">Sign in to your account</p>
+          </div>
 
-          <div className="space-y-6">
-            <div className="border-b pb-2">
-              <h2 className="text-sm font-medium text-gray-700">
-                Login Credentials
-              </h2>
-            </div>
+          <form className="space-y-5" onSubmit={handleLogin}>
+            {error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
 
             <InputField
               label="Username"
@@ -220,7 +223,7 @@ const LoginForm = () => {
               </InputField>
             )}
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -235,33 +238,33 @@ const LoginForm = () => {
                 Forgot password?
               </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-blue-600 text-white font-medium rounded-md 
-              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
-              transition-colors duration-200"
-          >
-            Sign In
-          </button>
-
-          <div className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
             <button
-              type="button"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-              onClick={() => setIsModalOpen(true)}
+              type="submit"
+              className="w-full py-2.5 bg-blue-600 text-white font-medium rounded-md 
+                hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
+                transition-colors duration-200"
             >
-              Sign up
+              Sign In
             </button>
-          </div>
-        </form>
 
-        {/* Security Notice */}
-        <div className="mt-8 text-center text-xs text-gray-500">
-          <p>This is a secure login portal.</p>
-          <p>All login attempts are monitored and logged.</p>
+            <div className="text-center text-sm text-gray-600">
+              Don't have an account?{" "}
+              <button
+                type="button"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+                onClick={() => setIsModalOpen(true)}
+              >
+                Sign up
+              </button>
+            </div>
+          </form>
+
+          {/* Security Notice */}
+          <div className="mt-6 text-center text-xs text-gray-500">
+            <p>This is a secure login portal.</p>
+            <p>All login attempts are monitored and logged.</p>
+          </div>
         </div>
       </div>
 
