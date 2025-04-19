@@ -214,7 +214,7 @@ const LoginForm = () => {
                 </option>
                 <option value="CE">Civil Engineering (CE)</option>
                 <option value="IT">Information Technology (IT)</option>
-                <option value="SFE">Software Engineering (SFE)</option>
+                <option value="SFE">Safety & Fire Engineering (SFE)</option>
                 <option value="ME">Mechanical Engineering (ME)</option>
                 <option value="EEE">
                   Electrical and Electronics Engineering (EEE)

@@ -69,6 +69,24 @@ const studentSchema = new mongoose.Schema({
     enum: ["Yes", "No"], // Restrict to "Yes" or "No"
     default: "No", // Default value is "No"
   },
+  // Placement fields
+  isPlaced: {
+    type: Boolean,
+    default: false,
+  },
+  placementCompany: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Company",
+    default: null,
+  },
+  placementPackage: {
+    type: Number,
+    default: null,
+  },
+  placementDate: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now, // Automatically set the creation date

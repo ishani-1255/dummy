@@ -46,6 +46,299 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:6400";
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true; // Ensures cookies are sent with requests
 
+// Add a simplified dialog component before the main PlacementDetailsDialog component
+const SimplePlacementInfoDialog = ({
+  isOpen,
+  onClose,
+  student,
+  onViewMoreDetails,
+}) => {
+  if (!isOpen) return null;
+
+  // Function to safely format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return "N/A";
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
+    }
+  };
+
+  // Function to safely get company name
+  const getCompanyName = () => {
+    if (!student?.placementCompany) return "N/A";
+
+    // If placementCompany is an object with a name property
+    if (
+      typeof student.placementCompany === "object" &&
+      student.placementCompany?.name
+    ) {
+      return student.placementCompany.name;
+    }
+
+    // If it's just a string (company name directly)
+    return student.placementCompany.toString();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg">
+            Placement Status - {student?.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Status</p>
+              <p
+                className={`font-medium ${
+                  student?.isPlaced ? "text-green-600" : "text-yellow-600"
+                }`}
+              >
+                {student?.isPlaced ? "Placed" : "Not Placed"}
+              </p>
+            </div>
+
+            {student?.isPlaced && (
+              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                Placed
+              </div>
+            )}
+          </div>
+
+          {student?.isPlaced && (
+            <div className="space-y-2 mb-4">
+              <div>
+                <p className="text-sm text-gray-500">Company</p>
+                <p className="font-medium">{getCompanyName()}</p>
+              </div>
+
+              {student.placementPackage && (
+                <div>
+                  <p className="text-sm text-gray-500">Package</p>
+                  <p className="font-medium">₹{student.placementPackage} LPA</p>
+                </div>
+              )}
+
+              {student.placementDate && (
+                <div>
+                  <p className="text-sm text-gray-500">Placement Date</p>
+                  <p className="font-medium">
+                    {formatDate(student.placementDate)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <Button
+            className="w-full mt-2"
+            onClick={(e) => {
+              e.preventDefault();
+              onViewMoreDetails();
+            }}
+          >
+            View Application History
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Update the PlacementDetailsDialog title and layout
+const PlacementDetailsDialog = ({
+  isOpen,
+  onClose,
+  placementInfo,
+  studentName,
+}) => {
+  if (!isOpen) return null;
+
+  // Function to safely format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return "N/A";
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
+    }
+  };
+
+  // Function to safely get company name
+  const getCompanyName = (companyData) => {
+    if (!companyData) return "N/A";
+
+    // If companyData is an object with a name property
+    if (typeof companyData === "object" && companyData?.name) {
+      return companyData.name;
+    }
+
+    // If it's just a string (company name directly)
+    return companyData.toString();
+  };
+
+  // Log placementInfo data for debugging
+  console.log("Rendering PlacementDetailsDialog with data:", placementInfo);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            Complete Placement History - {studentName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {placementInfo.loading && (
+          <div className="p-8 text-center">
+            <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+            <p className="mt-4">Loading placement information...</p>
+          </div>
+        )}
+
+        {placementInfo.error && (
+          <div className="p-6 bg-red-50 text-red-700 rounded-md">
+            <AlertCircle className="h-6 w-6 mb-2" />
+            <p>{placementInfo.error}</p>
+          </div>
+        )}
+
+        {placementInfo.data && (
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-md">
+              <h3 className="text-lg font-medium mb-4 flex items-center">
+                <span className="mr-2">Current Placement Status</span>
+                {placementInfo.data.isPlaced && (
+                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                    Placed
+                  </span>
+                )}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-gray-500 text-sm mb-1">Status</p>
+                  <p
+                    className={`font-medium ${
+                      placementInfo.data.isPlaced
+                        ? "text-green-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    {placementInfo.data.isPlaced ? "Placed" : "Not Placed"}
+                  </p>
+                </div>
+
+                {placementInfo.data.isPlaced && (
+                  <>
+                    <div>
+                      <p className="text-gray-500 text-sm mb-1">Company</p>
+                      <p className="font-medium">
+                        {getCompanyName(placementInfo.data.placementCompany)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-sm mb-1">Package</p>
+                      <p className="font-medium">
+                        {placementInfo.data.placementPackage
+                          ? `₹${placementInfo.data.placementPackage} LPA`
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-sm mb-1">
+                        Placement Date
+                      </p>
+                      <p className="font-medium">
+                        {formatDate(placementInfo.data.placementDate)}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium mb-4">
+                Detailed Application History
+              </h3>
+              {placementInfo.applications &&
+              placementInfo.applications.length > 0 ? (
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Application Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Package (if offered)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {placementInfo.applications.map((application) => (
+                        <TableRow
+                          key={application._id || Math.random().toString()}
+                        >
+                          <TableCell className="font-medium">
+                            {getCompanyName(application.company)}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(
+                              application.createdAt || application.appliedDate
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                application.status === "Accepted"
+                                  ? "bg-green-100 text-green-800"
+                                  : application.status === "Rejected"
+                                  ? "bg-red-100 text-red-800"
+                                  : application.status === "Offered"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {application.status || "Applied"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {application.packageOffered
+                              ? `₹${application.packageOffered} LPA`
+                              : "N/A"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center p-8 bg-gray-50 rounded-md">
+                  <p className="text-gray-500">No application history found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const EnhancedStudentSearch = () => {
   const [departments, setDepartmentsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +355,7 @@ const EnhancedStudentSearch = () => {
     cgpaRange: "all",
     backlog: "all",
     verified: "all",
+    batch: "all",
   });
 
   const [placementInfo, setPlacementInfo] = useState({
@@ -69,6 +363,11 @@ const EnhancedStudentSearch = () => {
     loading: false,
     applications: [],
   });
+
+  // Add a state for the simplified dialog
+  const [simpleDialogOpen, setSimpleDialogOpen] = useState(false);
+  const [placementDialogOpen, setPlacementDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const columnOptions = [
     { value: "cgpa", label: "CGPA" },
@@ -85,6 +384,13 @@ const EnhancedStudentSearch = () => {
     ME: "Mechanical Engineering",
     EEE: "Electrical and Electronics Engineering",
     EC: "Electronics and Communication",
+  };
+
+  // Add this utility function after the API configuration
+  const generateBatchYears = (yearOfAdmission) => {
+    if (!yearOfAdmission) return "";
+    const endYear = parseInt(yearOfAdmission) + 4;
+    return `${yearOfAdmission}-${endYear}`;
   };
 
   // Fetch student data from the backend
@@ -178,10 +484,11 @@ const EnhancedStudentSearch = () => {
                     student.feeDue === true ||
                     student.feeDue === "Yes" ||
                     student.feeDue === "true",
-                  placed: student.placed || false,
-                  placementCompany: student.placementCompany || "",
-                  placementDetails: student.placementDetails || "",
-                  placementPackage: student.placementPackage || "",
+                  // Updated placement fields
+                  isPlaced: student.isPlaced || false,
+                  placementCompany: student.placementCompany || null,
+                  placementPackage: student.placementPackage || 0,
+                  placementDate: student.placementDate || null,
                   backlog: student.backlog || 0,
                   attendance: student.attendance || 0,
                   semester: student.semester || 1,
@@ -231,10 +538,10 @@ const EnhancedStudentSearch = () => {
                         student.feeDue === true ||
                         student.feeDue === "Yes" ||
                         student.feeDue === "true",
-                      placed: student.placed || false,
-                      placementCompany: student.placementCompany || "",
-                      placementDetails: student.placementDetails || "",
-                      placementPackage: student.placementPackage || "",
+                      isPlaced: student.isPlaced || false,
+                      placementCompany: student.placementCompany || null,
+                      placementPackage: student.placementPackage || 0,
+                      placementDate: student.placementDate || null,
                       backlog: student.backlog || 0,
                       attendance: student.attendance || 0,
                       semester: student.semester || 1,
@@ -325,6 +632,12 @@ const EnhancedStudentSearch = () => {
     return departments.map((dept) => ({
       ...dept,
       students: dept.students.filter((student) => {
+        // Add batch filter condition
+        const matchesBatch =
+          filters.batch === "all" ||
+          (student.yearOfAdmission &&
+            generateBatchYears(student.yearOfAdmission) === filters.batch);
+
         // Log fee status for debugging
         // console.log(`Filtering ${student.name}: feeDue=${student.feeDue}, filter=${filters.feeStatus}`);
 
@@ -345,8 +658,8 @@ const EnhancedStudentSearch = () => {
         const matchesPlacement =
           filters.placementStatus === "all" ||
           (filters.placementStatus === "placed"
-            ? student.placed
-            : !student.placed);
+            ? student.isPlaced
+            : !student.isPlaced);
         const matchesCGPA =
           filters.cgpaRange === "all" ||
           (filters.cgpaRange === "above8.5"
@@ -372,7 +685,8 @@ const EnhancedStudentSearch = () => {
           matchesPlacement &&
           matchesCGPA &&
           matchesBacklog &&
-          matchesVerified
+          matchesVerified &&
+          matchesBatch
         );
       }),
     }));
@@ -391,9 +705,11 @@ const EnhancedStudentSearch = () => {
       "Attendance (%)": student.attendance,
       Backlog: student.backlog,
       "Fee Due": student.feeDue ? "Yes" : "No",
-      "Placement Status": student.placed
+      "Placement Status": student.isPlaced
         ? `Placed${
-            student.placementCompany ? ` at ${student.placementCompany}` : ""
+            student.placementCompany
+              ? ` at ${getCompanyName(student.placementCompany)}`
+              : ""
           }${student.placementPackage ? ` (${student.placementPackage})` : ""}`
         : "Not Placed",
       "Contact Number": student.contactNumber,
@@ -435,10 +751,10 @@ const EnhancedStudentSearch = () => {
           "Attendance (%)": student.attendance,
           Backlog: student.backlog,
           "Fee Due": student.feeDue ? "Yes" : "No",
-          "Placement Status": student.placed
+          "Placement Status": student.isPlaced
             ? `Placed${
                 student.placementCompany
-                  ? ` at ${student.placementCompany}`
+                  ? ` at ${getCompanyName(student.placementCompany)}`
                   : ""
               }${
                 student.placementPackage ? ` (${student.placementPackage})` : ""
@@ -463,155 +779,6 @@ const EnhancedStudentSearch = () => {
     XLSX.writeFile(workbook, "All_Students_Data.xlsx");
 
     showNotification("Exported all student data successfully");
-  };
-
-  // Fetch student application history
-  const fetchStudentApplications = async (studentId, departmentCode) => {
-    if (!studentId) return [];
-
-    setPlacementInfo((prev) => ({
-      ...prev,
-      studentId,
-      loading: true,
-    }));
-
-    try {
-      // Real API call to the backend
-      console.log(
-        `Fetching applications for student ${studentId} from ${departmentCode} department`
-      );
-
-      // According to backend/app.js, we should use /api/applications endpoint for student applications
-      // The endpoint for a specific student would be /api/applications?studentId=XYZ
-      const response = await axios.get(`/api/applications`, {
-        params: {
-          studentId: studentId,
-          department: departmentCode,
-        },
-      });
-
-      console.log("Fetched application data:", response.data);
-
-      // If we don't find any applications, try the company applications endpoint
-      if (!response.data || response.data.length === 0) {
-        console.log(
-          "No applications found, trying with admin company endpoint"
-        );
-        try {
-          // Try to get all applications and filter by student
-          const companyResponse = await axios.get(
-            `/api/admin/applications/company/all`
-          );
-
-          if (companyResponse.data && companyResponse.data.length > 0) {
-            // Filter applications for this student
-            const studentApps = companyResponse.data.filter(
-              (app) => app.student && app.student._id === studentId
-            );
-
-            if (studentApps.length > 0) {
-              console.log("Found applications in company data:", studentApps);
-
-              // Sort applications by date (newest first)
-              const sortedApplications = [...studentApps].sort(
-                (a, b) =>
-                  new Date(b.appliedDate || b.createdAt || 0) -
-                  new Date(a.appliedDate || a.createdAt || 0)
-              );
-
-              setPlacementInfo((prev) => ({
-                ...prev,
-                loading: false,
-                applications: sortedApplications,
-              }));
-
-              return sortedApplications;
-            }
-          }
-        } catch (altError) {
-          console.log("Company endpoint approach failed:", altError);
-        }
-      }
-
-      // Sort applications by date (newest first)
-      const sortedApplications =
-        response.data && response.data.length > 0
-          ? [...response.data].sort(
-              (a, b) =>
-                new Date(b.appliedDate || b.createdAt || 0) -
-                new Date(a.appliedDate || a.createdAt || 0)
-            )
-          : [];
-
-      setPlacementInfo((prev) => ({
-        ...prev,
-        loading: false,
-        applications: sortedApplications,
-      }));
-
-      return sortedApplications;
-    } catch (error) {
-      console.error("Error fetching student applications:", error);
-
-      // Try direct application endpoint if student-specific endpoint fails
-      try {
-        console.log("Trying direct application endpoint");
-
-        // Get all applications and filter client-side
-        const allAppsResponse = await axios.get(`/api/applications`);
-
-        if (allAppsResponse.data && allAppsResponse.data.length > 0) {
-          // Filter for this student
-          const studentApps = allAppsResponse.data.filter(
-            (app) =>
-              app.student === studentId ||
-              (app.student && app.student._id === studentId)
-          );
-
-          if (studentApps.length > 0) {
-            console.log("Found applications in all applications:", studentApps);
-
-            // Sort applications by date (newest first)
-            const sortedApplications = [...studentApps].sort(
-              (a, b) =>
-                new Date(b.appliedDate || b.createdAt || 0) -
-                new Date(a.appliedDate || a.createdAt || 0)
-            );
-
-            setPlacementInfo((prev) => ({
-              ...prev,
-              loading: false,
-              applications: sortedApplications,
-            }));
-
-            return sortedApplications;
-          }
-        }
-      } catch (directError) {
-        console.error("Direct applications endpoint also failed:", directError);
-      }
-
-      // Mock data as a fallback if all API calls fail
-      console.log("All API endpoints failed, creating mock data for testing");
-      const mockApplications = [
-        {
-          company: { name: "Example Company" },
-          status: "Applied",
-          appliedDate: new Date(),
-          resume: "#",
-          coverLetter: "#",
-          additionalInfo: "This is mock data for testing purposes",
-        },
-      ];
-
-      setPlacementInfo((prev) => ({
-        ...prev,
-        loading: false,
-        applications: mockApplications,
-      }));
-
-      return mockApplications;
-    }
   };
 
   // Helper function to get all students from all departments
@@ -659,8 +826,8 @@ const EnhancedStudentSearch = () => {
 
       // Placement status filter
       if (
-        (filters.placementStatus === "placed" && !student.placed) ||
-        (filters.placementStatus === "not-placed" && student.placed)
+        (filters.placementStatus === "placed" && !student.isPlaced) ||
+        (filters.placementStatus === "not-placed" && student.isPlaced)
       ) {
         return false;
       }
@@ -698,6 +865,99 @@ const EnhancedStudentSearch = () => {
 
       return true;
     });
+  };
+
+  // Modify the fetchPlacementInfo function to first open the simple dialog
+  const handleInfoButtonClick = (student) => {
+    setSelectedStudent(student);
+    setSimpleDialogOpen(true);
+  };
+
+  // Add function to handle "View More Details" button click
+  const handleViewMoreDetails = () => {
+    // Close the simple dialog
+    setSimpleDialogOpen(false);
+
+    // Fetch detailed placement info and open the detailed dialog
+    fetchPlacementInfo(selectedStudent.id, selectedStudent.department);
+  };
+
+  // Update the fetchPlacementInfo function to handle company name properly
+  const fetchPlacementInfo = async (studentId, departmentCode) => {
+    try {
+      // Find the student to get the name
+      const student = departments
+        .find((dept) => dept.code === departmentCode)
+        ?.students.find((s) => s.id === studentId);
+
+      setSelectedStudent(student);
+      setPlacementDialogOpen(true);
+
+      setPlacementInfo({
+        ...placementInfo,
+        studentId,
+        loading: true,
+        error: null,
+      });
+
+      const response = await axios.get(
+        `/api/admin/student/${departmentCode}/${studentId}/placement`
+      );
+
+      // Make sure company data is properly processed
+      const studentData = response.data.student;
+      const applications = response.data.applications;
+
+      // Log the data for debugging
+      console.log("Placement data received:", {
+        student: studentData,
+        applications,
+      });
+
+      setPlacementInfo({
+        studentId,
+        loading: false,
+        data: studentData,
+        applications: applications,
+        error: null,
+      });
+    } catch (error) {
+      console.error("Error fetching placement details:", error);
+      setPlacementInfo({
+        ...placementInfo,
+        loading: false,
+        error:
+          error.response?.data?.message || "Failed to fetch placement details",
+      });
+    }
+  };
+
+  // Add getCompanyName helper function to the main component
+  const getCompanyName = (companyData) => {
+    if (!companyData) return "N/A";
+
+    // If companyData is an object with a name property
+    if (typeof companyData === "object" && companyData?.name) {
+      return companyData.name;
+    }
+
+    // If it's just a string or ID
+    return companyData.toString();
+  };
+
+  // Reuse the date formatting logic
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return "N/A";
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "N/A";
+    }
   };
 
   if (loading) {
@@ -926,6 +1186,37 @@ const EnhancedStudentSearch = () => {
                   <option value="verified">Verified</option>
                   <option value="unverified">Unverified</option>
                 </select>
+
+                <select
+                  className="border rounded-lg p-2"
+                  value={filters.batch}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      batch: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="all">All Batches</option>
+                  {Array.from(
+                    new Set(
+                      departments.flatMap((dept) =>
+                        dept.students.map((student) =>
+                          student.yearOfAdmission
+                            ? generateBatchYears(student.yearOfAdmission)
+                            : null
+                        )
+                      )
+                    )
+                  )
+                    .filter(Boolean)
+                    .sort((a, b) => b.localeCompare(a))
+                    .map((batch) => (
+                      <option key={batch} value={batch}>
+                        {batch}
+                      </option>
+                    ))}
+                </select>
               </div>
             </CardContent>
           </Card>
@@ -1008,239 +1299,24 @@ const EnhancedStudentSearch = () => {
                                   </span>
                                 </TableCell>
                                 <TableCell>
-                                  <span
-                                    className={`px-2 py-1 rounded-full text-xs ${
-                                      student.placed
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-yellow-100 text-yellow-800"
-                                    }`}
-                                  >
-                                    {student.placed ? "Placed" : "Not Placed"}
-                                  </span>
-                                  {student.placed &&
-                                    student.placementCompany && (
-                                      <div className="text-xs text-gray-600 mt-1">
-                                        {student.placementCompany}
-                                        {student.placementPackage &&
-                                          ` (${student.placementPackage})`}
-                                      </div>
+                                  <div className="flex items-center">
+                                    {student.isPlaced ? (
+                                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                        Placed
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                        Not Placed
+                                      </span>
                                     )}
-                                  <Dialog>
-                                    <DialogTrigger>
-                                      <button
-                                        className="text-blue-600 hover:bg-blue-50 rounded-full p-1 ml-1"
-                                        onClick={() =>
-                                          fetchStudentApplications(
-                                            student.id,
-                                            student.department
-                                          )
-                                        }
-                                      >
-                                        <Info className="h-4 w-4" />
-                                      </button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                      <DialogHeader>
-                                        <DialogTitle>
-                                          Placement Information - {student.name}
-                                        </DialogTitle>
-                                      </DialogHeader>
-                                      <div className="mt-4 space-y-4">
-                                        <div>
-                                          <h3 className="font-medium mb-2">
-                                            Current Status
-                                          </h3>
-                                          <p className="mb-2">
-                                            {student.placed ? (
-                                              <span className="text-green-600 font-medium">
-                                                Placed
-                                              </span>
-                                            ) : (
-                                              <span className="text-yellow-600 font-medium">
-                                                Not Placed
-                                              </span>
-                                            )}
-                                          </p>
-                                          {student.placed && (
-                                            <div className="space-y-1 text-sm">
-                                              {student.placementCompany && (
-                                                <p>
-                                                  <span className="font-medium">
-                                                    Company:
-                                                  </span>{" "}
-                                                  {student.placementCompany}
-                                                </p>
-                                              )}
-                                              {student.placementPackage && (
-                                                <p>
-                                                  <span className="font-medium">
-                                                    Package:
-                                                  </span>{" "}
-                                                  {student.placementPackage}
-                                                </p>
-                                              )}
-                                              {student.placementDetails && (
-                                                <p>
-                                                  <span className="font-medium">
-                                                    Details:
-                                                  </span>{" "}
-                                                  {student.placementDetails}
-                                                </p>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div>
-                                          <h3 className="font-medium mb-2">
-                                            Application History
-                                          </h3>
-                                          <div className="text-sm text-gray-600">
-                                            {placementInfo.loading ? (
-                                              <div className="text-center py-4">
-                                                <p>
-                                                  Loading application history...
-                                                </p>
-                                              </div>
-                                            ) : placementInfo.studentId ===
-                                                student.id &&
-                                              placementInfo.applications
-                                                .length > 0 ? (
-                                              <div className="space-y-2">
-                                                {placementInfo.applications.map(
-                                                  (app, index) => (
-                                                    <div
-                                                      key={index}
-                                                      className="border-b pb-2"
-                                                    >
-                                                      <p className="font-medium">
-                                                        {app.company?.name ||
-                                                          app.company ||
-                                                          "Unknown Company"}
-                                                      </p>
-                                                      <p>
-                                                        Status:{" "}
-                                                        <span
-                                                          className={`${
-                                                            app.status ===
-                                                              "Accepted" ||
-                                                            app.status ===
-                                                              "Offered"
-                                                              ? "text-green-600"
-                                                              : app.status ===
-                                                                "Rejected"
-                                                              ? "text-red-600"
-                                                              : app.status ===
-                                                                "Interview Scheduled"
-                                                              ? "text-blue-600"
-                                                              : "text-yellow-600"
-                                                          }`}
-                                                        >
-                                                          {app.status ||
-                                                            "Applied"}
-                                                        </span>
-                                                      </p>
-                                                      {(app.appliedDate ||
-                                                        app.createdAt) && (
-                                                        <p>
-                                                          Applied:{" "}
-                                                          {new Date(
-                                                            app.appliedDate ||
-                                                              app.createdAt
-                                                          ).toLocaleDateString()}
-                                                        </p>
-                                                      )}
-                                                      {app.interviewDate && (
-                                                        <p>
-                                                          Interview Date:{" "}
-                                                          {new Date(
-                                                            app.interviewDate
-                                                          ).toLocaleDateString()}
-                                                        </p>
-                                                      )}
-                                                      {app.packageOffered && (
-                                                        <p>
-                                                          Package:{" "}
-                                                          {app.packageOffered}
-                                                        </p>
-                                                      )}
-                                                      {app.feedback && (
-                                                        <p>
-                                                          Feedback:{" "}
-                                                          {app.feedback}
-                                                        </p>
-                                                      )}
-                                                      {app.resume && (
-                                                        <p>
-                                                          Resume:{" "}
-                                                          <a
-                                                            href={app.resume}
-                                                            className="text-blue-600 hover:underline"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                          >
-                                                            View
-                                                          </a>
-                                                        </p>
-                                                      )}
-                                                      {app.coverLetter && (
-                                                        <p>
-                                                          Cover Letter:{" "}
-                                                          <a
-                                                            href={
-                                                              app.coverLetter
-                                                            }
-                                                            className="text-blue-600 hover:underline"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                          >
-                                                            View
-                                                          </a>
-                                                        </p>
-                                                      )}
-                                                      {app.additionalInfo && (
-                                                        <p className="text-sm">
-                                                          Additional Info:{" "}
-                                                          {app.additionalInfo}
-                                                        </p>
-                                                      )}
-                                                    </div>
-                                                  )
-                                                )}
-                                              </div>
-                                            ) : (
-                                              <div>
-                                                <p className="mb-2">
-                                                  No application history
-                                                  available for {student.name}.
-                                                </p>
-                                                {student.department ===
-                                                  "EC" && (
-                                                  <p className="text-gray-500 text-xs italic">
-                                                    Note: EC department data
-                                                    might have limited
-                                                    application history
-                                                    visibility.
-                                                  </p>
-                                                )}
-                                                {student.placed && (
-                                                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                                                    <p className="text-sm text-yellow-700">
-                                                      Student is marked as
-                                                      placed, but no application
-                                                      records were found. This
-                                                      may be due to manual
-                                                      placement recording.
-                                                    </p>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
+                                    <Info
+                                      className="text-blue-600 hover:bg-blue-50 rounded-full p-1 ml-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleInfoButtonClick(student);
+                                      }}
+                                    />
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <span
@@ -1347,20 +1423,22 @@ const EnhancedStudentSearch = () => {
                                               Placement Status
                                             </p>
                                             <p>
-                                              {student.placed
+                                              {student.isPlaced
                                                 ? "Placed"
                                                 : "Not Placed"}
-                                              {student.placed &&
+                                              {student.isPlaced &&
                                                 student.placementCompany && (
                                                   <>
                                                     <br />
                                                     <span className="text-sm text-gray-600">
                                                       Company:{" "}
-                                                      {student.placementCompany}
+                                                      {getCompanyName(
+                                                        student.placementCompany
+                                                      )}
                                                     </span>
                                                   </>
                                                 )}
-                                              {student.placed &&
+                                              {student.isPlaced &&
                                                 student.placementPackage && (
                                                   <>
                                                     <br />
@@ -1370,13 +1448,15 @@ const EnhancedStudentSearch = () => {
                                                     </span>
                                                   </>
                                                 )}
-                                              {student.placed &&
-                                                student.placementDetails && (
+                                              {student.isPlaced &&
+                                                student.placementDate && (
                                                   <>
                                                     <br />
                                                     <span className="text-sm text-gray-600">
-                                                      Details:{" "}
-                                                      {student.placementDetails}
+                                                      Placement Date:{" "}
+                                                      {formatDate(
+                                                        student.placementDate
+                                                      )}
                                                     </span>
                                                   </>
                                                 )}
@@ -1586,7 +1666,7 @@ const EnhancedStudentSearch = () => {
                         </td>
                         <td className="p-2 border">
                           <div className="flex items-center">
-                            {student.placed ? (
+                            {student.isPlaced ? (
                               <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
                                 Placed
                               </span>
@@ -1595,212 +1675,13 @@ const EnhancedStudentSearch = () => {
                                 Not Placed
                               </span>
                             )}
-                            <Dialog>
-                              <DialogTrigger>
-                                <button
-                                  className="text-blue-600 hover:bg-blue-50 rounded-full p-1 ml-1"
-                                  onClick={() =>
-                                    fetchStudentApplications(
-                                      student.id,
-                                      student.department
-                                    )
-                                  }
-                                >
-                                  <Info className="h-4 w-4" />
-                                </button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    Placement Information - {student.name}
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="mt-4 space-y-4">
-                                  <div>
-                                    <h3 className="font-medium mb-2">
-                                      Current Status
-                                    </h3>
-                                    <p className="mb-2">
-                                      {student.placed ? (
-                                        <span className="text-green-600 font-medium">
-                                          Placed
-                                        </span>
-                                      ) : (
-                                        <span className="text-yellow-600 font-medium">
-                                          Not Placed
-                                        </span>
-                                      )}
-                                    </p>
-                                    {student.placed && (
-                                      <div className="space-y-1 text-sm">
-                                        {student.placementCompany && (
-                                          <p>
-                                            <span className="font-medium">
-                                              Company:
-                                            </span>{" "}
-                                            {student.placementCompany}
-                                          </p>
-                                        )}
-                                        {student.placementPackage && (
-                                          <p>
-                                            <span className="font-medium">
-                                              Package:
-                                            </span>{" "}
-                                            {student.placementPackage}
-                                          </p>
-                                        )}
-                                        {student.placementDetails && (
-                                          <p>
-                                            <span className="font-medium">
-                                              Details:
-                                            </span>{" "}
-                                            {student.placementDetails}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div>
-                                    <h3 className="font-medium mb-2">
-                                      Application History
-                                    </h3>
-                                    <div className="text-sm text-gray-600">
-                                      {placementInfo.loading ? (
-                                        <div className="text-center py-4">
-                                          <p>Loading application history...</p>
-                                        </div>
-                                      ) : placementInfo.studentId ===
-                                          student.id &&
-                                        placementInfo.applications.length >
-                                          0 ? (
-                                        <div className="space-y-2">
-                                          {placementInfo.applications.map(
-                                            (app, index) => (
-                                              <div
-                                                key={index}
-                                                className="border-b pb-2"
-                                              >
-                                                <p className="font-medium">
-                                                  {app.company?.name ||
-                                                    app.company ||
-                                                    "Unknown Company"}
-                                                </p>
-                                                <p>
-                                                  Status:{" "}
-                                                  <span
-                                                    className={`${
-                                                      app.status ===
-                                                        "Accepted" ||
-                                                      app.status === "Offered"
-                                                        ? "text-green-600"
-                                                        : app.status ===
-                                                          "Rejected"
-                                                        ? "text-red-600"
-                                                        : app.status ===
-                                                          "Interview Scheduled"
-                                                        ? "text-blue-600"
-                                                        : "text-yellow-600"
-                                                    }`}
-                                                  >
-                                                    {app.status || "Applied"}
-                                                  </span>
-                                                </p>
-                                                {(app.appliedDate ||
-                                                  app.createdAt) && (
-                                                  <p>
-                                                    Applied:{" "}
-                                                    {new Date(
-                                                      app.appliedDate ||
-                                                        app.createdAt
-                                                    ).toLocaleDateString()}
-                                                  </p>
-                                                )}
-                                                {app.interviewDate && (
-                                                  <p>
-                                                    Interview Date:{" "}
-                                                    {new Date(
-                                                      app.interviewDate
-                                                    ).toLocaleDateString()}
-                                                  </p>
-                                                )}
-                                                {app.packageOffered && (
-                                                  <p>
-                                                    Package:{" "}
-                                                    {app.packageOffered}
-                                                  </p>
-                                                )}
-                                                {app.feedback && (
-                                                  <p>
-                                                    Feedback: {app.feedback}
-                                                  </p>
-                                                )}
-                                                {app.resume && (
-                                                  <p>
-                                                    Resume:{" "}
-                                                    <a
-                                                      href={app.resume}
-                                                      className="text-blue-600 hover:underline"
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                    >
-                                                      View
-                                                    </a>
-                                                  </p>
-                                                )}
-                                                {app.coverLetter && (
-                                                  <p>
-                                                    Cover Letter:{" "}
-                                                    <a
-                                                      href={app.coverLetter}
-                                                      className="text-blue-600 hover:underline"
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                    >
-                                                      View
-                                                    </a>
-                                                  </p>
-                                                )}
-                                                {app.additionalInfo && (
-                                                  <p className="text-sm">
-                                                    Additional Info:{" "}
-                                                    {app.additionalInfo}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            )
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div>
-                                          <p className="mb-2">
-                                            No application history available for{" "}
-                                            {student.name}.
-                                          </p>
-                                          {student.department === "EC" && (
-                                            <p className="text-gray-500 text-xs italic">
-                                              Note: EC department data might
-                                              have limited application history
-                                              visibility.
-                                            </p>
-                                          )}
-                                          {student.placed && (
-                                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                                              <p className="text-sm text-yellow-700">
-                                                Student is marked as placed, but
-                                                no application records were
-                                                found. This may be due to manual
-                                                placement recording.
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                            <Info
+                              className="text-blue-600 hover:bg-blue-50 rounded-full p-1 ml-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleInfoButtonClick(student);
+                              }}
+                            />
                           </div>
                         </td>
                         <td className="p-2 border">
@@ -1877,7 +1758,7 @@ const EnhancedStudentSearch = () => {
                                   <p className="text-sm font-medium mb-1">
                                     Backlog
                                   </p>
-                                  <p>{student.backlog ? "Yes" : "No"}</p>
+                                  <p>{student.backlog}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium mb-1">
@@ -1890,10 +1771,10 @@ const EnhancedStudentSearch = () => {
                                     Placement Status
                                   </p>
                                   <p>
-                                    {student.placed
-                                      ? `Placed (${
-                                          student.placementCompany || ""
-                                        }${
+                                    {student.isPlaced
+                                      ? `Placed (${getCompanyName(
+                                          student.placementCompany
+                                        )}${
                                           student.placementPackage
                                             ? `, ${student.placementPackage}`
                                             : ""
@@ -1935,10 +1816,7 @@ const EnhancedStudentSearch = () => {
                                   <Button
                                     className="mt-4 w-full"
                                     onClick={() =>
-                                      fetchStudentApplications(
-                                        student.id,
-                                        student.department
-                                      )
+                                      handleInfoButtonClick(student)
                                     }
                                   >
                                     View application history
@@ -2114,6 +1992,21 @@ const EnhancedStudentSearch = () => {
               </div>
             ))}
           </div>
+
+          {/* Add both dialogs at the end of the return statement */}
+          <SimplePlacementInfoDialog
+            isOpen={simpleDialogOpen}
+            onClose={() => setSimpleDialogOpen(false)}
+            student={selectedStudent}
+            onViewMoreDetails={handleViewMoreDetails}
+          />
+
+          <PlacementDetailsDialog
+            isOpen={placementDialogOpen}
+            onClose={() => setPlacementDialogOpen(false)}
+            placementInfo={placementInfo}
+            studentName={selectedStudent?.name || "Student"}
+          />
         </div>
       </div>
     </div>

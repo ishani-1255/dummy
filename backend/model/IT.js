@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const passportLocalMongoose = require("passport-local-mongoose"); 
+const passportLocalMongoose = require("passport-local-mongoose");
 
 const studentSchema = new mongoose.Schema({
   name: {
@@ -68,6 +68,24 @@ const studentSchema = new mongoose.Schema({
     type: String,
     enum: ["Yes", "No"], // Restrict to "Yes" or "No"
     default: "No", // Default value is "No"
+  },
+  // Placement fields
+  isPlaced: {
+    type: Boolean,
+    default: false,
+  },
+  placementCompany: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Company",
+    default: null,
+  },
+  placementPackage: {
+    type: Number,
+    default: null,
+  },
+  placementDate: {
+    type: Date,
+    default: null,
   },
   createdAt: {
     type: Date,

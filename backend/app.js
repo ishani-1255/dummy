@@ -139,17 +139,32 @@ passport.use(
           return done(null, false, { message: "Account not verified" });
         }
 
-        // Verify password
-        const isValidPassword = await student.authenticate(password);
-        if (!isValidPassword) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
+        // Verify password - passport-local-mongoose requires this pattern
+        student.authenticate(password, (err, user, passwordError) => {
+          if (err) {
+            console.error("Authentication error:", err);
+            return done(err);
+          }
 
-        // Add branch information to the student object for serialization
-        student.branch = branch;
+          // Log the authentication result
+          console.log(`Password auth result for ${username}: `, {
+            user: !!user,
+            passwordError: !!passwordError,
+          });
 
-        return done(null, student);
+          // If user is falsy or passwordError exists, authentication failed
+          if (!user || passwordError) {
+            return done(null, false, {
+              message: "Invalid username or password",
+            });
+          }
+
+          // Success - add branch information to the user object
+          user.branch = branch;
+          return done(null, user);
+        });
       } catch (error) {
+        console.error("Student authentication error:", error);
         return done(error);
       }
     }
@@ -381,6 +396,10 @@ app.post("/signup-admin", async (req, res) => {
 app.post("/login", async (req, res, next) => {
   const { username, password, role, branch } = req.body;
 
+  console.log(
+    `👤 Login attempt: ${username}, role: ${role}, branch: ${branch}`
+  );
+
   if (!role) {
     return res
       .status(400)
@@ -392,6 +411,14 @@ app.post("/login", async (req, res, next) => {
     return res.status(400).json({
       success: false,
       message: "Branch is required for student login",
+    });
+  }
+
+  // Ensure password is provided
+  if (!password) {
+    return res.status(400).json({
+      success: false,
+      message: "Password is required",
     });
   }
 
@@ -445,7 +472,9 @@ app.post("/login", async (req, res, next) => {
 
       userResponse.role = role;
 
-      // console.log("User logged in:", userResponse);
+      console.log(
+        `✅ User logged in successfully: ${userResponse.username} (${role})`
+      );
 
       res.status(200).json({
         success: true,
@@ -1001,6 +1030,36 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
       return res.status(404).json({ message: "Application not found" });
     }
 
+    // If status is set to Accepted, update the student's placement status
+    if (status === "Accepted" && application.student) {
+      // Get the appropriate student model based on studentModel
+      const branchModels = {
+        CE: ce,
+        CSE: cse,
+        IT: it,
+        SFE: sfe,
+        ME: me,
+        EEE: eee,
+        EC: ec,
+      };
+
+      const StudentModel = branchModels[application.studentModel];
+
+      if (StudentModel) {
+        // Update the student's placement details
+        await StudentModel.findByIdAndUpdate(application.student, {
+          isPlaced: true,
+          placementCompany: application.company._id,
+          placementPackage: packageOffered || 0,
+          placementDate: new Date(),
+        });
+
+        console.log(
+          `Student ${application.student} marked as placed at ${application.company.name}`
+        );
+      }
+    }
+
     // Create notification for the student if status has changed
     if (oldApplication.status !== status) {
       // Create a notification message based on the new status
@@ -1525,6 +1584,82 @@ app.get("/api/admin/create-test-data", async (req, res) => {
     });
   }
 });
+
+// Get placement details for a specific student
+app.get(
+  "/api/admin/student/:department/:studentId/placement",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      // Only admins should have access to this endpoint
+      if (req.user.role !== "admin") {
+        return res
+          .status(403)
+          .json({ message: "Unauthorized - Admin access only" });
+      }
+
+      const { department, studentId } = req.params;
+
+      // Map department code to Mongoose model
+      const departmentModels = {
+        CE: ce,
+        CSE: cse,
+        IT: it,
+        SFE: sfe,
+        ME: me,
+        EEE: eee,
+        EC: ec,
+      };
+
+      // Check if the department is valid
+      if (!department || !departmentModels[department]) {
+        return res.status(400).json({ message: "Invalid department" });
+      }
+
+      // Get the student from the specified department
+      const student = await departmentModels[department]
+        .findById(studentId)
+        .populate("placementCompany")
+        .lean();
+
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+
+      // Get all applications for this student
+      const applications = await Application.find({
+        student: studentId,
+        studentModel: department,
+      })
+        .populate("company")
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Prepare the response
+      const response = {
+        student: {
+          id: student._id,
+          name: student.name,
+          registrationNumber: student.registrationNumber,
+          branch: student.branch,
+          isPlaced: student.isPlaced || false,
+          placementCompany: student.placementCompany,
+          placementPackage: student.placementPackage,
+          placementDate: student.placementDate,
+        },
+        applications: applications,
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error fetching student placement details:", error);
+      res.status(500).json({
+        message: "Error fetching student placement details",
+        error: error.message,
+      });
+    }
+  }
+);
 
 // **Server Listener**
 app.listen(port, () => {
