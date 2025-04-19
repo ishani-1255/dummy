@@ -189,6 +189,9 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
     return Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
   }, [job.deadline]);
 
+  // Check if deadline has passed
+  const isDeadlinePassed = daysRemaining <= 0;
+
   return (
     <Card
       className={`mb-4 border-l-4 ${
@@ -267,10 +270,12 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
 
               <button
                 onClick={() => onApply(job)}
-                disabled={!isEligible || hasApplied}
+                disabled={!isEligible || hasApplied || isDeadlinePassed}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${
                   hasApplied
                     ? "bg-green-500 text-white cursor-not-allowed"
+                    : isDeadlinePassed
+                    ? "bg-gray-400 text-white cursor-not-allowed"
                     : isEligible
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-red-500 text-white cursor-not-allowed"
@@ -278,6 +283,8 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
               >
                 {hasApplied
                   ? "Applied"
+                  : isDeadlinePassed
+                  ? "Deadline Passed"
                   : isEligible
                   ? "Apply Now"
                   : "Not Eligible"}
@@ -671,8 +678,6 @@ const FilterSidebar = ({ filters, setFilters, onReset }) => {
           </div>
         </div>
 
-        
-
         <div>
           <h4 className="text-sm font-medium mb-2">Location</h4>
           <input
@@ -729,19 +734,37 @@ const FilterSidebar = ({ filters, setFilters, onReset }) => {
 
         <div>
           <h4 className="text-sm font-medium mb-2">Deadline</h4>
-          <select
-            value={filters.deadline}
-            onChange={(e) =>
-              setFilters({ ...filters, deadline: e.target.value })
-            }
-            className="w-full p-2 text-sm border rounded-lg"
-          >
-            <option value="">All deadlines</option>
-            <option value="today">Today</option>
-            <option value="this-week">This week</option>
-            <option value="next-week">Next week</option>
-            <option value="this-month">This month</option>
-          </select>
+          <div className="space-y-2">
+            <label className="flex items-center mb-2">
+              <input
+                type="checkbox"
+                checked={filters.hideExpired}
+                onChange={() =>
+                  setFilters({
+                    ...filters,
+                    hideExpired: !filters.hideExpired,
+                  })
+                }
+                className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+              />
+              <span className="ml-2 text-sm text-gray-700">
+                Hide jobs with passed deadlines
+              </span>
+            </label>
+            <select
+              value={filters.deadline}
+              onChange={(e) =>
+                setFilters({ ...filters, deadline: e.target.value })
+              }
+              className="w-full p-2 text-sm border rounded-lg"
+            >
+              <option value="">All deadlines</option>
+              <option value="today">Today</option>
+              <option value="this-week">This week</option>
+              <option value="next-week">Next week</option>
+              <option value="this-month">This month</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -760,6 +783,7 @@ const JobListing = () => {
     minSalary: "",
     maxSalary: "",
     deadline: "",
+    hideExpired: true,
   });
   const [applications, setApplications] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -891,12 +915,25 @@ const JobListing = () => {
       );
     }
 
+    // Filter out expired jobs if the hideExpired filter is active
+    if (filters.hideExpired) {
+      const now = new Date();
+      result = result.filter((job) => {
+        const deadline = new Date(job.deadline);
+        return deadline >= now;
+      });
+    }
+
     // Eligibility filter
     if (filters.showEligible) {
       result = result.filter((job) => {
         const { eligibilityCriteria } = job;
+        const deadline = new Date(job.deadline);
+        const now = new Date();
+        const deadlineNotPassed = deadline >= now;
 
         return (
+          deadlineNotPassed &&
           eligibilityCriteria.departments.includes(studentProfile.department) &&
           studentProfile.cgpa >= eligibilityCriteria.minCGPA &&
           studentProfile.activeBacklogs <= eligibilityCriteria.activeBacklogs &&
@@ -1102,6 +1139,7 @@ const JobListing = () => {
       minSalary: "",
       maxSalary: "",
       deadline: "",
+      hideExpired: true,
     });
     setSearchQuery("");
   };

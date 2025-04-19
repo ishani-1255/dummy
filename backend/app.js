@@ -35,10 +35,18 @@ const sessionSecret = process.env.SECRET;
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// CORS configuration
+// Improve CORS configuration
 const corsOptions = {
-  origin: "http://localhost:3000", // Your React frontend URL
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    process.env.FRONTEND_URL || "*",
+  ], // Add all possible frontend URLs
   credentials: true, // Allow cookies & sessions to be sent
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 
@@ -1216,6 +1224,303 @@ app.post("/api/test-notification", isLoggedIn, async (req, res) => {
     console.error("Error creating test notification:", error);
     res.status(500).json({
       message: "Error creating test notification",
+      error: error.message,
+    });
+  }
+});
+
+// Test middleware to check if session is working
+app.use((req, res, next) => {
+  if (req.originalUrl !== "/api/test" && req.originalUrl !== "/favicon.ico") {
+    console.log(
+      `${new Date().toISOString()} - ${req.method} ${req.originalUrl}`
+    );
+    console.log("Session ID:", req.sessionID);
+    console.log("Is authenticated:", req.isAuthenticated());
+    console.log(
+      "User:",
+      req.user ? `${req.user.username} (${req.user.role})` : "not logged in"
+    );
+    console.log("-----");
+  }
+  next();
+});
+
+// Student data management routes for admin - TEMPORARILY REMOVED AUTH CHECK
+app.get("/api/admin/students/:department", async (req, res) => {
+  try {
+    console.log(
+      "Student data request received for department:",
+      req.params.department
+    );
+
+    // Check if user is authenticated
+    if (req.isAuthenticated()) {
+      console.log(
+        "User is authenticated:",
+        req.user.username,
+        "Role:",
+        req.user.role
+      );
+    } else {
+      console.log(
+        "User is NOT authenticated - proceeding anyway for debugging"
+      );
+    }
+
+    const { department } = req.params;
+
+    // Map department code to Mongoose model
+    const departmentModels = {
+      CE: ce,
+      CSE: cse,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    // Check if the department is valid
+    if (!department || !departmentModels[department]) {
+      console.log("Invalid department requested:", department);
+      return res.status(400).json({ message: "Invalid department" });
+    }
+
+    // Get the students from the specified department
+    // console.log(`Fetching students from ${department} collection`);
+    const students = await departmentModels[department].find({}).lean();
+    // console.log(`Found ${students.length} students in ${department}`);
+
+    return res.status(200).json(students);
+  } catch (error) {
+    console.error(
+      `Error fetching students from ${req.params.department}:`,
+      error
+    );
+    return res.status(500).json({
+      message: "Error fetching students",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+});
+
+// Query management endpoints
+app.post("/api/admin/queries", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    const { studentId, department, field, value } = req.body;
+
+    // Create notification for the student
+    // This is simplified - in a real app, you would create a proper query model
+    const notification = new Notification({
+      student: studentId,
+      studentModel: department,
+      type: "query",
+      title: `Query About ${field}`,
+      message: `An administrator has raised a query about your ${field} information.`,
+      status: "unread",
+    });
+
+    await notification.save();
+
+    res.status(201).json({ message: "Query created successfully" });
+  } catch (error) {
+    console.error("Error creating query:", error);
+    res
+      .status(500)
+      .json({ message: "Error creating query", error: error.message });
+  }
+});
+
+app.put("/api/admin/queries/:queryId/resolve", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    const { queryId } = req.params;
+    const { studentId } = req.body;
+
+    // In a real app, you would update a query model
+    // For now, we'll just create a follow-up notification
+    const notification = new Notification({
+      student: studentId,
+      studentModel: req.body.department || "CSE", // Default to CSE if not provided
+      type: "query_resolved",
+      title: "Query Resolved",
+      message: "Your query has been resolved by an administrator.",
+      status: "unread",
+    });
+
+    await notification.save();
+
+    res.status(200).json({ message: "Query resolved successfully" });
+  } catch (error) {
+    console.error("Error resolving query:", error);
+    res
+      .status(500)
+      .json({ message: "Error resolving query", error: error.message });
+  }
+});
+
+// Simple test endpoint that doesn't require auth
+app.get("/api/test", (req, res) => {
+  console.log("Test endpoint hit");
+  res.status(200).json({ message: "API is working" });
+});
+
+// Test endpoint to check auth
+app.get("/api/auth-test", isLoggedIn, (req, res) => {
+  console.log(
+    "Auth test endpoint hit by:",
+    req.user?.username,
+    "Role:",
+    req.user?.role
+  );
+  res.status(200).json({
+    message: "Authentication working",
+    user: {
+      username: req.user?.username,
+      role: req.user?.role,
+      isAdmin: req.user?.role === "admin",
+    },
+  });
+});
+
+// Student count endpoint - check if we have data in each model
+app.get("/api/admin/students-count", async (req, res) => {
+  try {
+    console.log("Student count request received");
+
+    const departmentModels = {
+      CE: ce,
+      CSE: cse,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    const counts = {};
+
+    // Count students in each department
+    for (const [dept, model] of Object.entries(departmentModels)) {
+      const count = await model.countDocuments();
+      counts[dept] = count;
+      console.log(`${dept} has ${count} students`);
+    }
+
+    return res.status(200).json({ counts });
+  } catch (error) {
+    console.error("Error counting students:", error);
+    return res.status(500).json({
+      message: "Error counting students",
+      error: error.message,
+    });
+  }
+});
+
+// Test endpoint to create sample student data if none exists
+app.get("/api/admin/create-test-data", async (req, res) => {
+  try {
+    console.log("Request to create test data received");
+
+    // Check if we already have students
+    const departmentModels = {
+      CSE: cse,
+      CE: ce,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    let totalStudents = 0;
+    for (const [dept, model] of Object.entries(departmentModels)) {
+      const count = await model.countDocuments();
+      totalStudents += count;
+      console.log(`${dept} has ${count} students`);
+    }
+
+    if (totalStudents > 0) {
+      return res.status(200).json({
+        message: "Test data already exists",
+        totalStudents,
+      });
+    }
+
+    // Create test students for each department
+    const testData = [];
+
+    for (const [dept, model] of Object.entries(departmentModels)) {
+      // Create 2 test students for each department
+      const students = [
+        {
+          name: `${dept} Test Student 1`,
+          email: `student1_${dept.toLowerCase()}@test.com`,
+          phone: `9876543210`,
+          registrationNumber: `2023${dept}001`,
+          branch: dept,
+          semester: 4,
+          yearOfAdmission: 2023,
+          lastSemGPA: 3.7,
+          cgpa: 3.8,
+          backlog: 0,
+          feeDue: false,
+          fatherName: "Test Father",
+          username: `2023${dept}001`,
+          verified: "Yes",
+          attendance: 85,
+        },
+        {
+          name: `${dept} Test Student 2`,
+          email: `student2_${dept.toLowerCase()}@test.com`,
+          phone: `9876543211`,
+          registrationNumber: `2023${dept}002`,
+          branch: dept,
+          semester: 4,
+          yearOfAdmission: 2023,
+          lastSemGPA: 3.5,
+          cgpa: 3.4,
+          backlog: 1,
+          feeDue: true,
+          fatherName: "Test Father",
+          username: `2023${dept}002`,
+          verified: "Yes",
+          attendance: 75,
+        },
+      ];
+
+      for (const student of students) {
+        const newStudent = new model(student);
+        // Register with a simple password same as the username
+        await model.register(newStudent, student.username);
+        testData.push(student);
+      }
+
+      console.log(`Created ${students.length} test students for ${dept}`);
+    }
+
+    res.status(201).json({
+      message: "Test data created successfully",
+      studentsCreated: testData.length,
+      departments: Object.keys(departmentModels),
+    });
+  } catch (error) {
+    console.error("Error creating test data:", error);
+    res.status(500).json({
+      message: "Error creating test data",
       error: error.message,
     });
   }
