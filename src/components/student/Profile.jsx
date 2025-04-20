@@ -242,14 +242,30 @@ const Profile = () => {
         console.log("Notifications response:", response);
 
         if (response.data) {
-          setNotifications(response.data);
+          // Process notifications to ensure valid timestamps
+          const processedNotifications = response.data.map((notification) => {
+            // Check if timestamp is valid, if not provide a fallback
+            const validTimestamp =
+              notification.timestamp &&
+              !isNaN(new Date(notification.timestamp).getTime())
+                ? notification.timestamp
+                : new Date().toISOString(); // Use current date as fallback
+
+            return {
+              ...notification,
+              timestamp: validTimestamp,
+            };
+          });
+
+          setNotifications(processedNotifications);
+
           // Count unread notifications
-          const unread = response.data.filter(
+          const unread = processedNotifications.filter(
             (notification) => notification.status === "unread"
           ).length;
           setUnreadCount(unread);
           console.log(
-            `Found ${response.data.length} notifications, ${unread} unread`
+            `Found ${processedNotifications.length} notifications, ${unread} unread`
           );
         }
       } catch (error) {
@@ -278,6 +294,49 @@ const Profile = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Function to format dates consistently
+  const formatDate = (dateString) => {
+    if (!dateString || isNaN(new Date(dateString).getTime())) {
+      return "Date unavailable";
+    }
+
+    const date = new Date(dateString);
+
+    // Check if it's today
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+
+    // Check if it's yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    // Check if it's within the last week
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    const isWithinLastWeek = date > lastWeek;
+
+    if (isToday) {
+      return `Today, ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else if (isYesterday) {
+      return `Yesterday, ${date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    } else if (isWithinLastWeek) {
+      // Show day of week for dates within last week
+      const options = { weekday: "long", hour: "2-digit", minute: "2-digit" };
+      return date.toLocaleString(undefined, options);
+    } else {
+      // For older dates show the full date
+      const options = { year: "numeric", month: "short", day: "numeric" };
+      return date.toLocaleDateString(undefined, options);
+    }
+  };
+
   // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
@@ -289,11 +348,23 @@ const Profile = () => {
 
       // Update local state
       setNotifications((prevNotifications) =>
-        prevNotifications.map((notification) =>
-          notification._id === notificationId
-            ? { ...notification, status: "read" }
-            : notification
-        )
+        prevNotifications.map((notification) => {
+          if (notification._id === notificationId) {
+            // When marking as read, ensure timestamp is valid
+            const validTimestamp =
+              notification.timestamp &&
+              !isNaN(new Date(notification.timestamp).getTime())
+                ? notification.timestamp
+                : new Date().toISOString();
+
+            return {
+              ...notification,
+              status: "read",
+              timestamp: validTimestamp,
+            };
+          }
+          return notification;
+        })
       );
 
       // Update unread count
@@ -314,10 +385,20 @@ const Profile = () => {
 
       // Update local state
       setNotifications((prevNotifications) =>
-        prevNotifications.map((notification) => ({
-          ...notification,
-          status: "read",
-        }))
+        prevNotifications.map((notification) => {
+          // Ensure timestamp is valid for all notifications
+          const validTimestamp =
+            notification.timestamp &&
+            !isNaN(new Date(notification.timestamp).getTime())
+              ? notification.timestamp
+              : new Date().toISOString();
+
+          return {
+            ...notification,
+            status: "read",
+            timestamp: validTimestamp,
+          };
+        })
       );
 
       // Reset unread count
@@ -1236,7 +1317,7 @@ const Profile = () => {
   return (
     <div className="flex">
       <Sidebar />
-      <div className="flex-1 min-h-screen bg-gray-50">
+      <div className="flex-1 min-h-screen bg-gray-50 ml-72">
         <div className="max-w-7xl mx-auto p-6">
           {/* Enhanced Header with Stats */}
           <div className="mb-8">
@@ -2775,54 +2856,65 @@ const Profile = () => {
 
       {/* Notifications Modal */}
       <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <div>
-              <DialogTitle>Notifications</DialogTitle>
-              <DialogDescription>
-                {unreadCount > 0
-                  ? `You have ${unreadCount} unread notification${
-                      unreadCount !== 1 ? "s" : ""
-                    }`
-                  : "No new notifications"}
-              </DialogDescription>
-            </div>
-            <div className="flex space-x-2">
-              {unreadCount > 0 && (
-                <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                  Mark all as read
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
+          <DialogHeader className="pb-3 border-b">
+            <div className="flex flex-row items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl">Notifications</DialogTitle>
+                <DialogDescription className="mt-1">
+                  {unreadCount > 0
+                    ? `You have ${unreadCount} unread notification${
+                        unreadCount !== 1 ? "s" : ""
+                      }`
+                    : "No new notifications"}
+                </DialogDescription>
+              </div>
+              <div className="flex space-x-2">
+                {unreadCount > 0 && (
+                  <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                    Mark all as read
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllNotifications}
+                >
+                  Clear all
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllNotifications}
-              >
-                Clear all
-              </Button>
+              </div>
             </div>
           </DialogHeader>
           <div className="py-2">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex flex-col space-y-3 mb-4">
               <Input
                 placeholder="Search notifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
               />
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
-                className="flex-1"
+                className="w-full"
               >
                 <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="alert">Alerts</TabsTrigger>
-                  <TabsTrigger value="message">Messages</TabsTrigger>
-                  <TabsTrigger value="update">Updates</TabsTrigger>
+                  <TabsTrigger value="all" className="text-xs sm:text-sm">
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="alert" className="text-xs sm:text-sm">
+                    Alerts
+                  </TabsTrigger>
+                  <TabsTrigger value="message" className="text-xs sm:text-sm">
+                    Messages
+                  </TabsTrigger>
+                  <TabsTrigger value="update" className="text-xs sm:text-sm">
+                    Updates
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
-            <ScrollArea className="h-[350px]">
+            <ScrollArea className="h-[350px] pr-4">
               {notificationsLoading ? (
                 <div className="flex justify-center py-8">
                   <p>Loading notifications...</p>
@@ -2832,13 +2924,17 @@ const Profile = () => {
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification._id}
-                      className={`p-3 rounded-lg flex items-start ${
+                      className={`p-4 rounded-lg flex items-start mb-2 ${
                         notification.status === "unread"
                           ? "bg-blue-50"
                           : "bg-gray-50"
+                      } border ${
+                        notification.status === "unread"
+                          ? "border-blue-100"
+                          : "border-gray-200"
                       }`}
                     >
-                      <div className={`p-2 rounded-full mr-3`}>
+                      <div className={`p-2 rounded-full mr-3 flex-shrink-0`}>
                         {notification.type === "alert" ? (
                           <Bell className="h-5 w-5 text-red-500" />
                         ) : notification.type === "message" ? (
@@ -2847,20 +2943,44 @@ const Profile = () => {
                           <Info className="h-5 w-5 text-green-500" />
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                          <h4 className="font-medium text-sm">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className="font-medium text-sm line-clamp-1">
                             {notification.title}
                           </h4>
-                          <div className="flex items-center space-x-1">
-                            <span className="text-xs text-gray-500">
-                              {new Date(
-                                notification.timestamp
-                              ).toLocaleDateString()}
-                            </span>
+                          <div className="flex items-center space-x-1 flex-shrink-0 whitespace-nowrap">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-xs text-gray-500 cursor-help">
+                                    {formatDate(notification.timestamp)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {notification.timestamp &&
+                                    !isNaN(
+                                      new Date(notification.timestamp).getTime()
+                                    )
+                                      ? new Date(
+                                          notification.timestamp
+                                        ).toLocaleString(undefined, {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                          hour: "numeric",
+                                          minute: "numeric",
+                                          second: "numeric",
+                                        })
+                                      : "Invalid date"}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-6 w-6"
                               onClick={() =>
                                 removeNotification(notification._id)
                               }
@@ -2869,14 +2989,14 @@ const Profile = () => {
                             </Button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 mt-1 break-words max-h-[80px] overflow-y-auto">
                           {notification.message}
                         </p>
                         {notification.status === "unread" && (
                           <Button
                             variant="link"
                             size="sm"
-                            className="mt-1 p-0 h-auto text-xs"
+                            className="mt-2 p-0 h-auto text-xs"
                             onClick={() => markAsRead(notification._id)}
                           >
                             Mark as read

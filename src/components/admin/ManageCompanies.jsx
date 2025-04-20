@@ -29,6 +29,7 @@ import {
   Briefcase,
   ThumbsUp,
   ThumbsDown,
+  ExternalLink,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -133,9 +134,9 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Update Application Status</h2>
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
+          <h2 className="text-xl font-bold">Application Details</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full"
@@ -151,88 +152,192 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Student
-              </label>
-              <div className="p-3 border rounded-md bg-gray-50">
-                <div className="font-medium">
-                  {application.student?.name || "Unknown"}
+          <div className="grid grid-cols-1 gap-6">
+            {/* Student Information Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Student Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="font-medium">
+                      {application.student?.name || "Unknown"}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {application.studentModel || "N/A"}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Registration Number
+                  </label>
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="font-medium">
+                      {application.student?.registrationNumber || "N/A"}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="font-medium">
+                      {application.studentModel || "N/A"}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Applied Date
+                  </label>
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="font-medium">
+                      {application.appliedDate
+                        ? new Date(application.appliedDate).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+            {/* Application Materials Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">
+                Application Materials
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Resume/CV Link
+                  </label>
+                  <div className="p-3 border rounded-md bg-white">
+                    {application.resume ? (
+                      <a
+                        href={application.resume}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline flex items-center"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {application.resume}
+                      </a>
+                    ) : (
+                      <span className="text-gray-500">No resume provided</span>
+                    )}
+                  </div>
+                </div>
 
-          {(status === "Accepted" || status === "Offered") && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Package Offered
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="e.g., ₹10 LPA"
-                  value={packageOffered}
-                  onChange={(e) => setPackageOffered(e.target.value)}
-                  className="pl-10 w-full p-2 border border-gray-300 rounded-md"
-                  required
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cover Letter
+                  </label>
+                  <div className="p-3 border rounded-md bg-white min-h-[100px] max-h-[200px] overflow-y-auto">
+                    {application.coverLetter ? (
+                      <p className="whitespace-pre-wrap">
+                        {application.coverLetter}
+                      </p>
+                    ) : (
+                      <span className="text-gray-500">
+                        No cover letter provided
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Additional Information
+                  </label>
+                  <div className="p-3 border rounded-md bg-white min-h-[100px] max-h-[200px] overflow-y-auto">
+                    {application.additionalInfo ? (
+                      <p className="whitespace-pre-wrap">
+                        {application.additionalInfo}
+                      </p>
+                    ) : (
+                      <span className="text-gray-500">
+                        No additional information provided
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Status Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Update Status</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Status
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(status === "Accepted" || status === "Offered") && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Offered
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="e.g., ₹10 LPA"
+                        value={packageOffered}
+                        onChange={(e) => setPackageOffered(e.target.value)}
+                        className="pl-10 w-full p-2 border border-gray-300 rounded-md"
+                        required
+                      />
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <span className="text-gray-500 font-medium">₹</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Feedback
+                </label>
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-md min-h-[120px]"
+                  placeholder="Provide feedback for the student..."
                 />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <span className="text-gray-500 font-medium">₹</span>
-                </div>
               </div>
             </div>
-          )}
 
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Feedback
-            </label>
-            <textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md min-h-[120px]"
-              placeholder="Provide feedback for the student..."
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? "Updating..." : "Update"}
-            </button>
+            <div className="flex justify-end space-x-3 mt-6 sticky bottom-0 bg-white pt-2 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                disabled={loading}
+              >
+                {loading ? "Updating..." : "Update"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -345,7 +450,7 @@ const ApplicationsListModal = ({ company, isOpen, onClose }) => {
         onClick={onClose}
       ></div>
 
-      <div className="relative bg-white rounded-lg w-[85%] h-[80vh] max-h-[85vh] overflow-hidden z-50 flex flex-col">
+      <div className="relative bg-white rounded-lg w-[90%] md:w-[85%] h-[90vh] max-h-[90vh] overflow-hidden z-50 flex flex-col mx-auto my-auto">
         <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-10 shadow-sm">
           <h2 className="text-xl font-bold flex items-center">
             <Building2 className="h-5 w-5 mr-2 text-blue-600" />
@@ -374,7 +479,7 @@ const ApplicationsListModal = ({ company, isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-4 overflow-auto">
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
               <p className="flex items-center">
@@ -462,7 +567,7 @@ const ApplicationsListModal = ({ company, isOpen, onClose }) => {
                         {application.packageOffered || "-"}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500">
-                        <div className="max-w-[250px] truncate">
+                        <div className="max-w-[200px] truncate">
                           {application.feedback || "No feedback yet"}
                         </div>
                       </td>
@@ -472,7 +577,7 @@ const ApplicationsListModal = ({ company, isOpen, onClose }) => {
                           className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-md font-medium"
                         >
                           <Pencil className="h-3.5 w-3.5 mr-1" />
-                          Update
+                          View Details
                         </button>
                       </td>
                     </tr>
@@ -571,7 +676,7 @@ const OffersStatusModal = ({ company, isOpen, onClose }) => {
         onClick={onClose}
       ></div>
 
-      <div className="relative bg-white rounded-lg w-[85%] h-[80vh] max-h-[85vh] overflow-hidden z-50 flex flex-col">
+      <div className="relative bg-white rounded-lg w-[90%] md:w-[85%] h-[90vh] max-h-[90vh] overflow-hidden z-50 flex flex-col mx-auto my-auto">
         <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-10 shadow-sm">
           <h2 className="text-xl font-bold flex items-center">
             <Briefcase className="h-5 w-5 mr-2 text-blue-600" />
@@ -599,55 +704,53 @@ const OffersStatusModal = ({ company, isOpen, onClose }) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
             <div className="flex space-x-2">
               <button
                 onClick={() => setFilter("all")}
-                className={`px-3 py-2 rounded-md ${
+                className={`px-3 py-2 text-sm rounded-md ${
                   filter === "all"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-blue-100 text-blue-700 font-medium"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 All Offers
               </button>
               <button
-                onClick={() => setFilter("accepted")}
-                className={`px-3 py-2 rounded-md ${
-                  filter === "accepted"
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                <ThumbsUp className="h-4 w-4 inline mr-1" />
-                Accepted
-              </button>
-              <button
                 onClick={() => setFilter("pending")}
-                className={`px-3 py-2 rounded-md ${
+                className={`px-3 py-2 text-sm rounded-md ${
                   filter === "pending"
-                    ? "bg-yellow-600 text-white"
+                    ? "bg-yellow-100 text-yellow-700 font-medium"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                <Clock className="h-4 w-4 inline mr-1" />
                 Pending
               </button>
               <button
-                onClick={() => setFilter("declined")}
-                className={`px-3 py-2 rounded-md ${
-                  filter === "declined"
-                    ? "bg-red-600 text-white"
+                onClick={() => setFilter("accepted")}
+                className={`px-3 py-2 text-sm rounded-md ${
+                  filter === "accepted"
+                    ? "bg-green-100 text-green-700 font-medium"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                <ThumbsDown className="h-4 w-4 inline mr-1" />
+                Accepted
+              </button>
+              <button
+                onClick={() => setFilter("declined")}
+                className={`px-3 py-2 text-sm rounded-md ${
+                  filter === "declined"
+                    ? "bg-red-100 text-red-700 font-medium"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
                 Declined
               </button>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-4 overflow-auto">
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
               <p className="flex items-center">
@@ -664,18 +767,22 @@ const OffersStatusModal = ({ company, isOpen, onClose }) => {
             </div>
           ) : filteredApplications.length === 0 ? (
             <div className="text-center p-8 bg-gray-50 rounded-lg">
-              <Briefcase className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900">
                 {filter !== "all"
                   ? `No ${filter} offers found`
-                  : "No offers made yet"}
+                  : "No offers extended yet"}
               </h3>
               <p className="mt-2 text-gray-500">
-                {searchTerm
-                  ? "Try a different search term"
-                  : filter !== "all"
-                  ? `No students have ${filter} offers from this company yet.`
-                  : "No students have been offered positions by this company yet."}
+                {filter !== "all"
+                  ? `No students have ${
+                      filter === "pending"
+                        ? "pending"
+                        : filter === "accepted"
+                        ? "accepted"
+                        : "declined"
+                    } offers from this company.`
+                  : "This company has not extended any offers yet."}
               </p>
             </div>
           ) : (
@@ -699,10 +806,10 @@ const OffersStatusModal = ({ company, isOpen, onClose }) => {
                       Package
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Response Date
+                      Reply By
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Feedback
+                      Response Date
                     </th>
                   </tr>
                 </thead>
@@ -728,40 +835,23 @@ const OffersStatusModal = ({ company, isOpen, onClose }) => {
                         {application.studentModel || "N/A"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(
-                          application.updatedAt || application.appliedDate
-                        )}
+                        {formatDate(application.updatedAt)}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        {application.status === "Accepted" ? (
-                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Accepted
-                          </span>
-                        ) : application.status === "Declined" ? (
-                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Declined
-                          </span>
-                        ) : (
-                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            <Clock className="h-4 w-4 mr-1" />
-                            Pending Response
-                          </span>
-                        )}
+                        <StatusBadge status={application.status} />
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         {application.packageOffered || "-"}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {application.responseDate
-                          ? formatDate(application.responseDate)
-                          : "-"}
+                        {application.offerResponseDeadline
+                          ? formatDate(application.offerResponseDeadline)
+                          : "Not set"}
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-500">
-                        <div className="max-w-[250px] truncate">
-                          {application.feedback || "No feedback available"}
-                        </div>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.offerResponseDate
+                          ? formatDate(application.offerResponseDate)
+                          : "-"}
                       </td>
                     </tr>
                   ))}

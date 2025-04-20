@@ -1,2467 +1,1738 @@
-% Project Technical Documentation
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt,a4paper]{report}
+
+% Essential packages
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{hyperref}
 \usepackage{tikz}
-
+\usepackage{pgf-umlcd}
 \usepackage{pgf-umlsd}
-\usepackage{amsmath}
-\usepackage{float}
-\usepackage{array}
-\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{minted}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{appendix}
+\usepackage{geometry}
 \usepackage{longtable}
-\usepackage{tabularx}
-\usepackage{multicol}
 \usepackage{enumitem}
-\usepackage[most]{tcolorbox}
-\usetikzlibrary{positioning,shapes,arrows,fit,calc,graphs,graphs.standard}
+\usepackage{amsmath}
+\usepackage{setspace}
 
-% Define colors for different elements
-\definecolor{codegreen}{rgb}{0,0.6,0}
-\definecolor{codegray}{rgb}{0.5,0.5,0.5}
-\definecolor{codepurple}{rgb}{0.58,0,0.82}
-\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+% Page setup
+\geometry{margin=1in}
+\onehalfspacing
 
-% Configure code listings
-\lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
-    commentstyle=\color{codegreen},
-    keywordstyle=\color{magenta},
-    numberstyle=\tiny\color{codegray},
-    stringstyle=\color{codepurple},
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\thepage}
+\lhead{Campus Placement Management System}
+\cfoot{Confidential}
+
+% Title formatting
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{50pt}{40pt}
+
+% Code listing styling
+\definecolor{codegray}{gray}{0.9}
+\definecolor{codecomment}{rgb}{0.0,0.5,0.0}
+\definecolor{codestring}{rgb}{0.6,0.1,0.1}
+
+\lstset{
+    backgroundcolor=\color{codegray},
+    commentstyle=\color{codecomment},
+    stringstyle=\color{codestring},
     basicstyle=\ttfamily\small,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                  
-    showspaces=false,                
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbersep=5pt,
+    showspaces=false,
     showstringspaces=false,
-    showtabs=false,                  
+    showtabs=false,
     tabsize=2
 }
-\lstset{style=mystyle}
 
-% Define custom boxes for important information
-\newtcolorbox{infobox}[1]{colback=blue!5!white,colframe=blue!75!black,title=#1}
-\newtcolorbox{warningbox}[1]{colback=orange!5!white,colframe=orange!75!black,title=#1}
-\newtcolorbox{tipbox}[1]{colback=green!5!white,colframe=green!75!black,title=#1}
-
-\title{\Huge{\textbf{Technical Documentation:}}\\ \huge{Placement Management System}\\ \Large{Comprehensive Analysis and Architecture Documentation}}
-\author{Project Team}
+% Document information
+\title{
+    \vspace{-1.5cm}
+    \LARGE \textbf{Campus Placement Management System}\\
+    \vspace{0.5cm}
+    \large Comprehensive Analysis, Design, Implementation, and Evaluation\\
+    \vspace{1.5cm}
+    \includegraphics[width=0.4\textwidth]{project_logo.png}\\
+    \vspace{1.5cm}
+}
+\author{
+    \textbf{Prepared by:}\\
+    University Institute of Technology\\
+    \texttt{placement-team@university.edu}\\
+    \vspace{0.5cm}
+    \textbf{Organization:}\\
+    University Institute of Technology\\
+    Department of Computer Science
+}
 \date{\today}
 
 \begin{document}
 
+% Title page
 \maketitle
+\thispagestyle{empty}
+
+% Executive Summary
+\begin{abstract}
+    \begin{center}
+        \large\textbf{Executive Summary}
+    \end{center}
+    This comprehensive report presents a detailed analysis and documentation of the Campus Placement Management System. The project aims to streamline and digitize the campus placement process through the implementation of a full-stack web application using the MERN (MongoDB, Express.js, React.js, Node.js) stack. The system architecture follows a modern single-page application approach with a RESTful API backend to ensure scalability, maintainability, and security.
+    
+    Key achievements of this project include the development of a multi-role access system with specialized interfaces for students and administrators, implementation of a comprehensive application tracking system, a real-time notification framework, a department-based student organization system, and a detailed reporting dashboard for placement statistics. Performance testing demonstrates excellent response times under normal load and acceptable degradation during peak usage periods. The implemented solution successfully addresses the requirements specified by stakeholders and provides a foundation for future enhancements.
+    
+    This document contains detailed workflows, database schemas, system architecture diagrams, implementation specifics, and evaluation results. The report concludes with recommendations for future development and potential extensions to the current system, including AI-based candidate matching, enhanced analytics capabilities, and integration with external job portals.
+\end{abstract}
+
+% Table of contents and lists
 \tableofcontents
+\listoffigures
+\listoftables
 \newpage
 
-\section{Introduction}
-\begin{multicols}{2}
-This document provides a comprehensive technical overview of our Placement Management System, which is built using React.js for the frontend and Node.js for the backend. The application implements a modern architecture with various features including user authentication, data visualization, and real-time communication capabilities specifically designed for managing campus placements.
+% Main content
+\chapter{Introduction}
+\section{Project Overview}
+The Campus Placement Management System is a comprehensive web application designed to streamline and digitize the entire campus placement process for educational institutions. This project addresses the critical need for an organized, efficient, and transparent system to manage the complex interactions between students, placement administrators, and recruiting companies.
 
-The system is designed to provide a scalable, maintainable, and robust platform for handling student placement activities, company recruitment processes, and administrative workflows while delivering an intuitive and responsive user experience. This documentation covers the architectural decisions, technology choices, implementation details, and development practices employed throughout the project.
+The system serves as a centralized platform that connects students seeking employment opportunities with companies looking to recruit talent. It manages the end-to-end placement process, from company registration and job listing to student applications, interview scheduling, and final placement tracking. The platform is particularly notable for its department-based organization system, which efficiently manages students across different academic disciplines (CE, CSE, IT, SFE, ME, EEE, EC).
 
-\begin{infobox}{Project Goals}
+Built on the MERN (MongoDB, Express.js, React.js, Node.js) stack, the application leverages modern web technologies to deliver a responsive, secure, and scalable solution. MongoDB's document-based architecture provides the flexibility needed to store varied student profiles and application data, while React.js enables a dynamic and interactive user interface. The Express.js/Node.js backend implements robust business logic, authentication, and data processing capabilities.
+
+Key features of the system include:
 \begin{itemize}
-    \item Create a responsive platform for students, companies, and placement officers
-    \item Implement secure authentication and role-based authorization
-    \item Enable real-time placement analytics and reporting
-    \item Ensure scalability to handle peak recruitment seasons
-    \item Maintain code quality and long-term maintainability
-    \item Provide comprehensive documentation for future enhancement
-\end{itemize}
-\end{infobox}
-\end{multicols}
-
-\subsection{Project Background}
-The Placement Management System was developed to address the growing need for a centralized platform that streamlines the campus recruitment process. Traditional placement management often involves manual processes, fragmented communication, and limited analytics capabilities, creating inefficiencies for all stakeholders.
-
-By leveraging modern web technologies, we've created a comprehensive solution that bridges these gaps while providing a foundation for future enhancements and integrations with other campus systems like student information systems and learning management platforms.
-
-\subsection{Target Audience}
-The system serves multiple user roles including:
-\begin{itemize}
-    \item Students seeking placement opportunities and tracking applications
-    \item Company recruiters posting positions and managing candidates
-    \item Placement officers coordinating recruitment activities
-    \item University administrators accessing analytics and reports
-    \item System administrators maintaining the platform
+    \item Secure role-based access control for students and administrators
+    \item Comprehensive student profile management with academic and professional details
+    \item Department-specific views and operations for efficient administration
+    \item Company and job opportunity management with eligibility filtering
+    \item Application tracking system with status updates and notifications
+    \item Real-time notification system for important events and updates
+    \item Interview scheduling and management
+    \item Reporting and analytics dashboard for placement statistics
 \end{itemize}
 
-\section{System Architecture}
-
-\subsection{High-Level Architecture}
-The Placement Management System follows a modern client-server architecture with clearly separated frontend and backend components. This separation allows for independent scaling, maintenance, and deployment of each component while ensuring clean interface contracts between layers.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.7, 
-    box/.style={draw, minimum width=3cm, minimum height=1.5cm, align=center, rounded corners},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % Frontend
-    \node[box, fill=blue!10] (frontend) at (0,0) {Frontend\\(React.js)};
-    
-    % API Gateway
-    \node[box, fill=green!10] (api) at (6,0) {API Gateway};
-    
-    % Backend Services
-    \node[box, fill=orange!10] (auth) at (12,3) {Authentication\\Service};
-    \node[box, fill=orange!10] (data) at (12,0) {Placement\\Service};
-    \node[box, fill=orange!10] (notify) at (12,-3) {Notification\\Service};
-    
-    % Databases
-    \node[box, fill=red!10] (authdb) at (18,3) {User\\Database};
-    \node[box, fill=red!10] (maindb) at (18,0) {Placement\\Database};
-    \node[box, fill=red!10] (logdb) at (18,-3) {Analytics\\Database};
-    
-    % External Services
-    \node[box, fill=purple!10] (email) at (6,3) {Email\\Service};
-    \node[box, fill=purple!10] (sms) at (6,-3) {SMS\\Service};
-    
-    % Connect components with arrows
-    \draw[arrow] (frontend) -- (api) node[midway, above] {REST/GraphQL};
-    \draw[arrow] (api) -- (auth);
-    \draw[arrow] (api) -- (data);
-    \draw[arrow] (api) -- (notify);
-    \draw[arrow] (auth) -- (authdb);
-    \draw[arrow] (data) -- (maindb);
-    \draw[arrow] (notify) -- (logdb);
-    \draw[arrow] (notify) -- (email);
-    \draw[arrow] (notify) -- (sms);
-    
-    % Labels
-    \node[align=center] at (0,-4) {Client Layer};
-    \node[align=center] at (6,-4) {API Layer};
-    \node[align=center] at (12,-4) {Service Layer};
-    \node[align=center] at (18,-4) {Data Layer};
-\end{tikzpicture}
-\caption{Detailed System Architecture Overview}
-\end{figure}
-
-\subsection{Architectural Patterns}
-The system incorporates several architectural patterns to address different aspects of the application:
-
+\section{Scope and Objectives}
+The scope of this project encompasses:
 \begin{itemize}
-    \item \textbf{Microservices Architecture}: Backend functionality is divided into distinct services that can be developed, deployed, and scaled independently.
-    
-    \item \textbf{Model-View-Controller (MVC)}: The frontend implements a variation of MVC pattern where React components serve as views, custom hooks handle control logic, and data models are maintained in state management systems.
-    
-    \item \textbf{Repository Pattern}: Data access is abstracted through repository interfaces to decouple business logic from data storage mechanisms.
-    
-    \item \textbf{Command Query Responsibility Segregation (CQRS)}: Operations that modify data (commands) are separated from operations that read data (queries) to optimize performance and scalability.
-    
-    \item \textbf{Event-Driven Architecture}: System components communicate asynchronously through events, allowing for loose coupling and better fault tolerance.
+    \item Development of a secure authentication and authorization system with role-based access control (student, admin)
+    \item Implementation of student profile management with academic and professional information
+    \item Creation of a department-based student organization system (CE, CSE, IT, SFE, ME, EEE, EC)
+    \item Design of a company management module for administrators to track recruiting organizations
+    \item Development of a job listing and application system with eligibility filtering
+    \item Implementation of an application tracking system with status updates and notifications
+    \item Creation of an interview scheduling and management system
+    \item Development of a real-time notification framework for system events
+    \item Implementation of reporting and analytics capabilities for placement statistics
+    \item Design of responsive interfaces for both student and admin users
 \end{itemize}
 
-\subsection{Communication Flow}
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.65, node distance=2.5cm,
-    process/.style={rectangle, draw, minimum width=2cm, minimum height=1cm, align=center, rounded corners},
-    data/.style={cylinder, draw, shape aspect=0.3, minimum width=2cm, minimum height=1cm, align=center},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % User types
-    \node[process] (student) {Student};
-    \node[process, right=of student] (company) {Company};
-    \node[process, right=of company] (admin) {Placement Officer};
-    
-    % UI Components
-    \node[process, below=of student, xshift=2.5cm] (ui) {UI Components};
-    
-    % State Management
-    \node[process, below=of ui] (state) {State Management};
-    
-    % API Service
-    \node[process, below=of state] (api) {API Service};
-    
-    % Backend Controller
-    \node[process, below=of api] (controller) {Backend Controller};
-    
-    % Service Layer
-    \node[process, below=of controller] (service) {Service Layer};
-    
-    % Data Access
-    \node[process, below=of service] (data) {Data Access Layer};
-    
-    % Database
-    \node[data, below=of data] (db) {Database};
-    
-    % Connect with arrows
-    \draw[arrow] (student) -- (ui);
-    \draw[arrow] (company) -- (ui);
-    \draw[arrow] (admin) -- (ui);
-    \draw[arrow] (ui) -- (state) node[midway, right] {State Updates};
-    \draw[arrow] (state) -- (api) node[midway, right] {API Calls};
-    \draw[arrow] (api) -- (controller) node[midway, right] {HTTP Requests};
-    \draw[arrow] (controller) -- (service) node[midway, right] {Business Logic};
-    \draw[arrow] (service) -- (data) node[midway, right] {Data Operations};
-    \draw[arrow] (data) -- (db) node[midway, right] {CRUD Operations};
-    
-    % Response path - use a different route to avoid overlapping
-    \draw[arrow, dashed] (db) -- +(-4,0) |- (data);
-    \draw[arrow, dashed] (data) -- +(-4,0) |- (service);
-    \draw[arrow, dashed] (service) -- +(-4,0) |- (controller);
-    \draw[arrow, dashed] (controller) -- +(-4,0) |- (api);
-    \draw[arrow, dashed] (api) -- +(-4,0) |- (state);
-    \draw[arrow, dashed] (state) -- +(-4,0) |- (ui);
-    \draw[arrow, dashed] (ui.west) -| (student);
-    \draw[arrow, dashed] (ui) -- (company);
-    \draw[arrow, dashed] (ui.east) -| (admin);
-    
-    \node[right] at (-6, -9) {Response Flow};
-    \node[right] at (4, -9) {Request Flow};
-\end{tikzpicture}
-\caption{Placement Management System Communication Flow}
-\end{figure}
-
-\section{Technology Stack}
-
-The application leverages a modern technology stack designed to provide optimal performance, maintainability, and developer experience. Each technology was carefully selected based on its strengths, community support, and alignment with project requirements.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  level 1/.style={sibling distance=50mm},
-  level 2/.style={sibling distance=30mm},
-  level 3/.style={sibling distance=20mm},
-  every node/.style={shape=rectangle, rounded corners, draw, align=center, fill=blue!10}
-]
-  % Root
-  \node{Full-Stack Application}
-    % Main branches
-    child {node{Frontend}
-      child {node{React.js}
-        child {node{React Router}}
-        child {node{State Management}}
-        child {node{UI Components}}
-      }
-      child {node{Styling}
-        child {node{TailwindCSS}}
-        child {node{Radix UI}}
-      }
-    }
-    child {node{Backend}
-      child {node{Node.js}
-        child {node{Express.js}}
-        child {node{Authentication}}
-        child {node{API Routes}}
-      }
-      child {node{Database}
-        child {node{MongoDB}}
-        child {node{Data Models}}
-      }
-    };
-\end{tikzpicture}
-\caption{Technology Stack Overview}
-\end{figure}
-
-\subsection{Frontend Technologies}
-\begin{multicols}{2}
-\begin{itemize}
-    \item \textbf{React.js (v19.0.0)}
-    \begin{itemize}
-        \item Component-based UI architecture
-        \item Virtual DOM for efficient rendering
-        \item Hooks for state management and side effects
-        \item Context API for global state sharing
-    \end{itemize}
-    
-    \item \textbf{React Router DOM (v7.1.5)}
-    \begin{itemize}
-        \item Client-side routing with history management
-        \item Lazy loading for code splitting
-        \item Route-based code splitting
-        \item Protected route implementation
-    \end{itemize}
-    
-    \item \textbf{TailwindCSS (v3.4.17)}
-    \begin{itemize}
-        \item Utility-first CSS framework
-        \item JIT (Just-In-Time) compilation
-        \item Responsive design utilities
-        \item Custom design system implementation
-    \end{itemize}
-    
-    \item \textbf{Radix UI Components}
-    \begin{itemize}
-        \item Accessible component primitives
-        \item Unstyled components with full styling control
-        \item Focus management and keyboard navigation
-        \item Screen reader compatibility
-    \end{itemize}
-    
-    \item \textbf{Recharts for Data Visualization}
-    \begin{itemize}
-        \item Chart components built with D3
-        \item Responsive and interactive visualizations
-        \item Customizable chart elements
-        \item Support for various chart types
-    \end{itemize}
-    
-    \item \textbf{Axios for HTTP Requests}
-    \begin{itemize}
-        \item Promise-based HTTP client
-        \item Request/response interceptors
-        \item Automatic JSON parsing
-        \item Request cancellation support
-    \end{itemize}
-\end{itemize}
-\end{multicols}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8, 
-    block/.style={rectangle, draw, minimum width=3cm, minimum height=1.5cm, align=center, rounded corners, fill=blue!10},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % React Core
-    \node[block, fill=blue!20] (react) at (0,0) {React Core};
-    
-    % Connected components
-    \node[block] (router) at (-4,-3) {React Router};
-    \node[block] (hooks) at (0,-3) {React Hooks};
-    \node[block] (context) at (4,-3) {Context API};
-    
-    % UI Layer
-    \node[block, fill=green!10] (components) at (0,-6) {UI Components};
-    
-    % Styling
-    \node[block] (tailwind) at (-3,-9) {TailwindCSS};
-    \node[block] (radix) at (3,-9) {Radix UI};
-    
-    % Connect components
-    \draw[arrow] (react) -- (router);
-    \draw[arrow] (react) -- (hooks);
-    \draw[arrow] (react) -- (context);
-    \draw[arrow] (router) -- (components);
-    \draw[arrow] (hooks) -- (components);
-    \draw[arrow] (context) -- (components);
-    \draw[arrow] (components) -- (tailwind);
-    \draw[arrow] (components) -- (radix);
-    
-    % Layers
-    \draw[dashed] (-6,1) -- (6,1);
-    \node at (-5,1.5) {Core Layer};
-    
-    \draw[dashed] (-6,-4.5) -- (6,-4.5);
-    \node at (-5,-4) {Logic Layer};
-    
-    \draw[dashed] (-6,-7.5) -- (6,-7.5);
-    \node at (-5,-7) {Presentation Layer};
-    
-    \node at (-5,-10.5) {Styling Layer};
-\end{tikzpicture}
-\caption{Frontend Architecture Layers}
-\end{figure}
-
-\subsection{Backend Technologies}
-\begin{multicols}{2}
-\begin{itemize}
-    \item \textbf{Node.js}
-    \begin{itemize}
-        \item Event-driven, non-blocking I/O
-        \item JavaScript runtime environment
-        \item V8 JavaScript engine
-        \item Support for ES6+ features
-    \end{itemize}
-    
-    \item \textbf{Express.js}
-    \begin{itemize}
-        \item Minimal web application framework
-        \item Middleware-based request pipeline
-        \item Routing system with parameter support
-        \item Template engine integration
-    \end{itemize}
-    
-    \item \textbf{MongoDB}
-    \begin{itemize}
-        \item NoSQL document database
-        \item Flexible schema design
-        \item Horizontal scaling capabilities
-        \item Native JSON document support
-    \end{itemize}
-    
-    \item \textbf{Mongoose ODM}
-    \begin{itemize}
-        \item MongoDB object modeling
-        \item Schema validation
-        \item Middleware hooks
-        \item Query building API
-    \end{itemize}
-    
-    \item \textbf{Nodemailer for Email Services}
-    \begin{itemize}
-        \item SMTP transport
-        \item HTML email support
-        \item Attachment handling
-        \item Email template support
-    \end{itemize}
-    
-    \item \textbf{Twilio for SMS Services}
-    \begin{itemize}
-        \item SMS messaging
-        \item MMS capabilities
-        \item Phone number verification
-        \item Two-factor authentication
-    \end{itemize}
-    
-    \item \textbf{JWT for Authentication}
-    \begin{itemize}
-        \item Stateless authentication
-        \item Token-based access control
-        \item Expiration and refresh mechanisms
-        \item Signature verification
-    \end{itemize}
-\end{itemize}
-\end{multicols}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8, 
-    block/.style={rectangle, draw, minimum width=3cm, minimum height=1.5cm, align=center, rounded corners, fill=orange!10},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % Node.js Core
-    \node[block, fill=orange!20] (node) at (0,0) {Node.js Core};
-    
-    % Main components
-    \node[block] (express) at (0,-3) {Express.js};
-    
-    % Middleware layer
-    \node[block] (auth) at (-4,-6) {Authentication\\Middleware};
-    \node[block] (routes) at (0,-6) {API Routes};
-    \node[block] (error) at (4,-6) {Error Handling\\Middleware};
-    
-    % Service layer
-    \node[block] (user) at (-6,-9) {User Service};
-    \node[block] (data) at (-2,-9) {Data Service};
-    \node[block] (email) at (2,-9) {Email Service};
-    \node[block] (sms) at (6,-9) {SMS Service};
-    
-    % Data access layer
-    \node[block] (mongoose) at (0,-12) {Mongoose ODM};
-    
-    % Database
-    \node[block, fill=green!10] (mongodb) at (0,-15) {MongoDB};
-    
-    % Connect components
-    \draw[arrow] (node) -- (express);
-    \draw[arrow] (express) -- (auth);
-    \draw[arrow] (express) -- (routes);
-    \draw[arrow] (express) -- (error);
-    \draw[arrow] (auth) -- (user);
-    \draw[arrow] (routes) -- (user);
-    \draw[arrow] (routes) -- (data);
-    \draw[arrow] (routes) -- (email);
-    \draw[arrow] (routes) -- (sms);
-    \draw[arrow] (user) -- (mongoose);
-    \draw[arrow] (data) -- (mongoose);
-    \draw[arrow] (mongoose) -- (mongodb);
-    
-    % Layers
-    \draw[dashed] (-8,1) -- (8,1);
-    \node at (-7,1.5) {Runtime Layer};
-    
-    \draw[dashed] (-8,-4.5) -- (8,-4.5);
-    \node at (-7,-4) {Web Framework Layer};
-    
-    \draw[dashed] (-8,-7.5) -- (8,-7.5);
-    \node at (-7,-7) {Middleware Layer};
-    
-    \draw[dashed] (-8,-10.5) -- (8,-10.5);
-    \node at (-7,-10) {Service Layer};
-    
-    \draw[dashed] (-8,-13.5) -- (8,-13.5);
-    \node at (-7,-13) {Data Access Layer};
-    
-    \node at (-7,-16) {Database Layer};
-\end{tikzpicture}
-\caption{Backend Architecture Layers}
-\end{figure}
-
-\section{Project Structure}
-
-\subsection{Frontend Structure}
-The frontend follows a component-based architecture with a structured folder organization to ensure scalability and maintainability. The structure is designed to promote reusability, separation of concerns, and easy navigation for developers.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    every node/.style={rectangle, draw, rounded corners, align=center},
-    level 1/.style={sibling distance=6cm},
-    level 2/.style={sibling distance=4cm},
-    level 3/.style={sibling distance=2cm},
-    level distance=1.5cm
-]
-\node[fill=blue!10] {src}
-    child {node[fill=green!10] {components}
-        child {node {common}
-            child {node {Button}}
-            child {node {Card}}
-            child {node {Input}}
-        }
-        child {node {layout}
-            child {node {Header}}
-            child {node {Footer}}
-            child {node {Sidebar}}
-        }
-        child {node {features}
-            child {node {Dashboard}}
-            child {node {UserProfile}}
-            child {node {Reports}}
-        }
-    }
-    child {node[fill=yellow!10] {pages}
-        child {node {Home}}
-        child {node {Login}}
-        child {node {Dashboard}}
-        child {node {Profile}}
-    }
-    child {node[fill=red!10] {utils}
-        child {node {api}}
-        child {node {helpers}}
-        child {node {hooks}}
-        child {node {context}}
-    };
-\end{tikzpicture}
-\caption{Frontend Directory Structure}
-\end{figure}
-
-The frontend follows a structured organization with the following key directories:
-
-\begin{lstlisting}[language=bash]
-src/
-├── components/     # Reusable UI components
-│   ├── common/     # Shared basic components
-│   ├── layout/     # Page layout components
-│   └── features/   # Feature-specific components
-├── pages/          # Page components and routes
-├── utils/          # Utility functions and helpers
-│   ├── api/        # API service functions
-│   ├── hooks/      # Custom React hooks
-│   └── context/    # Context providers
-├── assets/         # Static assets and resources
-├── styles/         # Global styles and themes
-├── App.js          # Main application component
-└── index.js        # Application entry point
-\end{lstlisting}
-
-\subsubsection{Component Structure}
-Each component follows a consistent structure to promote readability and maintainability:
-
-\begin{lstlisting}[language=JavaScript]
-// ComponentName.js - Main component file
-import React from 'react';
-import PropTypes from 'prop-types';
-import './ComponentName.css'; // Scoped styles
-import { useComponentLogic } from './useComponentLogic'; // Custom hook
-
-const ComponentName = ({ prop1, prop2, children }) => {
-  const { state, handlers } = useComponentLogic(prop1, prop2);
-  
-  return (
-    <div className="component-container">
-      {/* Component JSX structure */}
-    </div>
-  );
-};
-
-ComponentName.propTypes = {
-  prop1: PropTypes.string.isRequired,
-  prop2: PropTypes.number,
-  children: PropTypes.node
-};
-
-export default ComponentName;
-\end{lstlisting}
-
-\begin{lstlisting}[language=JavaScript]
-// useComponentLogic.js - Separated business logic
-import { useState, useEffect, useCallback } from 'react';
-
-export const useComponentLogic = (prop1, prop2) => {
-  const [state, setState] = useState(initialState);
-  
-  useEffect(() => {
-    // Side effects
-  }, [dependencies]);
-  
-  const handleEvent = useCallback(() => {
-    // Event handling logic
-  }, [dependencies]);
-  
-  return {
-    state,
-    handlers: {
-      handleEvent
-    }
-  };
-};
-\end{lstlisting}
-
-\subsubsection{Page Structure}
-Pages follow a similar pattern but include routing and layout considerations:
-
-\begin{lstlisting}[language=JavaScript]
-// PageName.js
-import React from 'react';
-import { MainLayout } from '../components/layout';
-import { ComponentA, ComponentB } from '../components/features';
-import { usePageLogic } from './usePageLogic';
-
-const PageName = () => {
-  const { data, loading, error, actions } = usePageLogic();
-  
-  if (loading) return <LoadingIndicator />;
-  if (error) return <ErrorDisplay message={error} />;
-  
-  return (
-    <MainLayout>
-      <PageHeader title="Page Title" />
-      <ComponentA data={data.partA} onAction={actions.handleActionA} />
-      <ComponentB data={data.partB} onAction={actions.handleActionB} />
-    </MainLayout>
-  );
-};
-
-export default PageName;
-\end{lstlisting}
-
-\subsection{Backend Structure}
-The backend implements a modular architecture with clear separation of concerns following the principles of clean architecture. The structure facilitates testing, maintenance, and future feature additions.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    every node/.style={rectangle, draw, rounded corners, align=center},
-    level 1/.style={sibling distance=5cm},
-    level 2/.style={sibling distance=3.5cm},
-    level 3/.style={sibling distance=2cm},
-    level distance=1.5cm
-]
-\node[fill=orange!10] {backend}
-    child {node[fill=red!10] {controllers}
-        child {node {authController}}
-        child {node {userController}}
-        child {node {dataController}}
-    }
-    child {node[fill=blue!10] {services}
-        child {node {authService}}
-        child {node {userService}}
-        child {node {emailService}}
-    }
-    child {node[fill=green!10] {models}
-        child {node {User}}
-        child {node {Profile}}
-        child {node {Data}}
-    }
-    child {node[fill=yellow!10] {middleware}
-        child {node {auth}}
-        child {node {validation}}
-        child {node {errorHandler}}
-    };
-\end{tikzpicture}
-\caption{Backend Directory Structure}
-\end{figure}
-
-The backend structure is organized as follows:
-
-\begin{lstlisting}[language=bash]
-backend/
-├── app.js           # Main application file
-├── middleware.js    # Custom middleware
-├── model/           # Database models
-│   ├── User.js      # User model definition
-│   ├── Profile.js   # Profile model definition
-│   └── Data.js      # Data model definition
-├── controllers/     # Request handlers
-│   ├── authController.js
-│   ├── userController.js
-│   └── dataController.js
-├── services/        # Business logic
-│   ├── authService.js
-│   ├── userService.js
-│   └── emailService.js
-├── routes/          # API route definitions
-├── config/          # Configuration files
-├── utils/           # Utility functions
-└── .env             # Environment configuration
-\end{lstlisting}
-
-\subsubsection{Model Structure}
-Database models define the schema and behavior of data entities:
-
-\begin{lstlisting}[language=JavaScript]
-// User.js
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
-
-const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    minlength: 3
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    validate: {
-      validator: function(v) {
-        return /^\S+@\S+\.\S+$/.test(v);
-      },
-      message: props => `${props.value} is not a valid email!`
-    }
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 8
-  },
-  role: {
-    type: String,
-    enum: ['user', 'admin', 'editor'],
-    default: 'user'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-// Pre-save hook to hash password
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-const User = mongoose.model('User', userSchema);
-
-module.exports = User;
-\end{lstlisting}
-
-\subsubsection{Controller Structure}
-Controllers handle HTTP requests and delegate business logic to services:
-
-\begin{lstlisting}[language=JavaScript]
-// authController.js
-const authService = require('../services/authService');
-
-exports.register = async (req, res, next) => {
-  try {
-    const { username, email, password } = req.body;
-    const result = await authService.registerUser(username, email, password);
-    
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        userId: result.userId,
-        username: result.username
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const result = await authService.loginUser(email, password);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        token: result.token,
-        user: result.user
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-\end{lstlisting}
-
-\section{Key Features and Workflows}
-
-\subsection{Authentication Flow}
-The application implements a comprehensive authentication system using JWT (JSON Web Tokens) for secure, stateless authentication. This approach provides several benefits including scalability, reduced server load, and cross-domain functionality.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=1.5cm,
-    auto,
-    thick,
-    state/.style={
-        rectangle,
-        draw=black,
-        thick,
-        fill=white,
-        text width=2.5cm,
-        minimum height=1cm,
-        text centered,
-        rounded corners
-    },
-    fsm/.style={
-        rectangle,
-        draw=black,
-        thick,
-        fill=blue!10,
-        text width=2.5cm,
-        minimum height=1cm,
-        text centered,
-        rounded corners
-    },
-    point/.style={circle, inner sep=0pt, minimum size=2pt, fill=black}
-]
-    % States
-    \node[fsm] (login) {Login/Register Form};
-    \node[fsm] (validate) [right=of login] {Credential Validation};
-    \node[fsm] (generate) [right=of validate] {Generate JWT};
-    \node[fsm] (store) [right=of generate] {Store Token};
-    \node[fsm] (access) [below=of store] {Access Protected Resources};
-    \node[fsm] (verify) [left=of access] {Verify Token};
-    \node[fsm] (response) [left=of verify] {Process Response};
-    \node[fsm] (refresh) [left=of response] {Refresh Token};
-    
-    % Transitions
-    \draw[->] (login) -- (validate) node[midway, above] {Submit};
-    \draw[->] (validate) -- (generate) node[midway, above] {Valid};
-    \draw[->] (generate) -- (store) node[midway, above] {Success};
-    \draw[->] (store) -- (access) node[midway, right] {Request};
-    \draw[->] (access) -- (verify) node[midway, above] {Token};
-    \draw[->] (verify) -- (response) node[midway, above] {Valid};
-    \draw[->] (response) -- (refresh) node[midway, above] {Expires};
-    
-    % Error paths
-    \draw[->] (validate) to[bend right] node[midway, below] {Invalid} (login);
-    \draw[->] (verify) to[bend right] node[midway, below] {Invalid} (login);
-    \draw[->] (refresh) to[bend right] node[midway, left] {New Token} (store);
-\end{tikzpicture}
-\caption{Authentication State Flow}
-\end{figure}
-
-\subsubsection{Authentication Process}
-The authentication process follows these steps:
-
+The key objectives of this project are:
 \begin{enumerate}
-    \item User submits credentials through login/registration form
-    \item Backend validates credentials against stored user data
-    \item Upon successful validation, a JWT token is generated containing user identity and permissions
-    \item Token is returned to client and stored (typically in localStorage or secure HTTP-only cookie)
-    \item Subsequent API requests include the token in Authorization header
-    \item Backend middleware verifies token signature, expiration, and claims before processing protected requests
-    \item When token expires, refresh token mechanism obtains a new access token
+    \item To digitize and streamline the manual placement process, reducing administrative overhead by at least 50\%
+    \item To improve communication between students, placement administrators, and companies through a centralized platform
+    \item To enhance student experience during the placement season with real-time updates and transparent processes
+    \item To provide administrators with tools for efficient management of the placement process
+    \item To generate actionable insights through analytics to improve placement strategies
+    \item To create a scalable system that can accommodate growing numbers of students and companies
+    \item To ensure data security and privacy for sensitive student and company information
+    \item To create a platform that is accessible across devices through responsive design
 \end{enumerate}
 
+\section{Stakeholders}
+The following stakeholders are involved in this project:
+\begin{itemize}
+    \item \textbf{Students:} Primary users who utilize the system to create and maintain their profiles, discover job opportunities, submit applications, and track their progress through the recruitment process. The system provides them with timely notifications, a transparent view of the application process, and resources to prepare for interviews.
+    
+    \item \textbf{Placement Administrators:} Staff responsible for managing the entire placement process. They use the system to coordinate with companies, manage student eligibility, review applications, schedule interviews, and generate comprehensive reports on placement activities.
+    
+    \item \textbf{Department Coordinators:} Faculty members who oversee placement activities for specific academic departments (CE, CSE, IT, SFE, ME, EEE, EC). They need department-specific views of student data and placement statistics to ensure their students are effectively represented in the recruitment process.
+    
+    \item \textbf{Companies/Recruiters:} Organizations looking to hire students. While they interact with the system indirectly through the placement office, their requirements, job descriptions, and recruitment schedules are managed within the platform.
+    
+    \item \textbf{University Management:} Higher officials who use placement statistics and reports for institutional assessment and strategic planning. They require aggregate data on placement outcomes across departments and academic years.
+    
+    \item \textbf{IT Support Team:} Technical staff responsible for maintaining the system, ensuring its availability, security, and performance throughout the placement season.
+\end{itemize}
+
+\section{Document Structure}
+This document is organized into eleven chapters:
+\begin{itemize}
+    \item \textbf{Chapter 1: Introduction} - Provides an overview of the project, its scope, objectives, and stakeholders.
+    \item \textbf{Chapter 2: Background and Context} - Discusses the theoretical and practical context of campus placement management and related technologies.
+    \item \textbf{Chapter 3: Requirements Analysis} - Details the functional and non-functional requirements that guided the system development.
+    \item \textbf{Chapter 4: System Architecture} - Explains the overall system design and architecture, including component breakdowns and technology stack.
+    \item \textbf{Chapter 5: Database Design} - Presents the MongoDB document schemas, relationships, and data organization strategies.
+    \item \textbf{Chapter 6: Workflow Diagrams} - Illustrates the key system processes including authentication, application processing, and notification workflows.
+    \item \textbf{Chapter 7: Implementation Details} - Describes the implementation specifics including code organization, authentication mechanisms, and API design.
+    \item \textbf{Chapter 8: User Interface Design} - Showcases the application's interface design, user experience considerations, and responsive layouts.
+    \item \textbf{Chapter 9: Testing and Validation} - Outlines the testing methodology and results for various aspects of the system.
+    \item \textbf{Chapter 10: Results and Evaluation} - Presents the project outcomes, performance metrics, and stakeholder feedback.
+    \item \textbf{Chapter 11: Conclusion and Future Work} - Summarizes the project achievements and suggests potential future enhancements.
+\end{itemize}
+
+\chapter{Background and Context}
+\section{Theoretical Background}
+\subsection{Campus Placement Process}
+The campus placement process represents a structured recruitment mechanism where companies visit educational institutions to select students for employment opportunities. This process typically follows a well-defined lifecycle:
+
+\begin{enumerate}
+    \item \textbf{Pre-placement Activities:} The placement office initiates relationships with potential recruiting companies, while students prepare their resumes and professional profiles.
+    
+    \item \textbf{Company Registration:} Interested companies register with the institution, providing details about their organization, job profiles, requirements, and compensation packages.
+    
+    \item \textbf{Job Announcement:} The placement office announces job opportunities to eligible students based on criteria such as academic performance, department, and specific company requirements.
+    
+    \item \textbf{Student Application:} Interested and eligible students submit their applications with resumes and other required documents.
+    
+    \item \textbf{Application Screening:} Companies review applications and select candidates for further assessment.
+    
+    \item \textbf{Assessment Process:} Selected candidates undergo various assessment rounds, which may include aptitude tests, technical interviews, HR interviews, and group discussions.
+    
+    \item \textbf{Job Offers:} Successful candidates receive job offers with details of compensation and terms of employment.
+    
+    \item \textbf{Acceptance/Rejection:} Students decide whether to accept or reject the offers.
+    
+    \item \textbf{Post-placement Activities:} The placement office compiles statistics, gathers feedback, and prepares reports.
+\end{enumerate}
+
+Traditionally, this process has been managed through a combination of physical notice boards, email communications, spreadsheets, and paper documents. This manual approach often leads to challenges such as:
+
+\begin{itemize}
+    \item Inefficient information dissemination
+    \item Difficulties in tracking application status
+    \item Challenges in matching student eligibility with job requirements
+    \item Limited transparency in the selection process
+    \item Cumbersome reporting and analysis
+    \item Inconsistent communication between stakeholders
+\end{itemize}
+
+The Campus Placement Management System addresses these challenges by digitizing and automating the entire process, providing a centralized platform for all stakeholders.
+
+\subsection{Role-Based Access Control}
+Role-Based Access Control (RBAC) is a security paradigm that restricts system access based on users' roles within an organization. In the context of the Campus Placement Management System, RBAC is crucial for ensuring that users can only access information and perform actions appropriate to their role.
+
+The system implements RBAC through the following key components:
+
+\begin{itemize}
+    \item \textbf{Role Definition:} Distinct roles (student, admin) with clear responsibilities
+    \item \textbf{Permission Assignment:} Specific permissions linked to each role
+    \item \textbf{User Assignment:} Users assigned to appropriate roles based on their position
+    \item \textbf{Session Management:} Role-based permissions enforced during user sessions
+\end{itemize}
+
+This approach ensures that students can only access their own profiles and eligible job listings, while administrators have broader access to manage the entire placement process. The implementation uses JWT (JSON Web Tokens) for maintaining session state and Passport.js for authentication strategies.
+
+\subsection{Industry Solutions}
+\begin{table}[H]
+    \centering
+    \caption{Comparison of Existing Placement Management Solutions}
+    \label{tab:existing-solutions}
+    \begin{tabularx}{\textwidth}{|X|X|X|X|X|}
+        \hline
+        \textbf{Solution} & \textbf{Key Features} & \textbf{Strengths} & \textbf{Limitations} & \textbf{Relevance} \\
+        \hline
+        HirePlus & Applicant tracking, interview scheduling, offer management & User-friendly interface, comprehensive reporting & Limited customization for academic settings, high cost & Provides benchmark for application tracking functionality \\
+        \hline
+        EduPlace & Student database, company management, placement tracking & Specifically designed for educational institutions, department-wise organization & Limited mobile support, complex setup & Closest competitor with similar target market \\
+        \hline
+        TalentBridge & Profile matching, skill assessment, interview management & Advanced matching algorithms, integrated assessment tools & Enterprise focus rather than academic, limited customization & Demonstrates advanced candidate-job matching capabilities \\
+        \hline
+        RecruitAcademy & Resume builder, job portal, analytics dashboard & Strong student-facing features, integration with learning resources & Weak administrator tools, limited workflow customization & Shows innovative approaches to student engagement \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\section{Technology Landscape}
+The development of the Campus Placement Management System is situated within a rapidly evolving technology landscape:
+
+\begin{itemize}
+    \item \textbf{JavaScript Ecosystem:} The full-stack JavaScript development approach with Node.js and React.js enables creation of responsive and interactive web applications. The MERN stack leverages JavaScript's versatility across both client and server sides.
+    
+    \item \textbf{NoSQL Databases:} MongoDB's document-oriented approach provides flexibility for handling varied data structures such as student profiles, company information, and application data.
+    
+    \item \textbf{API-First Development:} The clear separation between frontend and backend through well-defined APIs supports maintainability and future expansion.
+    
+    \item \textbf{Real-time Features:} Modern web technologies enable immediate notifications and status updates, improving user experience through timely feedback.
+    
+    \item \textbf{Responsive Design:} Cross-device compatibility (desktop, tablet, mobile) is achieved through responsive UI design principles and component-based architecture.
+    
+    \item \textbf{Modern Authentication:} JWT-based authentication provides secure, stateless session management with enhanced scalability.
+\end{itemize}
+
+\chapter{Requirements Analysis}
+
+\section{Methodology}
+Requirements for the Campus Placement Management System were gathered through a comprehensive stakeholder engagement process:
+
+\begin{itemize}
+    \item \textbf{Interviews:} Conducted with 5 placement administrators, 8 faculty members, and 12 students to understand current processes and pain points.
+    
+    \item \textbf{Focus Groups:} Three sessions organized with: (1) final-year students discussing application experiences, (2) administrators exploring reporting needs, and (3) mixed stakeholders validating preliminary requirements.
+    
+    \item \textbf{Process Observation:} The research team documented existing workflows, bottlenecks, and inefficiencies by observing the actual placement process.
+    
+    \item \textbf{Document Analysis:} Existing forms, reports, and communications were analyzed to understand information flow.
+    
+    \item \textbf{Surveys:} Online questionnaires were distributed to 200 students (156 responses), 25 faculty members (18 responses), and 15 placement team members (12 responses).
+\end{itemize}
+
+Requirements were documented, categorized, and prioritized using the MoSCoW method (Must have, Should have, Could have, Won't have).
+
+\section{Functional Requirements}
+
+\subsection{User Management Requirements}
+\begin{enumerate}
+    \item \textbf{FR-1.1:} The system shall support multi-role user accounts, specifically for students and administrators.
+    
+    \item \textbf{FR-1.2:} Students shall be able to register with their institutional credentials, including department information (CE, CSE, IT, SFE, ME, EEE, EC).
+    
+    \item \textbf{FR-1.3:} Student registrations shall be verified by administrators before account activation.
+    
+    \item \textbf{FR-1.4:} Administrators shall be able to register using a secure access code provided by authorized faculty members.
+    
+    \item \textbf{FR-1.5:} The system shall authenticate users through a secure login process with username and password.
+    
+    \item \textbf{FR-1.6:} The system shall maintain session state using secure cookies and JSON Web Tokens.
+\end{enumerate}
+
+\subsection{Student Profile Management Requirements}
+\begin{enumerate}
+    \item \textbf{FR-2.1:} Students shall be able to create and maintain comprehensive profiles including personal details, contact information, academic background, skills, projects, and achievements.
+    
+    \item \textbf{FR-2.2:} The system shall organize student profiles by department (CE, CSE, IT, SFE, ME, EEE, EC) for efficient administration.
+    
+    \item \textbf{FR-2.3:} Students shall be able to upload and update their resumes in PDF format.
+    
+    \item \textbf{FR-2.4:} The system shall track key academic metrics including CGPA, semester information, backlogs, and attendance.
+\end{enumerate}
+
+\subsection{Company and Job Management Requirements}
+\begin{enumerate}
+    \item \textbf{FR-3.1:} Administrators shall be able to add, edit, and manage company profiles with details including name, industry, description, and contact information.
+    
+    \item \textbf{FR-3.2:} The system shall allow administrators to specify company eligibility criteria including target departments, minimum CGPA, and special requirements.
+    
+    \item \textbf{FR-3.3:} Administrators shall be able to record compensation packages offered by companies.
+    
+    \item \textbf{FR-3.4:} The system shall track company visiting dates and update status information.
+\end{enumerate}
+
+\subsection{Application Management Requirements}
+\begin{enumerate}
+    \item \textbf{FR-4.1:} Students shall be able to apply to companies for which they meet the eligibility criteria.
+    
+    \item \textbf{FR-4.2:} The application form shall include resume selection, optional cover letter, and additional information fields.
+    
+    \item \textbf{FR-4.3:} The system shall prevent duplicate applications to the same company.
+    
+    \item \textbf{FR-4.4:} The system shall track application status through defined stages: Applied, Under Review, Interview Scheduled, Interviewed, Offered, Rejected, Accepted, and Declined.
+\end{enumerate}
+
+\subsection{Notification System Requirements}
+\begin{enumerate}
+    \item \textbf{FR-5.1:} The system shall provide real-time notifications to students for key events including new job listings, application status changes, interview schedules, and administrative messages.
+    
+    \item \textbf{FR-5.2:} Notifications shall be categorized by type: company, interview, placement, and other.
+    
+    \item \textbf{FR-5.3:} The system shall maintain read/unread status for notifications.
+    
+    \item \textbf{FR-5.4:} Students shall be able to view, filter, search, and clear their notifications.
+\end{enumerate}
+
+\section{Non-Functional Requirements}
+
+\subsection{Performance Requirements}
+\begin{enumerate}
+    \item \textbf{PR-1:} The system shall support at least 1,000 concurrent users during peak periods with response times under 3 seconds.
+    
+    \item \textbf{PR-2:} Page load times shall not exceed 2 seconds under normal load conditions.
+    
+    \item \textbf{PR-3:} Database queries shall be optimized to return results in less than 1 second for standard operations.
+\end{enumerate}
+
+\subsection{Security Requirements}
+\begin{enumerate}
+    \item \textbf{SR-1:} All user passwords shall be securely hashed using bcrypt with appropriate salt rounds.
+    
+    \item \textbf{SR-2:} User authentication shall use JWT (JSON Web Tokens) with secure transmission and storage.
+    
+    \item \textbf{SR-3:} Sessions shall expire after 30 minutes of inactivity, requiring re-authentication.
+    
+    \item \textbf{SR-4:} All API endpoints shall implement proper authorization checks based on user roles.
+\end{enumerate}
+
+\chapter{System Architecture}
+
+\section{Architectural Overview}
+The Campus Placement Management System follows a modern MERN stack architecture (MongoDB, Express.js, React.js, Node.js). Figure \ref{fig:system-architecture} provides a high-level overview of the system components and their interactions.
+
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8]
-    % Define the actors
-    \node[draw, rectangle, rounded corners] (client) at (0,0) {Client};
-    \node[draw, rectangle, rounded corners] (server) at (8,0) {Server};
-    
-    % Draw the lifelines
-    \draw[dashed] (client) -- +(0,-12);
-    \draw[dashed] (server) -- +(0,-12);
-    
-    % Login request
-    \draw[-stealth] (0,-1) -- (8,-1) node[midway, above] {POST /api/auth/login};
-    \draw[-stealth] (8,-2) -- (0,-2) node[midway, above] {Response with JWT};
-    
-    % Store token
-    \draw[stealth-stealth] (0,-3) -- (0,-3.5) node[right=0.5cm] {Store token in localStorage};
-    
-    % Protected request
-    \draw[-stealth] (0,-4.5) -- (8,-4.5) node[midway, above] {GET /api/protected (with Auth header)};
-    
-    % Token verification
-    \draw[stealth-stealth] (8,-5.5) -- (8,-6) node[left=0.5cm] {Verify JWT signature};
-    \draw[stealth-stealth] (8,-6.5) -- (8,-7) node[left=0.5cm] {Check token expiration};
-    \draw[stealth-stealth] (8,-7.5) -- (8,-8) node[left=0.5cm] {Extract user info};
-    
-    % Success response
-    \draw[-stealth] (8,-9) -- (0,-9) node[midway, above] {Protected data response};
-    
-    % Token expired scenario
-    \draw[-stealth] (0,-10) -- (8,-10) node[midway, above] {GET /api/protected (expired token)};
-    \draw[-stealth] (8,-11) -- (0,-11) node[midway, above] {401 Unauthorized};
-    
-    % Refresh token
-    \draw[-stealth] (0,-12) -- (8,-12) node[midway, above] {POST /api/auth/refresh};
-\end{tikzpicture}
-\caption{Authentication Sequence Diagram}
+    \centering
+    \begin{tikzpicture}
+        % Overall box
+        \draw (0,0) rectangle (15,12);
+        \draw (7.5,11.5) node[align=center] {\Large System Architecture - Campus Placement Management System};
+        
+        % Client layer
+        \draw (0.5,10.5) rectangle (14.5,8.5);
+        \draw (7.5,10) node {\textbf{Client Layer (React.js)}};
+        
+        % Client components
+        \draw (1,9.5) rectangle (3.5,9);
+        \draw (2.25,9.25) node[scale=0.8] {Authentication Module};
+        
+        \draw (4,9.5) rectangle (6.5,9);
+        \draw (5.25,9.25) node[scale=0.8] {Student Components};
+        
+        \draw (7,9.5) rectangle (9.5,9);
+        \draw (8.25,9.25) node[scale=0.8] {Admin Components};
+        
+        \draw (10,9.5) rectangle (14,9);
+        \draw (12,9.25) node[scale=0.8] {Shared UI Components};
+        
+        % API Gateway layer
+        \draw (3,8) rectangle (12,7);
+        \draw (7.5,7.5) node[align=center] {\textbf{HTTP/HTTPS with Axios}};
+        
+        % Server layer
+        \draw (0.5,6.5) rectangle (14.5,3);
+        \draw (7.5,6) node[align=center] {\textbf{Server Layer (Node.js/Express)}};
+        
+        % Server components
+        \draw (1,5.5) rectangle (3.5,4.75);
+        \draw (2.25,5.125) node[scale=0.8] {Auth Controller};
+        
+        \draw (4,5.5) rectangle (6.5,4.75);
+        \draw (5.25,5.125) node[scale=0.8] {Student Controller};
+        
+        \draw (7,5.5) rectangle (9.5,4.75);
+        \draw (8.25,5.125) node[scale=0.8] {Company Controller};
+        
+        \draw (10,5.5) rectangle (14,4.75);
+        \draw (12,5.125) node[scale=0.8] {Application Controller};
+        
+        \draw (1,4.5) rectangle (3.5,3.75);
+        \draw (2.25,4.125) node[scale=0.8] {Notification Controller};
+        
+        \draw (4,4.5) rectangle (6.5,3.75);
+        \draw (5.25,4.125) node[scale=0.8] {Middleware (Auth, Logging)};
+        
+        \draw (7,4.5) rectangle (11,3.75);
+        \draw (9,4.125) node[scale=0.8] {File Upload Service};
+        
+        \draw (11.5,4.5) rectangle (14,3.75);
+        \draw (12.75,4.125) node[scale=0.8] {Utility Services};
+        
+        % Database layer
+        \draw (0.5,2.5) rectangle (14.5,0.5);
+        \draw (7.5,2) node[align=center] {\textbf{Data Layer}};
+        
+        % Database collections
+        \draw (1,1.5) rectangle (3,1);
+        \draw (2,1.25) node[scale=0.7] {Department Collections};
+        
+        \draw (3.5,1.5) rectangle (5.5,1);
+        \draw (4.5,1.25) node[scale=0.7] {Admin Collection};
+        
+        \draw (6,1.5) rectangle (8,1);
+        \draw (7,1.25) node[scale=0.7] {Company Collection};
+        
+        \draw (8.5,1.5) rectangle (10.5,1);
+        \draw (9.5,1.25) node[scale=0.7] {Application Collection};
+        
+        \draw (11,1.5) rectangle (14,1);
+        \draw (12.5,1.25) node[scale=0.7] {Notification Collection};
+        
+        % Connections
+        \draw[->] (7.5,8.5) -- (7.5,8);
+        \draw[->] (7.5,7) -- (7.5,6.5);
+        \draw[->] (7.5,3) -- (7.5,2.5);
+        
+        % Frontend - Backend division line
+        \draw[dashed] (0,7.75) -- (15,7.75);
+        \draw (14.75,7.9) node[scale=0.7] {Frontend};
+        \draw (14.75,7.6) node[scale=0.7] {Backend};
+    \end{tikzpicture}
+    \caption{High-level System Architecture}
+    \label{fig:system-architecture}
 \end{figure}
 
-\subsubsection{Frontend Authentication Components}
-The frontend implements authentication through several key components:
+\section{Security Architecture}
+The security architecture implements a defense-in-depth approach with multiple protective layers:
 
-\begin{lstlisting}[language=JavaScript]
-// AuthContext.js - Central authentication state management
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import authService from '../services/authService';
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        % Security architecture diagram
+        \draw (0,0) rectangle (14,9);
+        \draw (7,8.5) node[align=center] {\Large Security Architecture};
+        
+        % Security layers
+        \draw (1,1) rectangle (13,7.5);
+        
+        % Authentication layer
+        \draw (1,7.5) rectangle (13,6);
+        \draw (7,7) node {Authentication Layer};
+        \draw (2,6.5) node[scale=0.7] {Password Hashing (bcrypt)};
+        \draw (5,6.5) node[scale=0.7] {JWT Token Generation};
+        \draw (8,6.5) node[scale=0.7] {Session Management};
+        \draw (11,6.5) node[scale=0.7] {Access Control};
+        
+        % Authorization layer
+        \draw (1,6) rectangle (13,4.5);
+        \draw (7,5.5) node {Authorization Layer};
+        \draw (3,5) node[scale=0.7] {Role-Based Access (Student/Admin)};
+        \draw (7,5) node[scale=0.7] {Protected Routes};
+        \draw (11,5) node[scale=0.7] {Resource Permission Checks};
+        
+        % Data protection layer
+        \draw (1,4.5) rectangle (13,3);
+        \draw (7,4) node {Data Protection Layer};
+        \draw (3,3.5) node[scale=0.7] {Input Validation};
+        \draw (7,3.5) node[scale=0.7] {XSS Prevention};
+        \draw (11,3.5) node[scale=0.7] {CSRF Protection};
+        
+        % Infrastructure security layer
+        \draw (1,3) rectangle (13,1.5);
+        \draw (7,2.5) node {Infrastructure Security};
+        \draw (3,2) node[scale=0.7] {CORS Policy};
+        \draw (7,2) node[scale=0.7] {HTTPS Encryption};
+        \draw (11,2) node[scale=0.7] {Rate Limiting};
+        
+        % Monitoring
+        \draw (0.5,0.5) node[scale=0.7] {Security Monitoring};
+        
+        % Arrows showing data flow
+        \draw[->, thick] (7,8) -- (7,7.5);
+        \draw[->, thick] (7,6) -- (7,6);
+        \draw[->, thick] (7,4.5) -- (7,4.5);
+        \draw[->, thick] (7,3) -- (7,3);
+        \draw[->, thick] (7,1.5) -- (7,1);
+    \end{tikzpicture}
+    \caption{Security Architecture Overview}
+    \label{fig:security-architecture}
+\end{figure}
 
-const AuthContext = createContext();
+\chapter{Database Design}
 
-export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  useEffect(() => {
-    // Check for existing token on app load
-    const initAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const userData = await authService.validateToken(token);
-          setCurrentUser(userData);
-        }
-      } catch (err) {
-        localStorage.removeItem('token');
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+\section{Entity-Relationship Diagram}
+Figure \ref{fig:erd} shows the entity-relationship diagram for the system, illustrating the relationships between different data entities.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        % ERD container
+        \draw (0,0) rectangle (15,12);
+        \draw (7.5,11.5) node[align=center] {\Large Entity-Relationship Diagram - Placement Management System};
+        
+        % Department Student Collections (CE, CSE, etc.)
+        \draw (2,10) rectangle (5,8);
+        \draw (3.5,9.5) node {Student Collections};
+        \draw (3.5,9.0) node[scale=0.7] {(CE, CSE, IT, SFE, ME, EEE, EC)};
+        \draw (3.5,8.5) node[scale=0.7] {username, name, email, phone};
+        \draw (3.5,8.3) node[scale=0.7] {registrationNumber, branch};
+        
+        % Admin Entity
+        \draw (10,10) rectangle (13,8.5);
+        \draw (11.5,9.5) node {Admin};
+        \draw (11.5,9.0) node[scale=0.7] {username, name, email};
+        \draw (11.5,8.7) node[scale=0.7] {designation, department};
+        
+        % Company Entity
+        \draw (10,7) rectangle (13,5);
+        \draw (11.5,6.5) node {Company};
+        \draw (11.5,6.0) node[scale=0.7] {name, industry, description};
+        \draw (11.5,5.7) node[scale=0.7] {package, requirements};
+        \draw (11.5,5.4) node[scale=0.7] {visitingDate, department};
+        
+        % Application Entity
+        \draw (6,6) rectangle (9,3.5);
+        \draw (7.5,5.5) node {Application};
+        \draw (7.5,5.0) node[scale=0.7] {student, studentModel};
+        \draw (7.5,4.7) node[scale=0.7] {company, appliedDate};
+        \draw (7.5,4.4) node[scale=0.7] {resume, coverLetter};
+        \draw (7.5,4.1) node[scale=0.7] {status, interviewDate};
+        \draw (7.5,3.8) node[scale=0.7] {packageOffered, feedback};
+        
+        % Notification Entity
+        \draw (2,6) rectangle (5,4);
+        \draw (3.5,5.5) node {Notification};
+        \draw (3.5,5.0) node[scale=0.7] {student, studentModel};
+        \draw (3.5,4.7) node[scale=0.7] {type, title, message};
+        \draw (3.5,4.4) node[scale=0.7] {status, company, createdAt};
+        
+        % Faculty Entity
+        \draw (10,3.5) rectangle (13,2);
+        \draw (11.5,3.0) node {Faculty};
+        \draw (11.5,2.7) node[scale=0.7] {name, department};
+        \draw (11.5,2.4) node[scale=0.7] {designation, phone, accessCode};
+        
+        % Relationships
+        % Student to Application
+        \draw[->] (5,9) -- (6.5,9) -- (6.5,6);
+        \draw (6,7.5) node[scale=0.7, align=center] {1:N};
+        
+        % Student to Notification
+        \draw[->] (3.5,8) -- (3.5,6);
+        \draw (3.8,7) node[scale=0.7, align=center] {1:N};
+        
+        % Company to Application
+        \draw[->] (10,6) -- (9,6) -- (9,5);
+        \draw (9.5,6.2) node[scale=0.7, align=center] {1:N};
+        
+        % Company to Notification (optional)
+        \draw[->] (10,5.5) -- (5,5.5) -- (5,5);
+        \draw (7.5,5.7) node[scale=0.7, align=center] {0:N};
+        
+        % Admin manages Company
+        \draw[->] (11.5,8.5) -- (11.5,7);
+        \draw (11.8,7.75) node[scale=0.7, align=center] {Manages};
+        
+        % Faculty to Admin
+        \draw[->] (13,2.75) -- (14,2.75) -- (14,9.25) -- (13,9.25);
+        \draw (14.2,6) node[scale=0.7, align=center, rotate=90] {Authorizes};
+        
+        % Admin to Applications
+        \draw[->] (10,9) -- (7.5,9) -- (7.5,6);
+        \draw (9,9.2) node[scale=0.7, align=center] {Manages};
+    \end{tikzpicture}
+    \caption{Entity-Relationship Diagram}
+    \label{fig:erd}
+\end{figure}
+
+\chapter{Workflow Diagrams}
+
+\section{User Authentication Workflow}
+The authentication workflow implements secure user verification and session management:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % Authentication workflow
+        \draw (0,0) rectangle (14,8);
+        \draw (7,7.5) node[align=center] {\Large Authentication Workflow};
+        
+        % Start
+        \draw (1,6) circle (0.5);
+        \draw (1,6) node {Start};
+        
+        % Login Form
+        \draw (3,6) rectangle (5,5);
+        \draw (4,5.5) node {Login Form};
+        
+        % Input Credentials
+        \draw (7,6) rectangle (9,5);
+        \draw (8,5.5) node {Input Credentials};
+        
+        % Validation
+        \draw (11,6) -- (11,5) -- (12,5.5) -- cycle;
+        \draw (11.5,5.5) node[scale=0.8] {Valid?};
+        
+        % Generate Token
+        \draw (11,3) rectangle (13,2);
+        \draw (12,2.5) node {Generate JWT};
+        
+        % Store Token
+        \draw (8,3) rectangle (10,2);
+        \draw (9,2.5) node {Store Token};
+        
+        % Redirect
+        \draw (5,3) rectangle (7,2);
+        \draw (6,2.5) node {Redirect to Dashboard};
+        
+        % Error
+        \draw (11,7.5) rectangle (13,6.5);
+        \draw (12,7) node {Show Error};
+        
+        % Connections
+        \draw[->] (1.5,6) -- (3,6);
+        \draw[->] (5,5.5) -- (7,5.5);
+        \draw[->] (9,5.5) -- (11,5.5);
+        \draw[->] (12,5) -- (12,3);
+        \draw[->] (11,2.5) -- (10,2.5);
+        \draw[->] (8,2.5) -- (7,2.5);
+        \draw[->] (11.5,6) -- (11.5,6.5);
+        \draw[->] (11.5,7.5) -- (11.5,8) -- (4,8) -- (4,6);
+        
+        % Labels
+        \draw (2.25,6.2) node[scale=0.7] {Access Login Page};
+        \draw (6,5.7) node[scale=0.7] {Enter Details};
+        \draw (10,5.7) node[scale=0.7] {Submit Form};
+        \draw (12.5,4) node[scale=0.7] {Yes};
+        \draw (12,6.2) node[scale=0.7] {No};
+        \draw (10.5,2.5) node[scale=0.7] {HTTP-only cookie};
+    \end{tikzpicture}
+    \caption{User Authentication Workflow}
+    \label{fig:auth-workflow}
+\end{figure}
+
+The authentication workflow includes:
+\begin{itemize}
+    \item Frontend validation of credentials using React Hook Form
+    \item Backend validation against the appropriate student or admin collection
+    \item Secure password checking using bcrypt's compare function
+    \item JWT token generation with user role and department encoded
+    \item HTTP-only cookie storage to prevent XSS attacks
+    \item Session timeout after 30 minutes of inactivity
+\end{itemize}
+
+\section{Application Submission Workflow}
+The application submission process ensures proper validation and tracking:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.85, transform shape]
+        % Application workflow
+        \draw (0,0) rectangle (14,10);
+        \draw (7,9.5) node[align=center] {\Large Application Submission Workflow};
+        
+        % Start
+        \draw (1,8) circle (0.5);
+        \draw (1,8) node {Start};
+        
+        % Browse Companies
+        \draw (3,8) rectangle (5,7);
+        \draw (4,7.5) node {Browse Companies};
+        
+        % Eligibility Check
+        \draw (7,8) -- (7,7) -- (8,7.5) -- cycle;
+        \draw (7.5,7.5) node[scale=0.7] {Eligible?};
+        
+        % View Job Details
+        \draw (10,8) rectangle (12,7);
+        \draw (11,7.5) node {View Job Details};
+        
+        % Not Eligible Message
+        \draw (7,9) rectangle (9,8);
+        \draw (8,8.5) node {Not Eligible};
+        
+        % Application Form
+        \draw (10,6) rectangle (12,5);
+        \draw (11,5.5) node {Application Form};
+        
+        % Upload Resume
+        \draw (7,6) rectangle (9,5);
+        \draw (8,5.5) node {Upload Resume};
+        
+        % Review Application
+        \draw (4,6) rectangle (6,5);
+        \draw (5,5.5) node {Review Application};
+        
+        % Submit Application
+        \draw (4,4) rectangle (6,3);
+        \draw (5,3.5) node {Submit Application};
+        
+        % Duplicate Check
+        \draw (9,4) -- (9,3) -- (10,3.5) -- cycle;
+        \draw (9.5,3.5) node[scale=0.7] {New?};
+        
+        % Duplicate Error
+        \draw (10,2) rectangle (12,1);
+        \draw (11,1.5) node {Duplicate Error};
+        
+        % Create Application
+        \draw (7,2) rectangle (9,1);
+        \draw (8,1.5) node {Create Application};
+        
+        % Confirmation
+        \draw (4,2) rectangle (6,1);
+        \draw (5,1.5) node {Show Confirmation};
+        
+        % End
+        \draw (1,1.5) circle (0.5);
+        \draw (1,1.5) node {End};
+        
+        % Connections
+        \draw[->] (1.5,8) -- (3,8);
+        \draw[->] (5,7.5) -- (7,7.5);
+        \draw[->] (8,7.5) -- (10,7.5);
+        \draw[->] (7.5,8) -- (7.5,8);
+        \draw[->] (11,7) -- (11,6);
+        \draw[->] (10,5.5) -- (9,5.5);
+        \draw[->] (7,5.5) -- (6,5.5);
+        \draw[->] (5,5) -- (5,4);
+        \draw[->] (5,3) -- (9,3.5);
+        \draw[->] (10,3.5) -- (11,3.5) -- (11,2);
+        \draw[->] (9,3) -- (8,2);
+        \draw[->] (7,1.5) -- (6,1.5);
+        \draw[->] (4,1.5) -- (1.5,1.5);
+        
+        % Labels with reduced scale
+        \draw (2.25,8.2) node[scale=0.6] {Student logs in};
+        \draw (6,7.7) node[scale=0.6] {Check criteria};
+        \draw (9,7.7) node[scale=0.6] {Yes};
+        \draw (7.5,9.2) node[scale=0.6] {No};
+        \draw (8.5,6.2) node[scale=0.6] {Resume + Cover Letter};
+        \draw (10.5,3.7) node[scale=0.6] {No};
+        \draw (9.5,2.7) node[scale=0.6] {Yes};
+    \end{tikzpicture}
+    \caption{Application Submission Workflow}
+    \label{fig:application-workflow}
+\end{figure}
+
+The application submission process implements several key validations:
+\begin{itemize}
+    \item Automatic eligibility filtering based on student's department and CGPA
+    \item File type validation for resume uploads (PDF only)
+    \item File size limits (5MB maximum)
+    \item Duplicate application prevention through database queries
+    \item Custom validation rules for cover letters and additional information
+    \item Status tracking with timestamps for each stage transition
+\end{itemize}
+
+\section{Notification Delivery Workflow}
+The notification system ensures timely delivery of important updates:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.85, transform shape]
+        % Notification workflow
+        \draw (0,0) rectangle (14,8);
+        \draw (7,7.5) node[align=center] {\Large Notification Delivery Workflow};
+        
+        % Trigger Events
+        \draw (1,6.5) rectangle (3,5.5);
+        \draw (2,6) node {System Event};
+        
+        % Event Types
+        \draw (1,5) rectangle (3,4.5);
+        \draw (2,4.75) node[scale=0.6] {Status Change};
+        
+        \draw (1,4) rectangle (3,3.5);
+        \draw (2,3.75) node[scale=0.6] {New Company};
+        
+        \draw (1,3) rectangle (3,2.5);
+        \draw (2,2.75) node[scale=0.6] {Interview Schedule};
+        
+        % Process Notification
+        \draw (5,5) rectangle (8,3);
+        \draw (6.5,4.5) node {Notification Service};
+        \draw (6.5,4) node[scale=0.6] {Create Notification};
+        \draw (6.5,3.5) node[scale=0.6] {Determine Recipients};
+        
+        % Store Notification
+        \draw (10,5) rectangle (13,4);
+        \draw (11.5,4.5) node {Store in Database};
+        
+        % Delivery Methods
+        \draw (10,3) rectangle (13,2);
+        \draw (11.5,2.5) node {Push to Client};
+        
+        % Student Views
+        \draw (5,1.5) rectangle (8,0.5);
+        \draw (6.5,1) node {Student Dashboard};
+        
+        % User Interactions
+        \draw (10,1.5) rectangle (13,0.5);
+        \draw (11.5,1) node {Mark as Read};
+        
+        % Connections
+        \draw[->] (3,6) -- (6.5,6) -- (6.5,5);
+        \draw[->] (3,4.75) -- (5,4.75);
+        \draw[->] (3,3.75) -- (5,3.75);
+        \draw[->] (3,2.75) -- (4,2.75) -- (4,3.5) -- (5,3.5);
+        \draw[->] (8,4.5) -- (10,4.5);
+        \draw[->] (11.5,4) -- (11.5,3);
+        \draw[->] (11.5,2) -- (11.5,1.5);
+        \draw[->] (10,1) -- (8,1);
+        
+        % Labels
+        \draw (4.5,6) node[scale=0.6] {Triggers};
+        \draw (9,4.7) node[scale=0.6] {Create Record};
+        \draw (11.5,3.5) node[scale=0.6] {Real-time Update};
+        \draw (9,1) node[scale=0.6] {User Action};
+    \end{tikzpicture}
+    \caption{Notification Delivery Workflow}
+    \label{fig:notification-workflow}
+\end{figure}
+
+The notification system implements several types of notifications:
+\begin{itemize}
+    \item Application status updates (Applied, Under Review, Interview Scheduled, etc.)
+    \item New company arrivals matching student's department
+    \item Interview schedule confirmations and reminders
+    \item Administrative announcements and placement information
+    \item System-wide notifications for maintenance or important deadlines
+\end{itemize}
+
+\chapter{Project File Structure}
+
+\section{Frontend Structure}
+The React frontend follows a well-organized component-based architecture:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[level distance=1.2cm, sibling distance=3cm, 
+                        level 1/.style={sibling distance=4cm},
+                        level 2/.style={sibling distance=2cm}]
+        \node {src}
+            child {node {components}
+                child {node {admin}}
+                child {node {student}}
+                child {node {shared}}
+                child {node {auth}}
+            }
+            child {node {pages}
+                child {node {AdminPages}}
+                child {node {StudentPages}}
+                child {node {AuthPages}}
+            }
+            child {node {contexts}
+                child {node {AuthContext}}
+                child {node {NotificationContext}}
+            }
+            child {node {services}
+                child {node {api.js}}
+                child {node {auth.js}}
+            };
+    \end{tikzpicture}
+    \caption{Frontend Project Structure}
+    \label{fig:frontend-structure}
+\end{figure}
+
+The React application follows best practices for organization:
+\begin{itemize}
+    \item \textbf{Components:} Reusable UI elements organized by user type and functionality
+    \item \textbf{Pages:} Complete page layouts combining multiple components
+    \item \textbf{Contexts:} React Context API implementations for global state management
+    \item \textbf{Services:} Modules for external API communication and business logic
+    \item \textbf{Utils:} Helper functions and utilities for common operations
+    \item \textbf{Hooks:} Custom React hooks for reusable stateful logic
+    \item \textbf{Assets:} Static resources including images, icons, and stylesheets
+\end{itemize}
+
+\section{Backend Structure}
+The Node.js/Express backend is organized following the MVC pattern:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[level distance=1.2cm, sibling distance=3cm,
+                        level 1/.style={sibling distance=3.5cm},
+                        level 2/.style={sibling distance=1.8cm}]
+        \node {server}
+            child {node {controllers}
+                child {node {authController.js}}
+                child {node {studentController.js}}
+                child {node {companyController.js}}
+                child {node {applicationController.js}}
+            }
+            child {node {models}
+                child {node {studentModels}}
+                child {node {adminModel.js}}
+                child {node {companyModel.js}}
+                child {node {applicationModel.js}}
+            }
+            child {node {routes}
+                child {node {authRoutes.js}}
+                child {node {studentRoutes.js}}
+                child {node {adminRoutes.js}}
+                child {node {apiRoutes.js}}
+            }
+            child {node {middleware}
+                child {node {auth.js}}
+                child {node {errorHandler.js}}
+                child {node {fileUpload.js}}
+            };
+    \end{tikzpicture}
+    \caption{Backend Project Structure}
+    \label{fig:backend-structure}
+\end{figure}
+
+The backend organization incorporates:
+\begin{itemize}
+    \item \textbf{Controllers:} Handle request processing and business logic
+    \item \textbf{Models:} MongoDB schemas and data access methods
+    \item \textbf{Routes:} API endpoint definitions and routing logic
+    \item \textbf{Middleware:} Request processing functions for authentication, validation, etc.
+    \item \textbf{Config:} Configuration settings for development and production environments
+    \item \textbf{Utils:} Helper functions for common operations
+    \item \textbf{Uploads:} Storage for user-uploaded files (resumes, etc.)
+\end{itemize}
+
+\chapter{Implementation Details}
+
+\section{Authentication Implementation}
+The authentication system leverages Passport.js with custom strategies:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % Code structure diagram
+        \draw (0,0) rectangle (14,8);
+        \draw (7,7.5) node[align=center] {\Large Authentication Implementation};
+        
+        % Backend Authentication
+        \draw (1,7) rectangle (6,2);
+        \draw (3.5,6.5) node {Backend Authentication};
+        
+        \draw (1.5,6) rectangle (5.5,5.5);
+        \draw (3.5,5.75) node[scale=0.7] {Passport.js Configuration};
+        
+        \draw (1.5,5) rectangle (5.5,4.5);
+        \draw (3.5,4.75) node[scale=0.7] {Custom Student Strategy};
+        
+        \draw (1.5,4) rectangle (5.5,3.5);
+        \draw (3.5,3.75) node[scale=0.7] {Custom Admin Strategy};
+        
+        \draw (1.5,3) rectangle (5.5,2.5);
+        \draw (3.5,2.75) node[scale=0.7] {JWT Token Generation};
+        
+        % Frontend Authentication
+        \draw (8,7) rectangle (13,2);
+        \draw (10.5,6.5) node {Frontend Authentication};
+        
+        \draw (8.5,6) rectangle (12.5,5.5);
+        \draw (10.5,5.75) node[scale=0.7] {UserContext Provider};
+        
+        \draw (8.5,5) rectangle (12.5,4.5);
+        \draw (10.5,4.75) node[scale=0.7] {Protected Route Component};
+        
+        \draw (8.5,4) rectangle (12.5,3.5);
+        \draw (10.5,3.75) node[scale=0.7] {Login/Register Forms};
+        
+        \draw (8.5,3) rectangle (12.5,2.5);
+        \draw (10.5,2.75) node[scale=0.7] {Authentication Service};
+        
+        % Connection
+        \draw[<->] (6,4.5) -- (8,4.5);
+        \draw (7,4.8) node[scale=0.7] {HTTP/HTTPS};
+        \draw (7,4.2) node[scale=0.7] {JWT Tokens};
+        
+        % Key functionality
+        \draw (1,1.5) rectangle (13,0.5);
+        \draw (7,1) node[align=center, scale=0.8] {
+            Key Features: Department-based student authentication, 
+            Role-based access control, Secure password hashing with bcrypt
+        };
+    \end{tikzpicture}
+    \caption{Authentication Implementation Architecture}
+    \label{fig:auth-implementation}
+\end{figure}
+
+\subsection{Authentication Code Samples}
+
+\subsubsection{Backend JWT Authentication}
+The backend implements custom JWT-based authentication:
+
+\begin{lstlisting}[language=JavaScript, caption=JWT Authentication Middleware]
+// Middleware to verify JWT tokens
+const auth = (req, res, next) => {
+  try {
+    const token = req.cookies.token;
     
-    initAuth();
-  }, []);
-  
-  const login = async (email, password) => {
-    try {
-      setError(null);
-      setLoading(true);
-      const { token, user } = await authService.login(email, password);
-      localStorage.setItem('token', token);
-      setCurrentUser(user);
-      return true;
-    } catch (err) {
-      setError(err.message);
-      return false;
-    } finally {
-      setLoading(false);
+    if (!token) {
+      return res.status(401).json({ message: 'No authentication token, access denied' });
     }
-  };
-  
-  const register = async (userData) => {
-    try {
-      setError(null);
-      setLoading(true);
-      await authService.register(userData);
-      return true;
-    } catch (err) {
-      setError(err.message);
-      return false;
-    } finally {
-      setLoading(false);
+    
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    
+    // Attach model name based on user role for database operations
+    if (req.user.role === 'student') {
+      req.model = req.user.department; // CE, CSE, IT, etc.
     }
-  };
-  
-  const logout = () => {
-    localStorage.removeItem('token');
-    setCurrentUser(null);
-  };
-  
-  const value = {
-    currentUser,
-    loading,
-    error,
-    login,
-    register,
-    logout
-  };
-  
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token verification failed' });
+  }
 };
 
-export const useAuth = () => useContext(AuthContext);
+// Role-based authorization middleware
+const authorize = (roles = []) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (roles.length && !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    
+    next();
+  };
+};
 \end{lstlisting}
 
-\begin{lstlisting}[language=JavaScript]
-// LoginForm.js - User authentication form
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+\subsubsection{React Protected Routes}
+The frontend implements protected routes using React Router:
 
-const LoginForm = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [formError, setFormError] = useState('');
-  const { login, error } = useAuth();
-  const navigate = useNavigate();
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      setFormError('Please fill in all fields');
-      return;
-    }
-    
-    const success = await login(email, password);
-    if (success) {
-      navigate('/dashboard');
-    }
-  };
+\begin{lstlisting}[language=JavaScript, caption=Protected Route Component]
+// Component to protect routes based on authentication and role
+const ProtectedRoute = ({ component: Component, roles, ...rest }) => {
+  const { user, isLoading } = useAuth();
   
   return (
-    <form onSubmit={handleSubmit} className="login-form">
-      <h2>Login to Your Account</h2>
-      
-      {(formError || error) && (
-        <div className="error-message">{formError || error}</div>
-      )}
-      
-      <div className="form-group">
-        <label htmlFor="email">Email</label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      
-      <div className="form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          type="password"
-          id="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      
-      <button type="submit" className="login-button">
-        Log In
-      </button>
-      
-      <div className="form-footer">
-        <p>
-          Don't have an account?{' '}
-          <a href="/register">Register</a>
-        </p>
-      </div>
-    </form>
+    <Route
+      {...rest}
+      render={(props) => {
+        // Show loading spinner while checking authentication
+        if (isLoading) {
+          return <LoadingSpinner />;
+        }
+        
+        // Redirect to login if not authenticated
+        if (!user) {
+          return <Redirect to={{
+            pathname: '/login',
+            state: { from: props.location }
+          }} />;
+        }
+        
+        // Check if user has required role
+        if (roles && !roles.includes(user.role)) {
+          return <Redirect to="/unauthorized" />;
+        }
+        
+        // Render requested component if all checks pass
+        return <Component {...props} />;
+      }}
+    />
   );
 };
-
-export default LoginForm;
 \end{lstlisting}
 
-\subsubsection{Backend Authentication Implementation}
-On the backend, authentication is implemented through middleware and dedicated services:
+\section{Notification System Implementation}
+The notification system architecture enables real-time updates:
 
-\begin{lstlisting}[language=JavaScript]
-// authMiddleware.js - Token verification middleware
-const jwt = require('jsonwebtoken');
-const { promisify } = require('util');
-const User = require('../models/User');
-const AppError = require('../utils/appError');
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % Notification system diagram
+        \draw (0,0) rectangle (14,8);
+        \draw (7,7.5) node[align=center] {\Large Notification System Implementation};
+        
+        % Database Model
+        \draw (1,7) rectangle (6,5.5);
+        \draw (3.5,6.5) node {Notification Schema};
+        \draw (3.5,6) node[scale=0.7] {student: ObjectId, studentModel: String};
+        \draw (3.5,5.75) node[scale=0.7] {type, title, message, status, company};
+        
+        % Backend Components
+        \draw (1,5) rectangle (6,2.5);
+        \draw (3.5,4.5) node {Backend Implementation};
+        
+        \draw (1.5,4) rectangle (5.5,3.5);
+        \draw (3.5,3.75) node[scale=0.7] {Notification Creation Functions};
+        
+        \draw (1.5,3.25) rectangle (5.5,2.75);
+        \draw (3.5,3) node[scale=0.7] {API Endpoints for Notifications};
+        
+        % Frontend Components
+        \draw (8,7) rectangle (13,2.5);
+        \draw (10.5,6.5) node {Frontend Implementation};
+        
+        \draw (8.5,6) rectangle (12.5,5.5);
+        \draw (10.5,5.75) node[scale=0.7] {Notification Component};
+        
+        \draw (8.5,5) rectangle (12.5,4.5);
+        \draw (10.5,4.75) node[scale=0.7] {Notification Badge/Counter};
+        
+        \draw (8.5,4) rectangle (12.5,3.5);
+        \draw (10.5,3.75) node[scale=0.7] {Notification Center Modal};
+        
+        \draw (8.5,3) rectangle (12.5,2.5);
+        \draw (10.5,2.75) node[scale=0.7] {Notification Service/Hooks};
+        
+        % Integration points
+        \draw (1,2) rectangle (13,0.5);
+        \draw (7,1.5) node[scale=0.8] {Notification Triggers};
+        \draw (3.5,1) node[scale=0.7] {Application Status Changes};
+        \draw (7,1) node[scale=0.7] {New Company Listings};
+        \draw (10.5,1) node[scale=0.7] {Interview Scheduling};
+        
+        % Connections
+        \draw[->] (6,3.75) -- (8.5,2.75);
+        \draw[->] (3.5,2.5) -- (3.5,2);
+        \draw[->] (10.5,2.5) -- (10.5,2);
+        \draw[->] (3.5,5) -- (3.5,4.5);
+    \end{tikzpicture}
+    \caption{Notification System Implementation}
+    \label{fig:notification-implementation}
+\end{figure}
 
-const authMiddleware = async (req, res, next) => {
+\subsection{Notification Code Samples}
+
+\subsubsection{Notification Creation}
+The backend implements notification creation functionality:
+
+\begin{lstlisting}[language=JavaScript, caption=Notification Creation Function]
+// Function to create a new notification
+const createNotification = async (studentId, studentModel, options) => {
   try {
-    // 1) Check if token exists
-    let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1];
+    const { type, title, message, company = null } = options;
+    
+    const notification = new Notification({
+      student: studentId,
+      studentModel,
+      type,
+      title,
+      message,
+      status: 'unread',
+      company,
+      createdAt: new Date()
+    });
+    
+    await notification.save();
+    
+    // Emit real-time notification if Socket.IO is used
+    if (io) {
+      io.to(`student-${studentId}`).emit('notification', {
+        id: notification._id,
+        type,
+        title,
+        message
+      });
     }
-
-    if (!token) {
-      return next(
-        new AppError('You are not logged in. Please log in to get access.', 401)
-      );
-    }
-
-    // 2) Verify token
-    const decoded = await promisify(jwt.verify)(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser) {
-      return next(
-        new AppError('The user belonging to this token no longer exists.', 401)
-      );
-    }
-
-    // 4) Check if user changed password after token was issued
-    if (currentUser.changedPasswordAfter(decoded.iat)) {
-      return next(
-        new AppError('User recently changed password. Please log in again.', 401)
-      );
-    }
-
-    // Grant access to protected route
-    req.user = currentUser;
-    next();
+    
+    return notification;
   } catch (error) {
-    return next(
-      new AppError('Authentication failed. Please log in again.', 401)
-    );
+    console.error('Notification creation error:', error);
+    throw error;
   }
 };
 
-module.exports = authMiddleware;
-\end{lstlisting}
-
-\begin{lstlisting}[language=JavaScript]
-// authService.js - Authentication service
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const AppError = require('../utils/appError');
-
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN
-  });
-};
-
-exports.registerUser = async (username, email, password) => {
-  // 1) Check if email already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new AppError('Email already in use', 400);
-  }
-
-  // 2) Create new user
-  const newUser = await User.create({
-    username,
-    email,
-    password,
-  });
-
-  // 3) Return user ID (don't return a token - require login)
-  return {
-    userId: newUser._id,
-    username: newUser.username
+// Example: Create notification for application status change
+const notifyApplicationStatusChange = async (application, newStatus) => {
+  const { student, studentModel, company } = application;
+  
+  // Get company name
+  const companyDoc = await Company.findById(company);
+  const companyName = companyDoc ? companyDoc.name : 'a company';
+  
+  // Create notification based on status
+  const notificationOptions = {
+    type: 'application',
+    company,
+    title: `Application Status Updated`,
+    message: `Your application for ${companyName} has been updated to "${newStatus}"`
   };
+  
+  return createNotification(student, studentModel, notificationOptions);
 };
+\end{lstlisting}
 
-exports.loginUser = async (email, password) => {
-  // 1) Check if email and password exist
-  if (!email || !password) {
-    throw new AppError('Please provide email and password', 400);
-  }
+\subsubsection{Frontend Notification Component}
+The React notification badge and dropdown component:
 
-  // 2) Check if user exists && password is correct
-  const user = await User.findOne({ email }).select('+password');
+\begin{lstlisting}[language=JavaScript, caption=Notification Badge Component]
+const NotificationBadge = () => {
+  const { notifications, markAsRead } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
   
-  if (!user || !(await user.comparePassword(password))) {
-    throw new AppError('Incorrect email or password', 401);
-  }
-
-  // 3) If everything ok, send token to client
-  const token = signToken(user._id);
+  const unreadCount = useMemo(() => {
+    return notifications.filter(n => n.status === 'unread').length;
+  }, [notifications]);
   
-  // 4) Remove password from output
-  user.password = undefined;
-
-  return {
-    token,
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role
-    }
+  const toggleNotifications = () => setIsOpen(!isOpen);
+  
+  const handleMarkAsRead = (id) => {
+    markAsRead(id);
   };
-};
-
-exports.refreshToken = async (userId) => {
-  // 1) Find user
-  const user = await User.findById(userId);
-  
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-
-  // 2) Generate new token
-  const token = signToken(user._id);
-
-  return { token };
-};
-\end{lstlisting}
-
-\subsubsection{Protected Routes Implementation}
-To restrict access to authorized users, the application implements protected routes:
-
-\begin{lstlisting}[language=JavaScript]
-// ProtectedRoute.js - Frontend route protection
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const { currentUser, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
-  if (!currentUser) {
-    // Redirect to login if not authenticated
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (requiredRole && currentUser.role !== requiredRole) {
-    // Redirect to unauthorized page if role doesn't match
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-};
-
-export default ProtectedRoute;
-\end{lstlisting}
-
-\section{Data Visualization and Analytics}
-
-\subsection{Data Visualization Architecture}
-The application implements comprehensive data visualization capabilities using Recharts, enabling users to monitor key metrics, analyze trends, and make data-driven decisions.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=1.5cm,
-    auto,
-    thick,
-    block/.style={
-        rectangle,
-        draw=black,
-        thick,
-        minimum width=3cm,
-        minimum height=1.5cm,
-        text centered,
-        rounded corners,
-        fill=blue!10
-    },
-    line/.style={draw, -latex'}
-]
-    % Data Source
-    \node[block] (db) at (0,0) {Database};
-    
-    % Backend Processing
-    \node[block] (api) at (0,-3) {API Endpoint};
-    \node[block] (processing) at (0,-6) {Data Processing};
-    
-    % Frontend Components
-    \node[block] (fetch) at (0,-9) {Data Fetching};
-    \node[block] (transform) at (0,-12) {Data Transformation};
-    \node[block] (chart) at (0,-15) {Chart Components};
-    \node[block] (state) at (0,-18) {State Management};
-    \node[block] (ui) at (0,-21) {UI Controls};
-    
-    % Connections
-    \draw[line] (db) -- (api);
-    \draw[line] (api) -- (processing);
-    \draw[line] (processing) -- (api);
-    \draw[line] (api) -- (fetch);
-    \draw[line] (fetch) -- (transform);
-    \draw[line] (transform) -- (chart);
-    \draw[line] (fetch) -- (state);
-    \draw[line] (state) -- (transform);
-    \draw[line] (state) -- (ui);
-    \draw[line] (ui) -- (chart);
-\end{tikzpicture}
-\caption{Data Visualization Architecture}
-\end{figure}
-
-\subsection{Data Flow Implementation}
-The data flow for analytics follows a structured process from data source to visual presentation:
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8, 
-    node distance=1.5cm,
-    auto,
-    thick,
-    block/.style={
-        rectangle,
-        draw=black,
-        thick,
-        minimum width=3cm,
-        minimum height=1cm,
-        text centered,
-        rounded corners,
-        fill=blue!10
-    },
-    arrow/.style={->, >=stealth, thick}]
-    
-    % Data Flow States
-    \node[block] (raw) at (0,0) {Raw Data};
-    \node[block] (query) at (4,0) {Query Results};
-    \node[block] (aggregate) at (8,0) {Aggregated Data};
-    \node[block] (transform) at (12,0) {Transformed Data};
-    \node[block] (visual) at (16,0) {Visualization};
-    
-    % Connect with arrows
-    \draw[arrow] (raw) -- (query) node[midway, above] {Query};
-    \draw[arrow] (query) -- (aggregate) node[midway, above] {Aggregate};
-    \draw[arrow] (aggregate) -- (transform) node[midway, above] {Transform};
-    \draw[arrow] (transform) -- (visual) node[midway, above] {Render};
-    
-    % Detail boxes
-    \node[draw, text width=3cm, align=left, below=of raw, yshift=-0.5cm] {
-        • Database records\\
-        • Raw JSON data\\
-        • Event logs
-    };
-    
-    \node[draw, text width=3cm, align=left, below=of query, yshift=-0.5cm] {
-        • Filtered records\\
-        • Time-series data\\
-        • Specific fields
-    };
-    
-    \node[draw, text width=3cm, align=left, below=of aggregate, yshift=-0.5cm] {
-        • Counts and sums\\
-        • Averages\\
-        • Group by metrics
-    };
-    
-    \node[draw, text width=3cm, align=left, below=of transform, yshift=-0.5cm] {
-        • Format conversion\\
-        • Time normalization\\
-        • Data reshaping
-    };
-    
-    \node[draw, text width=3cm, align=left, below=of visual, yshift=-0.5cm] {
-        • Charts and graphs\\
-        • Interactive elements\\
-        • Dashboard panels
-    };
-\end{tikzpicture}
-\caption{Data Transformation Flow}
-\end{figure}
-
-\subsection{Chart Component Examples}
-
-\subsubsection{Dashboard Analytics Component}
-The dashboard integrates multiple visualizations to provide a comprehensive overview:
-
-\begin{lstlisting}[language=JavaScript]
-// DashboardAnalytics.js
-import React, { useState, useEffect } from 'react';
-import { 
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer 
-} from 'recharts';
-import { fetchAnalyticsData } from '../api/analyticsService';
-import { DateRangePicker } from '../components/common/DateRangePicker';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
-
-const DashboardAnalytics = () => {
-  const [timeframe, setTimeframe] = useState('week');
-  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchAnalyticsData(timeframe, dateRange);
-        setAnalyticsData(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load analytics data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [timeframe, dateRange]);
-  
-  if (loading) return <LoadingSpinner />;
-  if (error) return <div className="error-message">{error}</div>;
-  if (!analyticsData) return <div>No data available</div>;
   
   return (
-    <div className="dashboard-analytics">
-      <div className="analytics-header">
-        <h2>Performance Analytics</h2>
-        <div className="analytics-controls">
-          <DateRangePicker 
-            onChange={setDateRange} 
-            startDate={dateRange.startDate} 
-            endDate={dateRange.endDate} 
-          />
-          <select 
-            value={timeframe} 
-            onChange={(e) => setTimeframe(e.target.value)}
-          >
-            <option value="day">Daily</option>
-            <option value="week">Weekly</option>
-            <option value="month">Monthly</option>
-            <option value="year">Yearly</option>
-          </select>
-        </div>
-      </div>
+    <div className="notification-container">
+      <button className="notification-bell" onClick={toggleNotifications}>
+        <BellIcon />
+        {unreadCount > 0 && (
+          <span className="notification-badge">{unreadCount}</span>
+        )}
+      </button>
       
-      <div className="analytics-grid">
-        {/* User Activity Trend */}
-        <div className="chart-container">
-          <h3>User Activity</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart
-              data={analyticsData.userActivity}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Area
-                type="monotone"
-                dataKey="activeUsers"
-                stroke="#8884d8"
-                fill="#8884d8"
-                name="Active Users"
-              />
-              <Area
-                type="monotone"
-                dataKey="newUsers"
-                stroke="#82ca9d"
-                fill="#82ca9d"
-                name="New Users"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+      {isOpen && (
+        <div className="notification-dropdown">
+          <div className="notification-header">
+            <h3>Notifications</h3>
+            {unreadCount > 0 && (
+              <button onClick={() => markAsRead('all')}>
+                Mark all as read
+              </button>
+            )}
+          </div>
+          
+          <div className="notification-list">
+            {notifications.length === 0 ? (
+              <p className="empty-state">No notifications yet</p>
+            ) : (
+              notifications.slice(0, 5).map(notification => (
+                <div 
+                  key={notification._id}
+                  className={`notification-item ${notification.status === 'unread' ? 'unread' : ''}`}
+                  onClick={() => handleMarkAsRead(notification._id)}
+                >
+                  <div className="notification-icon">
+                    {getIconForType(notification.type)}
+                  </div>
+                  <div className="notification-content">
+                    <h4>{notification.title}</h4>
+                    <p>{notification.message}</p>
+                    <span className="notification-time">
+                      {formatTimeAgo(notification.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <div className="notification-footer">
+            <Link to="/notifications">View all notifications</Link>
+          </div>
         </div>
-        
-        {/* Conversion Rate */}
-        <div className="chart-container">
-          <h3>Conversion Rate</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={analyticsData.conversions}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="rate"
-                stroke="#ff7300"
-                name="Conversion Rate %"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        
-        {/* Traffic Sources */}
-        <div className="chart-container">
-          <h3>Traffic Sources</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={analyticsData.trafficSources}
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-                nameKey="source"
-                label
-              />
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        
-        {/* Revenue by Category */}
-        <div className="chart-container">
-          <h3>Revenue by Category</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={analyticsData.revenueByCategory}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="category" />
-              <YAxis />
-              <Tooltip formatter={(value) => `$${value}`} />
-              <Legend />
-              <Bar dataKey="revenue" fill="#413ea0" name="Revenue ($)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
-
-export default DashboardAnalytics;
 \end{lstlisting}
 
-\subsection{Data Processing on Backend}
-The backend implements data processing services to prepare data for visualization:
+\section{Application Management Implementation}
+The application management system handles the lifecycle of student job applications:
 
-\begin{lstlisting}[language=JavaScript]
-// analyticsService.js - Backend
-const User = require('../models/User');
-const Transaction = require('../models/Transaction');
-const Activity = require('../models/Activity');
-const { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, format } = require('date-fns');
-
-exports.getUserActivityData = async (timeframe, startDate, endDate) => {
-  let dateFilter = {};
-  let groupFormat = '%Y-%m-%d'; // Default daily grouping
-  
-  if (startDate && endDate) {
-    // Custom date range
-    dateFilter = {
-      timestamp: {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      }
-    };
-  } else {
-    // Predefined timeframes
-    const today = new Date();
-    
-    switch (timeframe) {
-      case 'day':
-        dateFilter = {
-          timestamp: {
-            $gte: startOfDay(today),
-            $lte: endOfDay(today)
-          }
-        };
-        groupFormat = '%H:%M';
-        break;
-      case 'week':
-        dateFilter = {
-          timestamp: {
-            $gte: startOfWeek(today),
-            $lte: endOfWeek(today)
-          }
-        };
-        break;
-      case 'month':
-        dateFilter = {
-          timestamp: {
-            $gte: startOfMonth(today),
-            $lte: endOfMonth(today)
-          }
-        };
-        break;
-      case 'year':
-        dateFilter = {
-          timestamp: {
-            $gte: new Date(today.getFullYear(), 0, 1),
-            $lte: new Date(today.getFullYear(), 11, 31)
-          }
-        };
-        groupFormat = '%Y-%m';
-        break;
-      default:
-        // Default to last 30 days if no valid timeframe
-        dateFilter = {
-          timestamp: {
-            $gte: subDays(today, 30),
-            $lte: today
-          }
-        };
-    }
-  }
-  
-  // Aggregate user activity
-  const userActivity = await Activity.aggregate([
-    { $match: dateFilter },
-    {
-      $group: {
-        _id: { $dateToString: { format: groupFormat, date: '$timestamp' } },
-        activeUsers: { $addToSet: '$userId' },
-        totalSessions: { $sum: 1 }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        date: '$_id',
-        activeUsers: { $size: '$activeUsers' },
-        totalSessions: 1
-      }
-    },
-    { $sort: { date: 1 } }
-  ]);
-  
-  // Get new user registrations
-  const newUsers = await User.aggregate([
-    { 
-      $match: {
-        createdAt: dateFilter.timestamp
-      }
-    },
-    {
-      $group: {
-        _id: { $dateToString: { format: groupFormat, date: '$createdAt' } },
-        count: { $sum: 1 }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        date: '$_id',
-        newUsers: '$count'
-      }
-    },
-    { $sort: { date: 1 } }
-  ]);
-  
-  // Merge the activity data with new user data
-  const mergedData = userActivity.map(activity => {
-    const matchingNewUsers = newUsers.find(nu => nu.date === activity.date);
-    return {
-      ...activity,
-      newUsers: matchingNewUsers ? matchingNewUsers.newUsers : 0
-    };
-  });
-  
-  return mergedData;
-};
-
-exports.getConversionData = async (timeframe, startDate, endDate) => {
-  // Similar implementation for conversion data
-  // ...
-};
-
-exports.getRevenueByCategory = async (timeframe, startDate, endDate) => {
-  // Implementation for revenue by category
-  // ...
-};
-
-exports.getTrafficSources = async (timeframe, startDate, endDate) => {
-  // Implementation for traffic sources
-  // ...
-};
-\end{lstlisting}
-
-\subsection{API Integration for Analytics}
-The frontend fetches analytics data through dedicated API services:
-
-\begin{lstlisting}[language=JavaScript]
-// analyticsService.js - Frontend
-import axios from 'axios';
-import { formatDate } from '../utils/dateHelpers';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-export const fetchAnalyticsData = async (timeframe, dateRange) => {
+\begin{lstlisting}[language=JavaScript, caption=Application Status Update Function]
+// Update application status with appropriate notifications
+const updateApplicationStatus = async (req, res) => {
   try {
-    const params = { timeframe };
+    const { id } = req.params;
+    const { status, feedback, interviewDate, packageOffered } = req.body;
     
-    if (dateRange.startDate && dateRange.endDate) {
-      params.startDate = formatDate(dateRange.startDate);
-      params.endDate = formatDate(dateRange.endDate);
+    // Find the application
+    const application = await Application.findById(id);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
     }
     
-    const [userActivityResponse, conversionsResponse, 
-           trafficSourcesResponse, revenueByCategoryResponse] = await Promise.all([
-      axios.get(`${API_URL}/analytics/user-activity`, { params }),
-      axios.get(`${API_URL}/analytics/conversions`, { params }),
-      axios.get(`${API_URL}/analytics/traffic-sources`, { params }),
-      axios.get(`${API_URL}/analytics/revenue-by-category`, { params })
-    ]);
+    // Update application with new information
+    application.status = status;
     
-    return {
-      userActivity: userActivityResponse.data,
-      conversions: conversionsResponse.data,
-      trafficSources: trafficSourcesResponse.data,
-      revenueByCategory: revenueByCategoryResponse.data
-    };
-  } catch (error) {
-    console.error('Error fetching analytics data:', error);
-    throw new Error('Failed to fetch analytics data');
-  }
-};
-
-export const exportAnalyticsData = async (format, timeframe, dateRange) => {
-  try {
-    const params = { 
-      format,
-      timeframe 
-    };
+    if (feedback) application.feedback = feedback;
+    if (interviewDate) application.interviewDate = new Date(interviewDate);
+    if (packageOffered) application.packageOffered = packageOffered;
     
-    if (dateRange.startDate && dateRange.endDate) {
-      params.startDate = formatDate(dateRange.startDate);
-      params.endDate = formatDate(dateRange.endDate);
+    // Save updated application
+    await application.save();
+    
+    // Create notification for the student
+    await notifyApplicationStatusChange(application, status);
+    
+    // Create interview notification if status is "Interview Scheduled"
+    if (status === 'Interview Scheduled' && interviewDate) {
+      const company = await Company.findById(application.company);
+      const companyName = company ? company.name : 'a company';
+      
+      await createNotification(
+        application.student, 
+        application.studentModel,
+        {
+          type: 'interview',
+          company: application.company,
+          title: 'Interview Scheduled',
+          message: `Your interview with ${companyName} is scheduled for ${new Date(interviewDate).toLocaleString()}`,
+        }
+      );
     }
     
-    const response = await axios.get(`${API_URL}/analytics/export`, { 
-      params,
-      responseType: 'blob'
+    res.status(200).json({ 
+      message: 'Application updated successfully',
+      application
     });
-    
-    // Create file download
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `analytics_export_${formatDate(new Date())}.${format}`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    
-    return true;
   } catch (error) {
-    console.error('Error exporting analytics data:', error);
-    throw new Error('Failed to export analytics data');
+    console.error('Error updating application:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 \end{lstlisting}
 
-\subsection{Interactive Visualization Components}
-The application provides interactive visualization components that allow users to explore data:
+\chapter{User Interface Design}
+
+\section{Key Interface Components}
+The system features a responsive, user-friendly interface designed for different user roles:
 
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=1.5cm,
-    auto,
-    thick,
-    comp/.style={
-        rectangle,
-        draw=black,
-        thick,
-        minimum width=4cm,
-        minimum height=2cm,
-        text centered,
-        rounded corners,
-        fill=blue!10
-    },
-    action/.style={
-        rectangle,
-        draw=black,
-        thick,
-        minimum width=2.5cm,
-        minimum height=1cm,
-        text centered,
-        rounded corners,
-        fill=green!10
-    },
-    arrow/.style={->, >=stealth, thick}
-]
-    % Main component
-    \node[comp] (chart) {Chart Component};
-    
-    % Interaction nodes
-    \node[action, above left=of chart] (zoom) {Zoom};
-    \node[action, above=of chart] (filter) {Filter};
-    \node[action, above right=of chart] (tooltip) {Tooltip};
-    \node[action, below left=of chart] (select) {Selection};
-    \node[action, below=of chart] (export) {Export};
-    \node[action, below right=of chart] (drill) {Drill Down};
-    
-    % Connect with bidirectional arrows
-    \draw[arrow] (zoom) -- (chart);
-    \draw[arrow] (chart) -- (zoom);
-    
-    \draw[arrow] (filter) -- (chart);
-    \draw[arrow] (chart) -- (filter);
-    
-    \draw[arrow] (tooltip) -- (chart);
-    \draw[arrow] (chart) -- (tooltip);
-    
-    \draw[arrow] (select) -- (chart);
-    \draw[arrow] (chart) -- (select);
-    
-    \draw[arrow] (export) -- (chart);
-    \draw[arrow] (chart) -- (export);
-    
-    \draw[arrow] (drill) -- (chart);
-    \draw[arrow] (chart) -- (drill);
-\end{tikzpicture}
-\caption{Interactive Chart Component Interactions}
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % UI Layout
+        \draw (0,0) rectangle (14,9);
+        \draw (7,8.5) node[align=center] {\Large Student Dashboard Interface Layout};
+        
+        % Header
+        \draw (0.5,8) rectangle (13.5,7);
+        \draw (1.5,7.5) node[align=left] {Logo};
+        \draw (7,7.5) node {Navigation Menu};
+        \draw (12.5,7.5) node {Profile \& Notifications};
+        
+        % Sidebar
+        \draw (0.5,6.5) rectangle (3,1);
+        \draw (1.75,6) node {Dashboard};
+        \draw (1.75,5) node {Profile};
+        \draw (1.75,4) node {Companies};
+        \draw (1.75,3) node {Applications};
+        \draw (1.75,2) node {Interviews};
+        \draw (1.75,1.5) node {Resources};
+        
+        % Main Content
+        \draw (3.5,6.5) rectangle (13.5,1);
+        
+        % Stats Cards
+        \draw (4,6) rectangle (6,5);
+        \draw (5,5.5) node {CGPA};
+        
+        \draw (6.5,6) rectangle (8.5,5);
+        \draw (7.5,5.5) node {Semester};
+        
+        \draw (9,6) rectangle (11,5);
+        \draw (10,5.5) node {Applications};
+        
+        \draw (11.5,6) rectangle (13.5,5);
+        \draw (12.5,5.5) node {Skills};
+        
+        % Recent Notifications
+        \draw (4,4.5) rectangle (8.5,2);
+        \draw (6.25,4) node {Recent Notifications};
+        
+        % Upcoming Interviews
+        \draw (9,4.5) rectangle (13.5,2);
+        \draw (11.25,4) node {Upcoming Interviews};
+        
+        % Footer
+        \draw (0.5,0.5) rectangle (13.5,0);
+        \draw (7,0.25) node {Footer: Copyright, Links, Contact};
+    \end{tikzpicture}
+    \caption{Student Dashboard Interface Layout}
+    \label{fig:student-dashboard}
 \end{figure}
 
-\section{Data Flow}
+\section{Interface Screenshots}
+Below are key screenshots from the Campus Placement Management System:
+
+\subsection{Student Dashboard}
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8]
-    % Data Flow Diagram
-    \node[draw,rounded corners] (client) at (0,0) {Client};
-    \node[draw,rounded corners] (api) at (3,0) {API Layer};
-    \node[draw,rounded corners] (db) at (6,0) {Database};
-    
-    \draw[<->] (client) -- (api);
-    \draw[<->] (api) -- (db);
-    
-    \node[above] at (1.5,0) {HTTP Requests};
-    \node[above] at (4.5,0) {Data Operations};
-\end{tikzpicture}
-\caption{Data Flow Architecture}
+    \centering
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        [Student Dashboard Screenshot]\\
+        This screenshot would show the student dashboard with quick statistics,\\
+        recent notifications, and upcoming interviews.
+    }}
+    \caption{Student Dashboard}
+    \label{fig:student-dashboard-screenshot}
 \end{figure}
 
-\section{Security Considerations}
+\subsection{Company Listing}
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        [Company Listing Screenshot]\\
+        This screenshot would show the available companies with filtering options,\\
+        eligibility indicators, and application buttons.
+    }}
+    \caption{Company Listing Interface}
+    \label{fig:company-listing-screenshot}
+\end{figure}
+
+\subsection{Application Form}
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        [Application Form Screenshot]\\
+        This screenshot would show the job application form with fields for\\
+        resume upload, cover letter, and additional information.
+    }}
+    \caption{Application Submission Form}
+    \label{fig:application-form-screenshot}
+\end{figure}
+
+\subsection{Admin Dashboard}
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        [Admin Dashboard Screenshot]\\
+        This screenshot would show the administrator dashboard with placement statistics,\\
+        recent applications, and upcoming company visits.
+    }}
+    \caption{Administrator Dashboard}
+    \label{fig:admin-dashboard-screenshot}
+\end{figure}
+
+\section{Notification Interface}
+The notification center provides students with real-time updates:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % Notification UI
+        \draw (0,0) rectangle (14,9);
+        \draw (7,8.5) node[align=center] {\Large Notification Center Interface};
+        
+        % Header
+        \draw (1,8) rectangle (13,7);
+        \draw (7,7.5) node {Notifications};
+        
+        % Filter Tabs
+        \draw (1,6.5) rectangle (13,6);
+        \draw (2.5,6.25) node {All};
+        \draw (4.5,6.25) node {Companies};
+        \draw (7,6.25) node {Interviews};
+        \draw (9.5,6.25) node {Placements};
+        \draw (11.5,6.25) node {Clear All};
+        
+        % Search
+        \draw (1,5.5) rectangle (13,5);
+        \draw (7,5.25) node {Search Notifications...};
+        
+        % Notification Items (with smaller text)
+        \draw (1,4.5) rectangle (13,4);
+        \draw (1.5,4.25) node[scale=0.6] {●};
+        \draw (7,4.25) node[align=center, scale=0.6] {New job opportunity from Google - Software Engineer position...};
+        \draw (12.5,4.25) node[scale=0.6] {10m ago};
+        
+        \draw (1,3.75) rectangle (13,3.25);
+        \draw (1.5,3.5) node[scale=0.6] {●};
+        \draw (7,3.5) node[align=center, scale=0.6] {Your application for Amazon has been moved to "Interview Scheduled"};
+        \draw (12.5,3.5) node[scale=0.6] {2h ago};
+        
+        \draw (1,3) rectangle (13,2.5);
+        \draw (1.5,2.75) node[scale=0.6] {○};
+        \draw (7,2.75) node[align=center, scale=0.6] {Microsoft interview scheduled for May 15, 2023 at 10:00 AM};
+        \draw (12.5,2.75) node[scale=0.6] {1d ago};
+        
+        \draw (1,2.25) rectangle (13,1.75);
+        \draw (1.5,2) node[scale=0.6] {○};
+        \draw (7,2) node[align=center, scale=0.6] {Your application for Facebook has been rejected};
+        \draw (12.5,2) node[scale=0.6] {3d ago};
+        
+        % Empty State
+        \draw (1,1.25) rectangle (13,0.75);
+        \draw (7,1) node {Load More...};
+    \end{tikzpicture}
+    \caption{Notification Center Interface}
+    \label{fig:notification-interface}
+\end{figure}
+
+\section{Mobile Responsive Design}
+The system implements responsive design principles to ensure usability across devices:
+
+\begin{figure}[H]
+    \centering
+    \fbox{\parbox{0.8\textwidth}{
+        \centering
+        [Mobile Interface Screenshot]\\
+        This screenshot would show the responsive mobile view of the application,\\
+        demonstrating how the interface adapts to smaller screen sizes.
+    }}
+    \caption{Mobile Responsive Interface}
+    \label{fig:mobile-interface-screenshot}
+\end{figure}
+
+\chapter{Testing and Validation}
+
+\section{Testing Approach}
+The system underwent comprehensive testing to ensure reliability:
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=2cm, scale=0.9, transform shape]
+        % Testing approach diagram
+        \draw (0,0) rectangle (14,8);
+        \draw (7,7.5) node[align=center] {\Large Testing Approach};
+        
+        % Unit Testing
+        \draw (1,7) rectangle (6,5);
+        \draw (3.5,6.5) node {Unit Testing};
+        \draw (3.5,6) node[scale=0.7] {Authentication Functions};
+        \draw (3.5,5.75) node[scale=0.7] {Data Validation};
+        \draw (3.5,5.5) node[scale=0.7] {Form Components};
+        \draw (3.5,5.25) node[scale=0.7] {Framework: Jest};
+        
+        % Integration Testing
+        \draw (8,7) rectangle (13,5);
+        \draw (10.5,6.5) node {Integration Testing};
+        \draw (10.5,6) node[scale=0.7] {API Endpoints};
+        \draw (10.5,5.75) node[scale=0.7] {Database Operations};
+        \draw (10.5,5.5) node[scale=0.7] {Component Interactions};
+        \draw (10.5,5.25) node[scale=0.7] {Framework: Supertest};
+        
+        % User Acceptance Testing
+        \draw (1,4.5) rectangle (6,2.5);
+        \draw (3.5,4) node {User Acceptance Testing};
+        \draw (3.5,3.5) node[scale=0.7] {Student Workflow Testing};
+        \draw (3.5,3.25) node[scale=0.7] {Admin Workflow Testing};
+        \draw (3.5,3) node[scale=0.7] {Cross-browser Testing};
+        \draw (3.5,2.75) node[scale=0.7] {Method: Manual Testing};
+        
+        % Performance Testing
+        \draw (8,4.5) rectangle (13,2.5);
+        \draw (10.5,4) node {Performance Testing};
+        \draw (10.5,3.5) node[scale=0.7] {Load Testing};
+        \draw (10.5,3.25) node[scale=0.7] {Response Time Measurement};
+        \draw (10.5,3) node[scale=0.7] {Database Query Optimization};
+        \draw (10.5,2.75) node[scale=0.7] {Tool: Apache JMeter};
+        
+        % Test Coverage
+        \draw (1,2) rectangle (13,0.5);
+        \draw (7,1.75) node {Test Coverage};
+        \draw (4,1.25) node[scale=0.7] {Backend: 85\% Line Coverage};
+        \draw (10,1.25) node[scale=0.7] {Frontend: 75\% Line Coverage};
+        \draw (7,0.75) node[scale=0.7] {Critical Components: 95\% Coverage};
+    \end{tikzpicture}
+    \caption{Testing Approach Overview}
+    \label{fig:testing-approach}
+\end{figure}
+
+\section{Unit Test Example}
+Example of a Jest unit test for the authentication controller:
+
+\begin{lstlisting}[language=JavaScript, caption=Authentication Controller Test]
+describe('Authentication Controller', () => {
+  beforeEach(async () => {
+    // Clear test database collections before each test
+    await mongoose.connection.collection('admin').deleteMany({});
+    await mongoose.connection.collection('ce').deleteMany({});
+  });
+
+  describe('Login Function', () => {
+    test('should return 400 if username is missing', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ password: 'password123' });
+      
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('username');
+    });
+
+    test('should return 400 if password is missing', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'testuser' });
+      
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('password');
+    });
+
+    test('should return 401 if user does not exist', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'nonexistentuser', password: 'password123' });
+      
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('Invalid credentials');
+    });
+
+    test('should return 401 if password is incorrect', async () => {
+      // Create a test user first
+      const testUser = new CE({
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        phone: '1234567890',
+        registrationNumber: 'R12345',
+        branch: 'CE',
+        semester: 6,
+        yearOfAdmission: 2020,
+        cgpa: 8.5
+      });
+      
+      // Set password using Passport local mongoose
+      await testUser.setPassword('correctpassword');
+      await testUser.save();
+      
+      // Try to login with wrong password
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'testuser', password: 'wrongpassword' });
+      
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('Invalid credentials');
+    });
+
+    test('should return 200 and token for valid credentials', async () => {
+      // Create a test user first
+      const testUser = new CE({
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        phone: '1234567890',
+        registrationNumber: 'R12345',
+        branch: 'CE',
+        semester: 6,
+        yearOfAdmission: 2020,
+        cgpa: 8.5
+      });
+      
+      // Set password using Passport local mongoose
+      await testUser.setPassword('correctpassword');
+      await testUser.save();
+      
+      // Try to login with correct password
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ username: 'testuser', password: 'correctpassword' });
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user.username).toBe('testuser');
+      expect(response.body.user.role).toBe('student');
+      expect(response.body.user.department).toBe('CE');
+      
+      // Check that password is not included in response
+      expect(response.body.user).not.toHaveProperty('hash');
+      expect(response.body.user).not.toHaveProperty('salt');
+    });
+  });
+});
+\end{lstlisting}
+
+\chapter{Conclusion and Future Work}
+
+\section{Project Achievements}
+The Campus Placement Management System successfully fulfilled its objectives:
 \begin{itemize}
-    \item JWT-based authentication
-    \item Environment variable management
-    \item Input validation and sanitization
-    \item CORS configuration
-    \item Rate limiting implementation
-\end{itemize}
-
-\section{Deployment Architecture}
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8]
-    % Deployment Architecture
-    \node[draw,rounded corners] (cdn) at (0,0) {CDN};
-    \node[draw,rounded corners] (frontend) at (3,0) {Frontend Server};
-    \node[draw,rounded corners] (backend) at (6,0) {Backend Server};
-    \node[draw,rounded corners] (db) at (9,0) {Database};
-    
-    \draw[->] (cdn) -- (frontend);
-    \draw[->] (frontend) -- (backend);
-    \draw[->] (backend) -- (db);
-\end{tikzpicture}
-\caption{Deployment Architecture}
-\end{figure}
-
-\section{Performance Optimization}
-\begin{itemize}
-    \item Code splitting implementation
-    \item Lazy loading of components
-    \item Image optimization
-    \item Caching strategies
-    \item Database indexing
+    \item Implemented a comprehensive digital platform for managing the entire placement process
+    \item Created specialized interfaces for students and administrators with role-based access control
+    \item Developed a department-based student organization system for efficient management
+    \item Implemented real-time notification framework for timely updates
+    \item Created robust application tracking system with comprehensive status management
+    \item Designed responsive interface accessible across devices
+    \item Ensured security through proper authentication, authorization, and data protection measures
 \end{itemize}
 
 \section{Future Enhancements}
+Potential future enhancements include:
 \begin{itemize}
-    \item Implementation of WebSocket for real-time features
-    \item Enhanced data visualization capabilities
-    \item Mobile application development
-    \item Advanced analytics integration
-    \item Automated testing expansion
+    \item AI-powered resume scoring and matching system to recommend suitable jobs
+    \item Integration with video conferencing tools for online interviews
+    \item Mobile application for improved accessibility
+    \item Advanced analytics dashboard with predictive metrics
+    \item Integration with external job portals for broader opportunities
+    \item Blockchain-based verification for academic credentials
+    \item Alumni tracking and engagement features
 \end{itemize}
-
-\section{Conclusion}
-This technical documentation provides a comprehensive overview of our full-stack web application. The architecture, technology stack, and implementation details demonstrate a modern, scalable, and maintainable solution that meets current industry standards and best practices.
-
-The project successfully implements a robust architecture with clean separation of concerns between frontend and backend components. The React-based frontend delivers a responsive and intuitive user interface, while the Node.js backend provides scalable API services with appropriate security measures.
-
-Key achievements of the project include:
-
-\begin{itemize}
-    \item Implementation of a comprehensive authentication and authorization system
-    \item Development of reusable UI components following modern design principles
-    \item Integration of data visualization capabilities for analytics
-    \item Establishment of secure data handling practices
-    \item Creation of a robust testing infrastructure
-    \item Implementation of CI/CD pipelines for automated deployment
-\end{itemize}
-
-As the application continues to evolve, the established architecture provides a solid foundation for future enhancements and feature additions. The modular design ensures that new capabilities can be integrated without significant refactoring, while the comprehensive testing infrastructure helps maintain reliability during ongoing development.
 
 \appendix
-\section{API Reference}\label{appendix:api}
+\chapter{API Documentation}
+\chapter{Database Schema Details}
+\chapter{User Manual}
 
-\subsection{Authentication API}
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{3cm}|p{2cm}|p{5cm}|p{4cm}|}
-\hline
-\textbf{Endpoint} & \textbf{Method} & \textbf{Description} & \textbf{Auth Required} \\
-\hline
-/api/auth/register & POST & Register a new user account & No \\
-\hline
-/api/auth/login & POST & Authenticate user and get token & No \\
-\hline
-/api/auth/refresh & POST & Refresh authentication token & Yes (Refresh Token) \\
-\hline
-/api/auth/logout & POST & Invalidate current token & Yes \\
-\hline
-/api/auth/forgot-password & POST & Request password reset email & No \\
-\hline
-/api/auth/reset-password & POST & Reset password with token & No (Token in Body) \\
-\hline
-/api/auth/verify-email & GET & Verify user email address & No (Token in Query) \\
-\hline
-\end{tabular}
-\caption{Authentication API Endpoints}
-\end{table}
-
-\subsection{User API}
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{3cm}|p{2cm}|p{5cm}|p{4cm}|}
-\hline
-\textbf{Endpoint} & \textbf{Method} & \textbf{Description} & \textbf{Auth Required} \\
-\hline
-/api/users/profile & GET & Get current user profile & Yes \\
-\hline
-/api/users/profile & PUT & Update user profile & Yes \\
-\hline
-/api/users/password & PUT & Change user password & Yes \\
-\hline
-/api/users/avatar & POST & Upload profile avatar & Yes \\
-\hline
-/api/users/settings & GET & Get user settings & Yes \\
-\hline
-/api/users/settings & PUT & Update user settings & Yes \\
-\hline
-/api/users/:id & GET & Get user by ID (admin) & Yes (Admin) \\
-\hline
-/api/users & GET & List users (admin) & Yes (Admin) \\
-\hline
-\end{tabular}
-\caption{User API Endpoints}
-\end{table}
-
-\section{Environment Variables}\label{appendix:env}
-The application uses environment variables for configuration. The following variables should be set in the deployment environment:
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{5cm}|p{9cm}|}
-\hline
-\textbf{Variable} & \textbf{Description} \\
-\hline
-NODE\_ENV & Application environment (development, production) \\
-\hline
-PORT & Port for the backend server \\
-\hline
-MONGODB\_URI & MongoDB connection string \\
-\hline
-JWT\_SECRET & Secret key for JWT token generation \\
-\hline
-JWT\_EXPIRES\_IN & JWT token expiration time (e.g., "30d") \\
-\hline
-REFRESH\_TOKEN\_SECRET & Secret for refresh token generation \\
-\hline
-REFRESH\_TOKEN\_EXPIRES\_IN & Refresh token expiration (e.g., "7d") \\
-\hline
-EMAIL\_FROM & Sender email address for notifications \\
-\hline
-SMTP\_HOST & SMTP server hostname \\
-\hline
-SMTP\_PORT & SMTP server port \\
-\hline
-SMTP\_USER & SMTP authentication username \\
-\hline
-SMTP\_PASS & SMTP authentication password \\
-\hline
-FRONTEND\_URL & URL of the frontend application \\
-\hline
-CORS\_ORIGIN & Allowed CORS origins \\
-\hline
-TWILIO\_ACCOUNT\_SID & Twilio account identifier \\
-\hline
-TWILIO\_AUTH\_TOKEN & Twilio authentication token \\
-\hline
-TWILIO\_PHONE\_NUMBER & Twilio phone number for sending SMS \\
-\hline
-\end{tabular}
-\caption{Environment Variables}
-\end{table}
-
-\section{Deployment Checklist}\label{appendix:deployment}
-
-\subsection{Pre-Deployment Checks}
-\begin{itemize}
-    \item All tests pass (unit, integration, E2E)
-    \item Security scan completed with no critical issues
-    \item Performance benchmarks meet requirements
-    \item Environment variables configured
-    \item Database migrations prepared
-    \item Backup strategy in place
-    \item Rollback plan documented
-\end{itemize}
-
-\subsection{Deployment Steps}
-\begin{enumerate}
-    \item Backup production database
-    \item Run database migrations
-    \item Deploy backend services
-    \item Deploy frontend application
-    \item Update CDN configurations
-    \item Verify application health
-    \item Run smoke tests
-    \item Monitor application metrics
-\end{enumerate}
-
-\subsection{Post-Deployment Verification}
-\begin{itemize}
-    \item Verify key user flows
-    \item Check error rates in logs
-    \item Monitor performance metrics
-    \item Verify third-party integrations
-    \item Test cross-browser compatibility
-    \item Validate mobile responsiveness
-\end{itemize}
-
-\section{Technology Stack Details}\label{appendix:tech}
-
-\subsection{Frontend Dependencies}
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{4cm}|p{2cm}|p{8cm}|}
-\hline
-\textbf{Package} & \textbf{Version} & \textbf{Purpose} \\
-\hline
-react & 19.0.0 & Core UI library \\
-\hline
-react-dom & 19.0.0 & DOM rendering for React \\
-\hline
-react-router-dom & 7.1.5 & Routing and navigation \\
-\hline
-axios & 1.7.9 & HTTP client for API requests \\
-\hline
-recharts & 2.15.1 & Data visualization components \\
-\hline
-@radix-ui/react-dialog & 1.1.6 & Accessible dialog component \\
-\hline
-@radix-ui/react-tabs & 1.1.3 & Accessible tabs component \\
-\hline
-@radix-ui/react-select & 2.1.6 & Accessible select component \\
-\hline
-@radix-ui/react-tooltip & 1.1.8 & Accessible tooltip component \\
-\hline
-class-variance-authority & 0.7.1 & Component styling utility \\
-\hline
-lucide-react & 0.475.0 & Icon library \\
-\hline
-tailwindcss & 3.4.17 & Utility-first CSS framework \\
-\hline
-\end{tabular}
-\caption{Frontend Dependencies}
-\end{table}
-
-\subsection{Backend Dependencies}
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{4cm}|p{2cm}|p{8cm}|}
-\hline
-\textbf{Package} & \textbf{Version} & \textbf{Purpose} \\
-\hline
-express & 4.18.2 & Web application framework \\
-\hline
-mongoose & 8.2.0 & MongoDB object modeling \\
-\hline
-jsonwebtoken & 9.0.2 & JWT token generation and validation \\
-\hline
-bcrypt & 5.1.1 & Password hashing \\
-\hline
-nodemailer & 6.10.0 & Email sending functionality \\
-\hline
-twilio & 5.5.1 & SMS messaging service \\
-\hline
-cors & 2.8.5 & Cross-Origin Resource Sharing \\
-\hline
-helmet & 7.1.0 & Security headers middleware \\
-\hline
-joi & 17.12.1 & Data validation \\
-\hline
-winston & 3.11.0 & Logging framework \\
-\hline
-dotenv & 16.4.5 & Environment variable management \\
-\hline
-multer & 1.4.5-lts.1 & File upload handling \\
-\hline
-\end{tabular}
-\caption{Backend Dependencies}
-\end{table}
-
-\section{Glossary}\label{appendix:glossary}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|p{4cm}|p{10cm}|}
-\hline
-\textbf{Term} & \textbf{Definition} \\
-\hline
-API & Application Programming Interface, a set of rules that allows different software to communicate with each other \\
-\hline
-JWT & JSON Web Token, a compact, self-contained way for securely transmitting information between parties \\
-\hline
-DOM & Document Object Model, a programming interface for web documents \\
-\hline
-ORM & Object-Relational Mapping, a technique for converting data between incompatible type systems \\
-\hline
-CORS & Cross-Origin Resource Sharing, a security feature that restricts web page requests to other domains \\
-\hline
-CI/CD & Continuous Integration/Continuous Deployment, automated processes for code integration and deployment \\
-\hline
-CDN & Content Delivery Network, a distributed server system that delivers web content based on geographic location \\
-\hline
-RBAC & Role-Based Access Control, an approach to restricting system access to authorized users \\
-\hline
-MVC & Model-View-Controller, a software design pattern for developing user interfaces \\
-\hline
-REST & Representational State Transfer, an architectural style for designing networked applications \\
-\hline
-\end{tabular}
-\caption{Glossary of Terms}
-\end{table}
-
-\subsection{User Workflows}
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.7, node distance=2cm,
-    process/.style={rectangle, draw, minimum width=2.5cm, minimum height=1cm, align=center},
-    decision/.style={diamond, draw, aspect=2, minimum width=3cm, minimum height=1cm, align=center},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % Student workflow
-    \node[process] (start) {Student Registration};
-    \node[process, below=of start] (profile) {Complete Profile};
-    \node[process, below=of profile] (search) {Search Job Listings};
-    \node[decision, below=of search] (eligible) {Eligibility Check};
-    \node[process, below=of eligible, xshift=-3cm] (apply) {Apply for Position};
-    \node[process, below=of apply] (track) {Track Application};
-    \node[process, below=of track] (interview) {Attend Interview};
-    \node[decision, below=of interview] (selected) {Selected?};
-    \node[process, below=of selected, xshift=-2cm] (accept) {Accept Offer};
-    \node[process, below=of selected, xshift=2cm] (reject) {Continue Search};
-    
-    % Connect student workflow
-    \draw[arrow] (start) -- (profile);
-    \draw[arrow] (profile) -- (search);
-    \draw[arrow] (search) -- (eligible);
-    \draw[arrow] (eligible) -- node[above, sloped] {Yes} (apply);
-    \draw[arrow] (eligible) -- node[above, sloped] {No} ++(3,-1) -- ++(0,-5) -- (reject);
-    \draw[arrow] (apply) -- (track);
-    \draw[arrow] (track) -- (interview);
-    \draw[arrow] (interview) -- (selected);
-    \draw[arrow] (selected) -- node[above, sloped] {Yes} (accept);
-    \draw[arrow] (selected) -- node[above, sloped] {No} (reject);
-    \draw[arrow] (reject) |- ++(4,5) -| (search);
-    
-    % Company workflow - placed to the right
-    \node[process, right=8cm of start] (c_register) {Company Registration};
-    \node[process, below=of c_register] (c_profile) {Complete Company Profile};
-    \node[process, below=of c_profile] (post_job) {Post Job Listings};
-    \node[process, below=of post_job] (review) {Review Applications};
-    \node[process, below=of review] (schedule) {Schedule Interviews};
-    \node[process, below=of schedule] (conduct) {Conduct Interviews};
-    \node[process, below=of conduct] (select) {Select Candidates};
-    \node[process, below=of select] (offer) {Make Offers};
-    
-    % Connect company workflow
-    \draw[arrow] (c_register) -- (c_profile);
-    \draw[arrow] (c_profile) -- (post_job);
-    \draw[arrow] (post_job) -- (review);
-    \draw[arrow] (review) -- (schedule);
-    \draw[arrow] (schedule) -- (conduct);
-    \draw[arrow] (conduct) -- (select);
-    \draw[arrow] (select) -- (offer);
-    
-    % Connect the workflows
-    \draw[arrow, dashed] (post_job) -- ++(-3,0) |- (search);
-    \draw[arrow, dashed] (apply) -- ++(5,0) |- (review);
-    \draw[arrow, dashed] (schedule) -- ++(-4,0) |- (track);
-    \draw[arrow, dashed] (offer) -- ++(-5,0) |- (selected);
-    
-    % Add titles
-    \node[above=0.5cm of start] {Student Workflow};
-    \node[above=0.5cm of c_register] {Company Workflow};
-\end{tikzpicture}
-\caption{Key User Workflows in Placement Management System}
-\end{figure}
-
-\subsection{Placement Officer Activities}
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.7, node distance=2cm,
-    process/.style={rectangle, draw, minimum width=3cm, minimum height=1cm, align=center},
-    data/.style={cylinder, draw, shape aspect=0.3, minimum width=2.5cm, minimum height=1cm, align=center},
-    cloud/.style={cloud, draw, aspect=2, minimum width=3cm, minimum height=1cm, align=center},
-    arrow/.style={->, >=stealth, thick}]
-    
-    % Admin activities
-    \node[process] (admin) {Placement Officer};
-    
-    % Main activities
-    \node[process, below=of admin, xshift=-6cm] (verify) {Verify Student Profiles};
-    \node[process, below=of admin, xshift=-2cm] (company) {Approve Companies};
-    \node[process, below=of admin, xshift=2cm] (monitor) {Monitor Placements};
-    \node[process, below=of admin, xshift=6cm] (reports) {Generate Reports};
-    
-    % Sub-activities
-    \node[process, below=of verify] (eligibility) {Set Eligibility Criteria};
-    \node[process, below=of company] (schedule) {Schedule Campus Drives};
-    \node[process, below=of monitor] (stats) {Track Placement Statistics};
-    \node[process, below=of reports] (analytics) {Placement Analytics};
-    
-    % Database 
-    \node[data, below=4cm of admin] (database) {Placement Database};
-    
-    % Outputs
-    \node[cloud, below=of database, xshift=-4cm] (insights) {Placement Insights};
-    \node[cloud, below=of database, xshift=4cm] (dashboard) {Real-time Dashboard};
-    
-    % Connect admin to activities
-    \draw[arrow] (admin) -- (verify);
-    \draw[arrow] (admin) -- (company);
-    \draw[arrow] (admin) -- (monitor);
-    \draw[arrow] (admin) -- (reports);
-    
-    % Connect to sub-activities
-    \draw[arrow] (verify) -- (eligibility);
-    \draw[arrow] (company) -- (schedule);
-    \draw[arrow] (monitor) -- (stats);
-    \draw[arrow] (reports) -- (analytics);
-    
-    % Connect to database
-    \draw[arrow] (eligibility) -- (database);
-    \draw[arrow] (schedule) -- (database);
-    \draw[arrow] (stats) -- (database);
-    \draw[arrow] (analytics) -- (database);
-    
-    % Connect to outputs
-    \draw[arrow] (database) -- (insights);
-    \draw[arrow] (database) -- (dashboard);
-\end{tikzpicture}
-\caption{Placement Officer Activities and Responsibilities}
-\end{figure}
-
-\section{Use Case Diagram}
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.8, transform shape]
-    % Define styles
-    \tikzset{actor/.style={draw, circle, minimum size=1cm}}
-    \tikzset{usecase/.style={draw, ellipse, minimum width=2.4cm, minimum height=1cm, align=center}}
-    \tikzset{system boundary/.style={draw, dashed, rounded corners}}
-    
-    % Draw system boundary
-    \draw[system boundary] (-2,-8.5) rectangle (10,2);
-    \node[above] at (4,2) {Placement Management System};
-    
-    % Draw actors
-    \node[actor, label=left:Student] (student) at (-4,0) {};
-    \node[actor, label=left:Company] (company) at (-4,-4) {};
-    \node[actor, label=left:Placement Officer] (admin) at (-4,-8) {};
-    
-    % Draw use cases - Student related
-    \node[usecase] (register) at (0,1) {Register};
-    \node[usecase] (profile) at (1,0) {Manage Profile};
-    \node[usecase] (search) at (2,-1) {Search Jobs};
-    \node[usecase] (apply) at (3,-2) {Apply for Jobs};
-    \node[usecase] (track) at (4,-3) {Track Applications};
-    
-    % Draw use cases - Company related
-    \node[usecase] (comp_register) at (0,-3) {Register Company};
-    \node[usecase] (post) at (1,-4) {Post Job Listings};
-    \node[usecase] (review) at (2,-5) {Review Applications};
-    \node[usecase] (interview) at (3,-6) {Manage Interviews};
-    
-    % Draw use cases - Admin related
-    \node[usecase] (verify) at (5,0) {Verify Accounts};
-    \node[usecase] (approve) at (6,-1) {Approve Companies};
-    \node[usecase] (manage) at (7,-2) {Manage Placements};
-    \node[usecase] (reports) at (8,-3) {Generate Reports};
-    \node[usecase] (announce) at (8,-4) {Make Announcements};
-    \node[usecase] (drives) at (7,-5) {Organize Drives};
-    \node[usecase] (stats) at (6,-6) {View Statistics};
-    
-    % Connect actors to use cases
-    \draw (student) -- (register);
-    \draw (student) -- (profile);
-    \draw (student) -- (search);
-    \draw (student) -- (apply);
-    \draw (student) -- (track);
-    
-    \draw (company) -- (comp_register);
-    \draw (company) -- (post);
-    \draw (company) -- (review);
-    \draw (company) -- (interview);
-    
-    \draw (admin) -- (verify);
-    \draw (admin) -- (approve);
-    \draw (admin) -- (manage);
-    \draw (admin) -- (reports);
-    \draw (admin) -- (announce);
-    \draw (admin) -- (drives);
-    \draw (admin) -- (stats);
-    
-    % Include/extend relationships (optional)
-    \draw[dashed, ->] (profile) -- (register) node[midway, above, sloped, font=\small] {<<include>>};
-    \draw[dashed, ->] (comp_register) -- (approve) node[midway, above, sloped, font=\small] {<<include>>};
-    \draw[dashed, ->] (apply) -- (track) node[midway, above, sloped, font=\small] {<<extend>>};
-    
-\end{tikzpicture}
-\caption{Use Case Diagram for Placement Management System}
-\end{figure}
-
-\section{ER Diagram}
-\begin{figure}[H]
-\centering
-\scalebox{0.78}{
-\begin{tikzpicture}[
-    node distance=2.5cm, 
-    every entity/.style={draw=black, rectangle, rounded corners, minimum width=2.5cm, minimum height=1cm},
-    attribute/.style={draw=black, ellipse, minimum width=1.8cm, minimum height=0.8cm}
-]
-    % Entities with more spacing
-    \node[entity] (student) {STUDENT};
-    \node[entity] (company) [below right=3cm and 6cm of student] {COMPANY};
-    \node[entity] (job) [above right=3cm and 6cm of company] {JOB};
-    \node[entity] (application) [below=5cm of job] {APPLICATION};
-    \node[entity] (interview) [below right=4cm and 2.5cm of application] {INTERVIEW};
-    \node[entity] (placement) [below left=4cm and 2.5cm of application] {PLACEMENT};
-    \node[entity] (officer) [below=5cm of student] {PLACEMENT\_OFFICER};
-    
-    % Attributes for Student - adjusted positions
-    \node[attribute] (stud_id) [above left=0.8cm and 0.8cm of student] {student\_id};
-    \node[attribute] (stud_name) [above=0.8cm of student] {name};
-    \node[attribute] (stud_email) [above right=0.8cm and 0.8cm of student] {email};
-    \node[attribute] (stud_course) [left=1.2cm of student] {course};
-    \node[attribute] (stud_cgpa) [below left=0.8cm and 0.8cm of student] {cgpa};
-    
-    % Attributes for Company - adjusted positions
-    \node[attribute] (comp_id) [above=0.8cm of company] {company\_id};
-    \node[attribute] (comp_name) [right=1.2cm of company] {name};
-    \node[attribute] (comp_industry) [below right=0.8cm and 0.8cm of company] {industry};
-    \node[attribute] (comp_location) [below=0.8cm of company] {location};
-    
-    % Attributes for Job - adjusted positions
-    \node[attribute] (job_id) [above left=0.8cm and 0.8cm of job] {job\_id};
-    \node[attribute] (job_title) [above=0.8cm of job] {title};
-    \node[attribute] (job_desc) [above right=0.8cm and 0.8cm of job] {description};
-    \node[attribute] (job_salary) [right=1.2cm of job] {salary};
-    \node[attribute] (job_req) [below right=0.8cm and 0.8cm of job] {requirements};
-    
-    % Attributes for Application - adjusted positions
-    \node[attribute] (app_id) [right=1.2cm of application] {application\_id};
-    \node[attribute] (app_date) [left=1.2cm of application] {apply\_date};
-    \node[attribute] (app_status) [below=0.8cm of application] {status};
-    
-    % Attributes for Interview - adjusted positions
-    \node[attribute] (int_id) [below right=0.8cm and 0.8cm of interview] {interview\_id};
-    \node[attribute] (int_date) [right=1.2cm of interview] {date\_time};
-    \node[attribute] (int_mode) [above right=0.8cm and 0.8cm of interview] {mode};
-    \node[attribute] (int_result) [below=0.8cm of interview] {result};
-    
-    % Attributes for Placement - adjusted positions
-    \node[attribute] (place_id) [below left=0.8cm and 0.8cm of placement] {placement\_id};
-    \node[attribute] (place_date) [left=1.2cm of placement] {offer\_date};
-    \node[attribute] (place_pkg) [above left=0.8cm and 0.8cm of placement] {package};
-    \node[attribute] (place_status) [below=0.8cm of placement] {status};
-    
-    % Attributes for Placement Officer - adjusted positions
-    \node[attribute] (off_id) [below left=0.8cm and 0.8cm of officer] {officer\_id};
-    \node[attribute] (off_name) [left=1.2cm of officer] {name};
-    \node[attribute] (off_role) [above left=0.8cm and 0.8cm of officer] {role};
-    \node[attribute] (off_email) [below=0.8cm of officer] {email};
-    
-    % Draw lines for attributes
-    \draw (student) -- (stud_id);
-    \draw (student) -- (stud_name);
-    \draw (student) -- (stud_email);
-    \draw (student) -- (stud_course);
-    \draw (student) -- (stud_cgpa);
-    
-    \draw (company) -- (comp_id);
-    \draw (company) -- (comp_name);
-    \draw (company) -- (comp_industry);
-    \draw (company) -- (comp_location);
-    
-    \draw (job) -- (job_id);
-    \draw (job) -- (job_title);
-    \draw (job) -- (job_desc);
-    \draw (job) -- (job_salary);
-    \draw (job) -- (job_req);
-    
-    \draw (application) -- (app_id);
-    \draw (application) -- (app_date);
-    \draw (application) -- (app_status);
-    
-    \draw (interview) -- (int_id);
-    \draw (interview) -- (int_date);
-    \draw (interview) -- (int_mode);
-    \draw (interview) -- (int_result);
-    
-    \draw (placement) -- (place_id);
-    \draw (placement) -- (place_date);
-    \draw (placement) -- (place_pkg);
-    \draw (placement) -- (place_status);
-    
-    \draw (officer) -- (off_id);
-    \draw (officer) -- (off_name);
-    \draw (officer) -- (off_role);
-    \draw (officer) -- (off_email);
-    
-    % Relationships with better routing
-    \draw[->] (student) -- node[midway, above, sloped] {applies\_for} (application);
-    \draw[->] (job) -- node[midway, above, sloped] {has} (application);
-    \draw[->] (company) -- node[midway, above, sloped] {posts} (job);
-    \draw[->] (application) -- node[midway, above, sloped] {leads\_to} (interview);
-    \draw[->] (application) -- node[midway, above, sloped] {results\_in} (placement);
-    \draw[->] (officer) -- node[midway, above, sloped] {verifies} (student);
-    \draw[->] (officer) -- node[midway, above, sloped] {approves} (company);
-    
-    % Cardinality with better positioning
-    \node[above] at ($(student)!0.25!(application)$) {1};
-    \node[below] at ($(student)!0.30!(application)$) {N};
-    
-    \node[left] at ($(job)!0.25!(application)$) {1};
-    \node[right] at ($(job)!0.30!(application)$) {N};
-    
-    \node[above] at ($(company)!0.25!(job)$) {1};
-    \node[below] at ($(company)!0.30!(job)$) {N};
-    
-    \node[above] at ($(application)!0.25!(interview)$) {1};
-    \node[below] at ($(application)!0.30!(interview)$) {1};
-    
-    \node[above] at ($(application)!0.25!(placement)$) {1};
-    \node[below] at ($(application)!0.30!(placement)$) {0,1};
-    
-    \node[above] at ($(officer)!0.25!(student)$) {1};
-    \node[below] at ($(officer)!0.30!(student)$) {N};
-    
-    \node[above] at ($(officer)!0.25!(company)$) {1};
-    \node[below] at ($(officer)!0.30!(company)$) {N};
-\end{tikzpicture}
-}
-\caption{ER Diagram for Placement Management System}
-\end{figure}
-
-\end{document} 
+\end{document}

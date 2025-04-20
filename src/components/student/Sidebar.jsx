@@ -44,7 +44,9 @@ const NavItem = ({ icon: Icon, label, path, isActive, onClick, badge }) => (
         </span>
       ) : (
         <ChevronRight
-          className={`h-4 w-4 transform transition-transform duration-200 ${isActive ? "rotate-90" : ""}`}
+          className={`h-4 w-4 transform transition-transform duration-200 ${
+            isActive ? "rotate-90" : ""
+          }`}
         />
       )}
     </div>
@@ -96,7 +98,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-screen w-72 bg-white border-r border-gray-200 flex flex-col">
+    <div className="fixed top-0 left-0 h-screen w-72 bg-white border-r border-gray-200 flex flex-col z-10">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
@@ -134,15 +136,17 @@ const Sidebar = () => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {currentUser?.name || 'Student User'}
+              {currentUser?.name || "Student User"}
             </p>
             <p className="text-xs text-gray-500 truncate">
               {currentUser?.branch}
             </p>
-            <p className="text-xs text-blue-600 font-medium">Registration no: {currentUser?.registrationNumber}</p>
+            <p className="text-xs text-blue-600 font-medium">
+              Registration no: {currentUser?.registrationNumber}
+            </p>
           </div>
         </div>
-        
+
         {/* Logout Button */}
         <button
           onClick={handleLogout}

@@ -34,6 +34,9 @@ const Company = require("./model/companySchema");
 const Application = require("./model/applicationSchema");
 const Notification = require("./model/notificationSchema");
 const Profile = require("./model/profileSchema");
+const Quiz = require("./model/quizSchema");
+const quizRoutes = require("./routes/quizRoutes");
+const resumeRoutes = require("./routes/resumeRoutes");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -103,6 +106,12 @@ app.use(
 app.use(methodOverride("_method"));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Include quiz routes
+app.use("/api/quiz", quizRoutes);
+
+// Include resume routes
+app.use("/api/resume", resumeRoutes);
 
 // **Passport Local Strategy for Admin**
 passport.use("admin", adminInfo.createStrategy());
