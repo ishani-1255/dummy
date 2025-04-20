@@ -1,7 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Search, PlusCircle, Edit2, Trash2, ChevronDown, ChevronRight, Bell, Calendar, Clock, MapPin, Users, Building, Briefcase, CheckCircle, XCircle, Mail, Phone, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  PlusCircle,
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Bell,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Building,
+  Briefcase,
+  CheckCircle,
+  XCircle,
+  Mail,
+  Phone,
+  AlertCircle,
+} from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -19,7 +38,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  
 } from "./UIComponents";
 import Sidebar from "./Sidebar";
 
@@ -27,27 +45,29 @@ import Sidebar from "./Sidebar";
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 // Alert Components
-const Alert = React.forwardRef(({ className, variant = "default", ...props }, ref) => {
-  const variantClasses = {
-    default: "bg-gray-100 border-gray-200 text-gray-800",
-    destructive: "bg-red-50 border-red-200 text-red-800",
-    success: "bg-green-50 border-green-200 text-green-800",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-800"
-  };
+const Alert = React.forwardRef(
+  ({ className, variant = "default", ...props }, ref) => {
+    const variantClasses = {
+      default: "bg-gray-100 border-gray-200 text-gray-800",
+      destructive: "bg-red-50 border-red-200 text-red-800",
+      success: "bg-green-50 border-green-200 text-green-800",
+      warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    };
 
-  return (
-    <div
-      ref={ref}
-      role="alert"
-      className={cn(
-        "relative w-full rounded-lg border p-4",
-        variantClasses[variant],
-        className
-      )}
-      {...props}
-    />
-  );
-});
+    return (
+      <div
+        ref={ref}
+        role="alert"
+        className={cn(
+          "relative w-full rounded-lg border p-4",
+          variantClasses[variant],
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
 Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef(({ className, ...props }, ref) => (
@@ -86,68 +106,77 @@ const ManageInterview = () => {
           eligibleBranches: ["CS", "IT"],
           rounds: [
             { name: "Technical", duration: "1 hour" },
-            { name: "HR", duration: "30 mins" }
+            { name: "HR", duration: "30 mins" },
           ],
           contactPerson: {
             name: "John Doe",
             email: "john@techcorp.com",
-            phone: "+1234567890"
-          }
-        }
-      ]
+            phone: "+1234567890",
+          },
+        },
+      ],
     },
     {
       name: "Information Technology",
       code: "IT",
-      companies: []
+      companies: [],
     },
     {
       name: "Electronics",
       code: "ECE",
-      companies: []
-    }
+      companies: [],
+    },
   ]);
 
   // State for expanded departments
   const [expandedDepts, setExpandedDepts] = useState({});
-  
+
   // State for notifications
   const [notifications, setNotifications] = useState([]);
-  
+
   // State for interview modal
   const [interviewModal, setInterviewModal] = useState({
     isOpen: false,
-    type: '',
-    department: '',
-    data: null
+    type: "",
+    department: "",
+    data: null,
   });
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
-    department: '',
-    interviewId: null
+    department: "",
+    interviewId: null,
   });
 
   // Handle delete confirmation
   const handleDeleteConfirm = () => {
     if (deleteModal.department && deleteModal.interviewId) {
-      setDepartments(prev => prev.map(dept => {
-        if (dept.code === deleteModal.department) {
-          return {
-            ...dept,
-            companies: dept.companies.filter(company => company.id !== deleteModal.interviewId)
-          };
-        }
-        return dept;
-      }));
+      setDepartments((prev) =>
+        prev.map((dept) => {
+          if (dept.code === deleteModal.department) {
+            return {
+              ...dept,
+              companies: dept.companies.filter(
+                (company) => company.id !== deleteModal.interviewId
+              ),
+            };
+          }
+          return dept;
+        })
+      );
       showNotification("Interview deleted successfully", "success");
-      setDeleteModal({ isOpen: false, department: '', interviewId: null });
+      setDeleteModal({ isOpen: false, department: "", interviewId: null });
     }
   };
 
   // Delete Confirmation Modal Component
   const DeleteConfirmationModal = () => (
-    <Dialog open={deleteModal.isOpen} onOpenChange={(open) => setDeleteModal(prev => ({ ...prev, isOpen: open }))}>
+    <Dialog
+      open={deleteModal.isOpen}
+      onOpenChange={(open) =>
+        setDeleteModal((prev) => ({ ...prev, isOpen: open }))
+      }
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -156,10 +185,19 @@ const ManageInterview = () => {
           </DialogTitle>
         </DialogHeader>
         <div className="p-4">
-          <p className="text-gray-600 mb-4">Are you sure you want to delete this interview? This action cannot be undone.</p>
+          <p className="text-gray-600 mb-4">
+            Are you sure you want to delete this interview? This action cannot
+            be undone.
+          </p>
           <div className="flex justify-end gap-3">
             <button
-              onClick={() => setDeleteModal({ isOpen: false, department: '', interviewId: null })}
+              onClick={() =>
+                setDeleteModal({
+                  isOpen: false,
+                  department: "",
+                  interviewId: null,
+                })
+              }
               className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Cancel
@@ -178,165 +216,295 @@ const ManageInterview = () => {
 
   // State for filters
   const [filters, setFilters] = useState({
-    searchQuery: '',
-    department: '',
-    status: '',
-    dateRange: '',
-    location: ''
+    searchQuery: "",
+    department: "",
+    status: "",
+    dateRange: "",
+    location: "",
   });
 
   // State for view mode
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
+  const [viewMode, setViewMode] = useState("table"); // 'table' or 'card'
 
   // Toggle department expansion
   const toggleDepartment = (deptName) => {
-    setExpandedDepts(prev => ({
+    setExpandedDepts((prev) => ({
       ...prev,
-      [deptName]: !prev[deptName]
+      [deptName]: !prev[deptName],
     }));
   };
 
   // Show notification
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message, type = "success") => {
     const newNotification = {
       id: Date.now(),
       message,
       type,
-      icon: type === 'success' ? CheckCircle : type === 'error' ? XCircle : Bell
+      icon:
+        type === "success" ? CheckCircle : type === "error" ? XCircle : Bell,
     };
-    setNotifications(prev => [...prev, newNotification]);
+    setNotifications((prev) => [...prev, newNotification]);
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+      setNotifications((prev) =>
+        prev.filter((n) => n.id !== newNotification.id)
+      );
     }, 5000);
   };
 
   // Handle interview scheduling/editing
-  const handleInterviewSubmit = (formData) => {
-    const { department, ...interviewData } = formData;
-    
-    if (interviewModal.type === 'add') {
-      setDepartments(prev => prev.map(dept => {
-        if (dept.code === department) {
-          return {
-            ...dept,
-            companies: [...dept.companies, { 
-              id: Date.now().toString(), 
-              ...interviewData,
-              status: 'Scheduled'
-            }]
-          };
+  const handleInterviewSubmit = async (formData) => {
+    const { department, updateApplications, notifyStudents, ...interviewData } =
+      formData;
+
+    if (interviewModal.type === "add") {
+      // 1. First add the interview to our local state for immediate UI update
+      setDepartments((prev) =>
+        prev.map((dept) => {
+          if (dept.code === department) {
+            return {
+              ...dept,
+              companies: [
+                ...dept.companies,
+                {
+                  id: Date.now().toString(),
+                  ...interviewData,
+                  status: "Scheduled",
+                },
+              ],
+            };
+          }
+          return dept;
+        })
+      );
+
+      // 2. If updateApplications is enabled, call the API to update student applications
+      if (updateApplications) {
+        try {
+          const response = await fetch(
+            "http://localhost:6400/api/admin/schedule-interviews",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                companyId: interviewData.companyId || interviewData.name, // In a real app, use the actual company ID
+                branches: [department], // Schedule for the selected department
+                interviewDateTime: interviewData.dateTime,
+                interviewLocation: interviewData.location,
+                interviewVenueDetails: interviewData.venueDetails || "",
+                interviewNotes: `Company: ${interviewData.name}, Role: ${interviewData.role}, Package: ${interviewData.package}`,
+                notifyStudents,
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showNotification(
+              `Interview scheduled for ${interviewData.name}. ${result.updatedCount} student applications updated.`
+            );
+          } else {
+            showNotification(
+              `Interview scheduled but failed to update student applications: ${result.message}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating student applications:", error);
+          showNotification(
+            "Interview scheduled but failed to update student applications due to a server error.",
+            "error"
+          );
         }
-        return dept;
-      }));
-      showNotification(`Interview scheduled for ${interviewData.name}`);
+      } else {
+        showNotification(`Interview scheduled for ${interviewData.name}`);
+      }
+
       // Simulate sending notification email
-      console.log(`Sending email notification to students of ${department} department`);
+      console.log(
+        `Sending email notification to students of ${department} department`
+      );
     } else {
-      setDepartments(prev => prev.map(dept => {
-        if (dept.code === department) {
-          return {
-            ...dept,
-            companies: dept.companies.map(company => 
-              company.id === interviewData.id ? { ...interviewData } : company
-            )
-          };
+      // Editing an existing interview
+      setDepartments((prev) =>
+        prev.map((dept) => {
+          if (dept.code === department) {
+            return {
+              ...dept,
+              companies: dept.companies.map((company) =>
+                company.id === interviewData.id ? { ...interviewData } : company
+              ),
+            };
+          }
+          return dept;
+        })
+      );
+
+      // If updateApplications is enabled for an edit, update existing scheduled interviews
+      if (updateApplications) {
+        try {
+          const response = await fetch(
+            "http://localhost:6400/api/admin/schedule-interviews",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                companyId: interviewData.companyId || interviewData.name,
+                branches: [department],
+                interviewDateTime: interviewData.dateTime,
+                interviewLocation: interviewData.location,
+                interviewVenueDetails: interviewData.venueDetails || "",
+                interviewNotes: `Company: ${interviewData.name}, Role: ${
+                  interviewData.role
+                }, Package: ${
+                  interviewData.package
+                }. Updated on ${new Date().toLocaleString()}`,
+                notifyStudents,
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showNotification(
+              `Interview updated for ${interviewData.name}. ${result.updatedCount} student applications updated.`
+            );
+          } else {
+            showNotification(
+              `Interview updated but failed to update student applications: ${result.message}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("Error updating student applications:", error);
+          showNotification(
+            "Interview updated but failed to update student applications due to a server error.",
+            "error"
+          );
         }
-        return dept;
-      }));
-      showNotification(`Interview updated for ${interviewData.name}`);
+      } else {
+        showNotification(`Interview updated for ${interviewData.name}`);
+      }
     }
-    
-    setInterviewModal({ isOpen: false, type: '', department: '', data: null });
+
+    setInterviewModal({ isOpen: false, type: "", department: "", data: null });
   };
 
   // Delete interview
   const deleteInterview = (deptCode, interviewId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this interview?");
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this interview?"
+    );
     if (confirmDelete) {
-      setDepartments(prev => prev.map(dept => {
-        if (dept.code === deptCode) {
-          return {
-            ...dept,
-            companies: dept.companies.filter(company => company.id !== interviewId)
-          };
-        }
-        return dept;
-      }));
+      setDepartments((prev) =>
+        prev.map((dept) => {
+          if (dept.code === deptCode) {
+            return {
+              ...dept,
+              companies: dept.companies.filter(
+                (company) => company.id !== interviewId
+              ),
+            };
+          }
+          return dept;
+        })
+      );
       showNotification("Interview deleted successfully");
     }
   };
 
   // Update interview status
   const updateInterviewStatus = (deptCode, interviewId, newStatus) => {
-    setDepartments(prev => prev.map(dept => {
-      if (dept.code === deptCode) {
-        return {
-          ...dept,
-          companies: dept.companies.map(company => 
-            company.id === interviewId 
-              ? { ...company, status: newStatus }
-              : company
-          )
-        };
-      }
-      return dept;
-    }));
+    setDepartments((prev) =>
+      prev.map((dept) => {
+        if (dept.code === deptCode) {
+          return {
+            ...dept,
+            companies: dept.companies.map((company) =>
+              company.id === interviewId
+                ? { ...company, status: newStatus }
+                : company
+            ),
+          };
+        }
+        return dept;
+      })
+    );
     showNotification(`Interview status updated to ${newStatus}`);
   };
 
   // Interview Form Component
   const InterviewForm = ({ initialData, department, onSubmit }) => {
-    const [formData, setFormData] = useState(initialData || {
-      name: '',
-      role: '',
-      package: '',
-      dateTime: '',
-      location: '',
-      requirements: '',
-      eligibleBranches: [],
-      rounds: [{ name: '', duration: '' }],
-      contactPerson: {
-        name: '',
-        email: '',
-        phone: ''
+    const [formData, setFormData] = useState(
+      initialData || {
+        name: "",
+        role: "",
+        package: "",
+        dateTime: "",
+        location: "",
+        requirements: "",
+        eligibleBranches: [],
+        rounds: [{ name: "", duration: "" }],
+        contactPerson: {
+          name: "",
+          email: "",
+          phone: "",
+        },
+        // Added fields for updating student applications
+        updateApplications: true,
+        notifyStudents: true,
       }
-    });
+    );
 
     const addRound = () => {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        rounds: [...prev.rounds, { name: '', duration: '' }]
+        rounds: [...prev.rounds, { name: "", duration: "" }],
       }));
     };
 
     const removeRound = (index) => {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        rounds: prev.rounds.filter((_, i) => i !== index)
+        rounds: prev.rounds.filter((_, i) => i !== index),
       }));
     };
 
     const updateRound = (index, field, value) => {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        rounds: prev.rounds.map((round, i) => 
+        rounds: prev.rounds.map((round, i) =>
           i === index ? { ...round, [field]: value } : round
-        )
+        ),
       }));
     };
 
     return (
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit({ ...formData, department });
-      }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit({ ...formData, department });
+        }}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Company Name</label>
+            <label className="block text-sm font-medium mb-1">
+              Company Name
+            </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
@@ -346,7 +514,9 @@ const ManageInterview = () => {
             <input
               type="text"
               value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, role: e.target.value }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
@@ -356,40 +526,164 @@ const ManageInterview = () => {
             <input
               type="text"
               value={formData.package}
-              onChange={(e) => setFormData(prev => ({ ...prev, package: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, package: e.target.value }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Date & Time</label>
+            <label className="block text-sm font-medium mb-1">
+              Date & Time
+            </label>
             <input
               type="datetime-local"
               value={formData.dateTime}
-              onChange={(e) => setFormData(prev => ({ ...prev, dateTime: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, dateTime: e.target.value }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Venue</label>
+            <input
+              type="text"
+              value={formData.venue || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, venue: e.target.value }))
+              }
+              placeholder="Enter specific venue (e.g., Conference Room 5, Building A)"
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Mode</label>
+            <select
+              value={
+                formData.interviewMode ||
+                (formData.location?.toLowerCase().includes("virtual")
+                  ? "virtual"
+                  : "in-person")
+              }
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  interviewMode: e.target.value,
+                  location:
+                    e.target.value === "virtual"
+                      ? "Virtual (Online)"
+                      : prev.location,
+                }))
+              }
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="in-person">In-Person</option>
+              <option value="virtual">Virtual/Online</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Location</label>
             <input
               type="text"
               value={formData.location}
-              onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, location: e.target.value }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Requirements</label>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">
+              Venue Details
+            </label>
+            <textarea
+              value={formData.venueDetails || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  venueDetails: e.target.value,
+                }))
+              }
+              placeholder={
+                formData.interviewMode === "virtual"
+                  ? "Enter meeting platform details, link will be shared later"
+                  : "Enter detailed address, building name, room number, directions, etc."
+              }
+              className="w-full p-2 border rounded-md h-24"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.interviewMode === "virtual"
+                ? "Provide details about the meeting platform (Zoom, Teams, etc.). Meeting links can be shared closer to the interview date."
+                : "Provide detailed venue information to help students locate the interview site easily."}
+            </p>
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">
+              Requirements
+            </label>
             <textarea
               value={formData.requirements}
-              onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  requirements: e.target.value,
+                }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
           </div>
+        </div>
+
+        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <h3 className="text-blue-800 font-medium mb-2">
+            Student Applications
+          </h3>
+          <div className="flex items-center space-x-2 mb-2">
+            <input
+              type="checkbox"
+              id="updateApplications"
+              checked={formData.updateApplications}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  updateApplications: e.target.checked,
+                }))
+              }
+              className="rounded"
+            />
+            <label htmlFor="updateApplications" className="text-sm">
+              Update student applications with this interview schedule
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="notifyStudents"
+              checked={formData.notifyStudents}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  notifyStudents: e.target.checked,
+                }))
+              }
+              className="rounded"
+            />
+            <label htmlFor="notifyStudents" className="text-sm">
+              Send notifications to eligible students
+            </label>
+          </div>
+          <p className="text-sm text-blue-600 mt-2">
+            <strong>Important:</strong> When enabled, this will update all
+            eligible student applications to "Interview Scheduled" status with
+            the date, time and location you've specified. Students will see this
+            exact schedule in their dashboard.
+          </p>
         </div>
 
         <div className="space-y-4">
@@ -410,7 +704,7 @@ const ManageInterview = () => {
                   type="text"
                   placeholder="Round Name"
                   value={round.name}
-                  onChange={(e) => updateRound(index, 'name', e.target.value)}
+                  onChange={(e) => updateRound(index, "name", e.target.value)}
                   className="w-full p-2 border rounded-md"
                   required
                 />
@@ -420,7 +714,9 @@ const ManageInterview = () => {
                   type="text"
                   placeholder="Duration"
                   value={round.duration}
-                  onChange={(e) => updateRound(index, 'duration', e.target.value)}
+                  onChange={(e) =>
+                    updateRound(index, "duration", e.target.value)
+                  }
                   className="w-full p-2 border rounded-md"
                   required
                 />
@@ -440,40 +736,61 @@ const ManageInterview = () => {
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Contact Person Name</label>
+            <label className="block text-sm font-medium mb-1">
+              Contact Person Name
+            </label>
             <input
               type="text"
               value={formData.contactPerson.name}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                contactPerson: { ...prev.contactPerson, name: e.target.value }
-              }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  contactPerson: {
+                    ...prev.contactPerson,
+                    name: e.target.value,
+                  },
+                }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Contact Email</label>
+            <label className="block text-sm font-medium mb-1">
+              Contact Email
+            </label>
             <input
               type="email"
               value={formData.contactPerson.email}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                contactPerson: { ...prev.contactPerson, email: e.target.value }
-              }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  contactPerson: {
+                    ...prev.contactPerson,
+                    email: e.target.value,
+                  },
+                }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Contact Phone</label>
+            <label className="block text-sm font-medium mb-1">
+              Contact Phone
+            </label>
             <input
               type="tel"
               value={formData.contactPerson.phone}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                contactPerson: { ...prev.contactPerson, phone: e.target.value }
-              }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  contactPerson: {
+                    ...prev.contactPerson,
+                    phone: e.target.value,
+                  },
+                }))
+              }
               className="w-full p-2 border rounded-md"
               required
             />
@@ -483,7 +800,14 @@ const ManageInterview = () => {
         <div className="flex justify-end space-x-2">
           <button
             type="button"
-            onClick={() => setInterviewModal({ isOpen: false, type: '', department: '', data: null })}
+            onClick={() =>
+              setInterviewModal({
+                isOpen: false,
+                type: "",
+                department: "",
+                data: null,
+              })
+            }
             className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
           >
             Cancel
@@ -492,7 +816,9 @@ const ManageInterview = () => {
             type="submit"
             className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
-            {interviewModal.type === 'add' ? 'Schedule Interview' : 'Update Interview'}
+            {interviewModal.type === "add"
+              ? "Schedule Interview"
+              : "Update Interview"}
           </button>
         </div>
       </form>
@@ -501,11 +827,17 @@ const ManageInterview = () => {
 
   // Filter interviews
   const getFilteredInterviews = (companies) => {
-    return companies.filter(company => {
-      const matchesSearch = company.name.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-                          company.role.toLowerCase().includes(filters.searchQuery.toLowerCase());
-      const matchesStatus = !filters.status || company.status === filters.status;
-      const matchesLocation = !filters.location || company.location.toLowerCase().includes(filters.location.toLowerCase());
+    return companies.filter((company) => {
+      const matchesSearch =
+        company.name
+          .toLowerCase()
+          .includes(filters.searchQuery.toLowerCase()) ||
+        company.role.toLowerCase().includes(filters.searchQuery.toLowerCase());
+      const matchesStatus =
+        !filters.status || company.status === filters.status;
+      const matchesLocation =
+        !filters.location ||
+        company.location.toLowerCase().includes(filters.location.toLowerCase());
       return matchesSearch && matchesStatus && matchesLocation;
     });
   };
@@ -515,9 +847,9 @@ const ManageInterview = () => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
     const statusColors = {
-      Scheduled: 'bg-green-100 text-green-800 border-green-300',
-      Completed: 'bg-blue-100 text-blue-800 border-blue-300',
-      Cancelled: 'bg-red-100 text-red-800 border-red-300'
+      Scheduled: "bg-green-100 text-green-800 border-green-300",
+      Completed: "bg-blue-100 text-blue-800 border-blue-300",
+      Cancelled: "bg-red-100 text-red-800 border-red-300",
     };
 
     return (
@@ -529,14 +861,20 @@ const ManageInterview = () => {
                 <Building className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-semibold text-gray-800">{company.name}</h3>
+                <h3 className="text-2xl font-semibold text-gray-800">
+                  {company.name}
+                </h3>
                 <div className="flex items-center text-gray-600 mt-2">
                   <Briefcase className="h-5 w-5 mr-2" />
                   <p className="text-base">{company.role}</p>
                 </div>
               </div>
             </div>
-            <span className={`px-6 py-2 rounded-full text-base font-medium border ${statusColors[company.status]}`}>
+            <span
+              className={`px-6 py-2 rounded-full text-base font-medium border ${
+                statusColors[company.status]
+              }`}
+            >
               {company.status}
             </span>
           </div>
@@ -545,13 +883,17 @@ const ManageInterview = () => {
             <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
                 <Calendar className="h-5 w-5 mr-3 text-blue-600" />
-                <span className="text-base">{new Date(company.dateTime).toLocaleDateString()}</span>
+                <span className="text-base">
+                  {new Date(company.dateTime).toLocaleDateString()}
+                </span>
               </div>
             </div>
             <div className="bg-gray-50 p-4 rounded-xl">
               <div className="flex items-center text-gray-700">
                 <Clock className="h-5 w-5 mr-3 text-blue-600" />
-                <span className="text-base">{new Date(company.dateTime).toLocaleTimeString()}</span>
+                <span className="text-base">
+                  {new Date(company.dateTime).toLocaleTimeString()}
+                </span>
               </div>
             </div>
             <div className="bg-gray-50 p-4 rounded-xl">
@@ -569,16 +911,24 @@ const ManageInterview = () => {
           </div>
 
           <div className="bg-gray-50 p-6 rounded-xl mb-6">
-            <h4 className="font-medium text-lg text-gray-800 mb-3">Requirements</h4>
-            <p className="text-base text-gray-600 leading-relaxed">{company.requirements}</p>
+            <h4 className="font-medium text-lg text-gray-800 mb-3">
+              Requirements
+            </h4>
+            <p className="text-base text-gray-600 leading-relaxed">
+              {company.requirements}
+            </p>
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-medium text-lg text-gray-800">Interview Rounds</h4>
+            <h4 className="font-medium text-lg text-gray-800">
+              Interview Rounds
+            </h4>
             <div className="grid grid-cols-2 gap-4">
               {company.rounds.map((round, index) => (
                 <div key={index} className="bg-blue-50 p-4 rounded-xl">
-                  <p className="text-base font-medium text-blue-800">{round.name}</p>
+                  <p className="text-base font-medium text-blue-800">
+                    {round.name}
+                  </p>
                   <p className="text-sm text-blue-600 mt-2">{round.duration}</p>
                 </div>
               ))}
@@ -586,7 +936,9 @@ const ManageInterview = () => {
           </div>
 
           <div className="mt-6 pt-6 border-t">
-            <h4 className="font-medium text-lg text-gray-800 mb-4">Contact Person</h4>
+            <h4 className="font-medium text-lg text-gray-800 mb-4">
+              Contact Person
+            </h4>
             <div className="bg-gray-50 p-6 rounded-xl text-base space-y-3">
               <p className="flex items-center text-gray-700">
                 <Users className="h-5 w-5 mr-3 text-blue-600" />
@@ -621,18 +973,23 @@ const ManageInterview = () => {
                   onSubmit={(formData) => {
                     handleInterviewSubmit(formData);
                     setIsEditDialogOpen(false);
-                    showNotification('Interview details updated successfully', 'success');
+                    showNotification(
+                      "Interview details updated successfully",
+                      "success"
+                    );
                   }}
                 />
               </DialogContent>
             </Dialog>
-            
+
             <button
-              onClick={() => setDeleteModal({
-                isOpen: true,
-                department: department,
-                interviewId: company.id
-              })}
+              onClick={() =>
+                setDeleteModal({
+                  isOpen: true,
+                  department: department,
+                  interviewId: company.id,
+                })
+              }
               className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 flex items-center"
             >
               <Trash2 className="h-5 w-5 mr-2" />
@@ -651,7 +1008,7 @@ const ManageInterview = () => {
           <div className="max-w-7xl mx-auto">
             {/* Notifications */}
             <div className="fixed top-4 right-4 z-50 space-y-2">
-              {notifications.map(notification => (
+              {notifications.map((notification) => (
                 <Alert
                   key={notification.id}
                   variant={notification.type}
@@ -660,9 +1017,11 @@ const ManageInterview = () => {
                   <notification.icon className="h-5 w-5 mt-0.5" />
                   <div>
                     <AlertTitle>
-                      {notification.type === 'success' ? 'Success' :
-                       notification.type === 'error' ? 'Error' :
-                       'Notification'}
+                      {notification.type === "success"
+                        ? "Success"
+                        : notification.type === "error"
+                        ? "Error"
+                        : "Notification"}
                     </AlertTitle>
                     <AlertDescription>{notification.message}</AlertDescription>
                   </div>
@@ -674,11 +1033,20 @@ const ManageInterview = () => {
             <Card className="mb-6">
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-2xl font-bold">Manage Interviews</CardTitle>
+                  <CardTitle className="text-2xl font-bold">
+                    Manage Interviews
+                  </CardTitle>
                   <Dialog>
                     <DialogTrigger>
                       <button
-                        onClick={() => setInterviewModal({ isOpen: true, type: 'add', department: '', data: null })}
+                        onClick={() =>
+                          setInterviewModal({
+                            isOpen: true,
+                            type: "add",
+                            department: "",
+                            data: null,
+                          })
+                        }
                         className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       >
                         <PlusCircle className="h-5 w-5" />
@@ -688,21 +1056,32 @@ const ManageInterview = () => {
                     <DialogContent className="max-w-3xl">
                       <DialogHeader>
                         <DialogTitle>
-                          {interviewModal.type === 'add' ? 'Schedule New Interview' : 'Edit Interview'}
+                          {interviewModal.type === "add"
+                            ? "Schedule New Interview"
+                            : "Edit Interview"}
                         </DialogTitle>
                       </DialogHeader>
                       <div className="mt-4">
                         <div className="mb-4">
-                          <label className="block text-sm font-medium mb-1">Department</label>
+                          <label className="block text-sm font-medium mb-1">
+                            Department
+                          </label>
                           <select
                             value={interviewModal.department}
-                            onChange={(e) => setInterviewModal(prev => ({ ...prev, department: e.target.value }))}
+                            onChange={(e) =>
+                              setInterviewModal((prev) => ({
+                                ...prev,
+                                department: e.target.value,
+                              }))
+                            }
                             className="w-full p-2 border rounded-md"
                             required
                           >
                             <option value="">Select Department</option>
-                            {departments.map(dept => (
-                              <option key={dept.code} value={dept.code}>{dept.name}</option>
+                            {departments.map((dept) => (
+                              <option key={dept.code} value={dept.code}>
+                                {dept.name}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -727,23 +1106,40 @@ const ManageInterview = () => {
                       placeholder="Search by company or role..."
                       className="w-full pl-10 pr-4 py-2 border rounded-lg"
                       value={filters.searchQuery}
-                      onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          searchQuery: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <select
                     className="border rounded-lg p-2"
                     value={filters.department}
-                    onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        department: e.target.value,
+                      }))
+                    }
                   >
                     <option value="">All Departments</option>
-                    {departments.map(dept => (
-                      <option key={dept.code} value={dept.code}>{dept.name}</option>
+                    {departments.map((dept) => (
+                      <option key={dept.code} value={dept.code}>
+                        {dept.name}
+                      </option>
                     ))}
                   </select>
                   <select
                     className="border rounded-lg p-2"
                     value={filters.status}
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        status: e.target.value,
+                      }))
+                    }
                   >
                     <option value="">All Status</option>
                     <option value="Scheduled">Scheduled</option>
@@ -753,7 +1149,12 @@ const ManageInterview = () => {
                   <select
                     className="border rounded-lg p-2"
                     value={filters.location}
-                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
+                    }
                   >
                     <option value="">All Locations</option>
                     <option value="Virtual">Virtual</option>
@@ -762,14 +1163,22 @@ const ManageInterview = () => {
                 </div>
                 <div className="flex justify-end space-x-2">
                   <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+                    onClick={() => setViewMode("table")}
+                    className={`p-2 rounded ${
+                      viewMode === "table"
+                        ? "bg-blue-100 text-blue-600"
+                        : "text-gray-600"
+                    }`}
                   >
                     Table View
                   </button>
                   <button
-                    onClick={() => setViewMode('card')}
-                    className={`p-2 rounded ${viewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+                    onClick={() => setViewMode("card")}
+                    className={`p-2 rounded ${
+                      viewMode === "card"
+                        ? "bg-blue-100 text-blue-600"
+                        : "text-gray-600"
+                    }`}
                   >
                     Card View
                   </button>
@@ -788,7 +1197,9 @@ const ManageInterview = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <span>{dept.name}</span>
-                        <span className="text-sm text-gray-500">({dept.companies.length} companies)</span>
+                        <span className="text-sm text-gray-500">
+                          ({dept.companies.length} companies)
+                        </span>
                       </div>
                       {expandedDepts[dept.name] ? (
                         <ChevronDown className="h-5 w-5" />
@@ -799,7 +1210,7 @@ const ManageInterview = () => {
                   </CardHeader>
                   {expandedDepts[dept.name] && (
                     <CardContent>
-                      {viewMode === 'table' ? (
+                      {viewMode === "table" ? (
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
@@ -815,81 +1226,111 @@ const ManageInterview = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {getFilteredInterviews(dept.companies).map((company) => (
-                                <TableRow key={company.id}>
-                                  <TableCell>{company.name}</TableCell>
-                                  <TableCell>{company.role}</TableCell>
-                                  <TableCell>{company.package}</TableCell>
-                                  <TableCell>
-                                    {new Date(company.dateTime).toLocaleDateString()} {new Date(company.dateTime).toLocaleTimeString()}
-                                  </TableCell>
-                                  <TableCell>{company.location}</TableCell>
-                                  <TableCell>{company.requirements}</TableCell>
-                                  <TableCell>
-                                    <select
-                                      value={company.status}
-                                      onChange={(e) => updateInterviewStatus(dept.code, company.id, e.target.value)}
-                                      className={`px-2 py-1 rounded-full text-xs ${
-                                        company.status === 'Scheduled' ? 'bg-green-100 text-green-800' :
-                                        company.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                        'bg-red-100 text-red-800'
-                                      }`}
-                                    >
-                                      <option value="Scheduled">Scheduled</option>
-                                      <option value="Completed">Completed</option>
-                                      <option value="Cancelled">Cancelled</option>
-                                    </select>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex space-x-2">
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <button
-                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded-full"
-                                          >
-                                            <Edit2 className="h-4 w-4" />
-                                          </button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl">
-                                          <DialogHeader>
-                                            <DialogTitle>Edit Interview Details</DialogTitle>
-                                          </DialogHeader>
-                                          <InterviewForm
-                                            initialData={company}
-                                            department={dept.code}
-                                            onSubmit={(formData) => {
-                                              handleInterviewSubmit(formData);
-                                              showNotification('Interview details updated successfully', 'success');
-                                            }}
-                                          />
-                                        </DialogContent>
-                                      </Dialog>
-                                      <button
-                                        onClick={() => setDeleteModal({
-                                          isOpen: true,
-                                          department: dept.code,
-                                          interviewId: company.id
-                                        })}
-                                        className="p-1 text-red-600 hover:bg-red-50 rounded-full"
+                              {getFilteredInterviews(dept.companies).map(
+                                (company) => (
+                                  <TableRow key={company.id}>
+                                    <TableCell>{company.name}</TableCell>
+                                    <TableCell>{company.role}</TableCell>
+                                    <TableCell>{company.package}</TableCell>
+                                    <TableCell>
+                                      {new Date(
+                                        company.dateTime
+                                      ).toLocaleDateString()}{" "}
+                                      {new Date(
+                                        company.dateTime
+                                      ).toLocaleTimeString()}
+                                    </TableCell>
+                                    <TableCell>{company.location}</TableCell>
+                                    <TableCell>
+                                      {company.requirements}
+                                    </TableCell>
+                                    <TableCell>
+                                      <select
+                                        value={company.status}
+                                        onChange={(e) =>
+                                          updateInterviewStatus(
+                                            dept.code,
+                                            company.id,
+                                            e.target.value
+                                          )
+                                        }
+                                        className={`px-2 py-1 rounded-full text-xs ${
+                                          company.status === "Scheduled"
+                                            ? "bg-green-100 text-green-800"
+                                            : company.status === "Completed"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : "bg-red-100 text-red-800"
+                                        }`}
                                       >
-                                        <Trash2 className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                        <option value="Scheduled">
+                                          Scheduled
+                                        </option>
+                                        <option value="Completed">
+                                          Completed
+                                        </option>
+                                        <option value="Cancelled">
+                                          Cancelled
+                                        </option>
+                                      </select>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex space-x-2">
+                                        <Dialog>
+                                          <DialogTrigger asChild>
+                                            <button className="p-1 text-blue-600 hover:bg-blue-50 rounded-full">
+                                              <Edit2 className="h-4 w-4" />
+                                            </button>
+                                          </DialogTrigger>
+                                          <DialogContent className="max-w-3xl">
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Edit Interview Details
+                                              </DialogTitle>
+                                            </DialogHeader>
+                                            <InterviewForm
+                                              initialData={company}
+                                              department={dept.code}
+                                              onSubmit={(formData) => {
+                                                handleInterviewSubmit(formData);
+                                                showNotification(
+                                                  "Interview details updated successfully",
+                                                  "success"
+                                                );
+                                              }}
+                                            />
+                                          </DialogContent>
+                                        </Dialog>
+                                        <button
+                                          onClick={() =>
+                                            setDeleteModal({
+                                              isOpen: true,
+                                              department: dept.code,
+                                              interviewId: company.id,
+                                            })
+                                          }
+                                          className="p-1 text-red-600 hover:bg-red-50 rounded-full"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              )}
                             </TableBody>
                           </Table>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {getFilteredInterviews(dept.companies).map((company) => (
-                            <InterviewCard
-                              key={company.id}
-                              company={company}
-                              department={dept.code}
-                            />
-                          ))}
+                          {getFilteredInterviews(dept.companies).map(
+                            (company) => (
+                              <InterviewCard
+                                key={company.id}
+                                company={company}
+                                department={dept.code}
+                              />
+                            )
+                          )}
                         </div>
                       )}
                     </CardContent>

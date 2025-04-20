@@ -1106,13 +1106,41 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
         .json({ message: "Unauthorized - Admin access only" });
     }
 
-    const { status, packageOffered, feedback } = req.body;
+    const {
+      status,
+      packageOffered,
+      feedback,
+      interviewDateTime,
+      interviewLocation,
+      interviewNotes,
+    } = req.body;
 
     const updateData = {};
     if (status) updateData.status = status;
     if (feedback) updateData.feedback = feedback;
     if ((status === "Accepted" || status === "Offered") && packageOffered)
       updateData.packageOffered = packageOffered;
+
+    // Update interview details if provided or if status is "Interview Scheduled"
+    if (status === "Interview Scheduled") {
+      if (interviewDateTime) {
+        updateData.interviewDateTime = new Date(interviewDateTime);
+      }
+      if (interviewLocation) {
+        updateData.interviewLocation = interviewLocation;
+      }
+      if (interviewNotes) {
+        updateData.interviewNotes = interviewNotes;
+      }
+
+      // If no interview date/time is provided, set a default date (2 days from now)
+      if (!interviewDateTime && !updateData.interviewDateTime) {
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 2);
+        defaultDate.setHours(10, 0, 0, 0); // 10:00 AM
+        updateData.interviewDateTime = defaultDate;
+      }
+    }
 
     // Get the application before updating to check for status change
     const oldApplication = await Application.findById(req.params.id);
@@ -1182,6 +1210,18 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
       } else if (status === "Interview Scheduled") {
         notificationTitle = "Interview Scheduled";
         notificationMessage = `Congratulations! You've been selected for an interview with ${application.company.name}.`;
+
+        // Add interview details if available
+        if (updateData.interviewDateTime) {
+          const formattedDate = new Date(
+            updateData.interviewDateTime
+          ).toLocaleString();
+          notificationMessage += ` Your interview is scheduled for ${formattedDate}.`;
+        }
+
+        if (updateData.interviewLocation) {
+          notificationMessage += ` Location: ${updateData.interviewLocation}.`;
+        }
       } else if (status === "Interviewed") {
         notificationTitle = "Interview Completed";
         notificationMessage = `Your interview with ${application.company.name} has been marked as completed.`;
@@ -1203,7 +1243,7 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
       await Notification.create({
         student: application.student,
         studentModel: application.studentModel,
-        type: "placement",
+        type: status === "Interview Scheduled" ? "interview" : "placement",
         title: notificationTitle,
         message: notificationMessage,
         company: application.company._id,
@@ -2745,6 +2785,105 @@ app.delete(
     }
   }
 );
+
+// Schedule interviews for multiple students based on company and branch
+app.post("/api/admin/schedule-interviews", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    const {
+      companyId,
+      branches,
+      interviewDateTime,
+      interviewLocation,
+      interviewVenueDetails,
+      interviewNotes,
+      notifyStudents,
+    } = req.body;
+
+    if (!companyId || !interviewDateTime) {
+      return res
+        .status(400)
+        .json({ message: "Company ID and interview date/time are required" });
+    }
+
+    // Find company to ensure it exists
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    // Find all relevant applications
+    const filter = {
+      company: companyId,
+      status: { $in: ["Applied", "Under Review"] },
+    };
+
+    // Filter by branches if specified
+    if (branches && branches.length > 0) {
+      filter.studentModel = { $in: branches };
+    }
+
+    // Update all matching applications
+    const updateResult = await Application.updateMany(filter, {
+      status: "Interview Scheduled",
+      interviewDateTime: new Date(interviewDateTime),
+      interviewLocation: interviewLocation || "To be announced",
+      interviewVenueDetails: interviewVenueDetails || "",
+      interviewNotes: interviewNotes || "",
+    });
+
+    // If notification is enabled, create notifications for each student
+    if (notifyStudents) {
+      // Get all updated applications
+      const updatedApplications = await Application.find(filter).populate(
+        "company"
+      );
+
+      // Create notifications for each student
+      const notificationPromises = updatedApplications.map((application) => {
+        const formattedDate = new Date(interviewDateTime).toLocaleString();
+        let notificationMessage = `Congratulations! You've been selected for an interview with ${company.name}. Your interview is scheduled for ${formattedDate}.`;
+
+        if (interviewLocation) {
+          notificationMessage += ` Location: ${interviewLocation}.`;
+        }
+
+        if (interviewVenueDetails) {
+          notificationMessage += ` Venue details: ${interviewVenueDetails}.`;
+        }
+
+        return Notification.create({
+          student: application.student,
+          studentModel: application.studentModel,
+          type: "interview",
+          title: "Interview Scheduled",
+          message: notificationMessage,
+          company: companyId,
+          status: "unread",
+        });
+      });
+
+      // Wait for all notifications to be created
+      await Promise.all(notificationPromises);
+    }
+
+    res.status(200).json({
+      message: "Interview schedules updated successfully",
+      updatedCount: updateResult.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error scheduling interviews:", error);
+    res.status(500).json({
+      message: "Error scheduling interviews",
+      error: error.message,
+    });
+  }
+});
 
 // **Server Listener**
 app.listen(port, () => {

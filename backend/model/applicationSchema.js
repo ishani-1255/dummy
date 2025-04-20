@@ -48,6 +48,21 @@ const applicationSchema = new Schema({
   interviewDate: {
     type: Date,
   },
+  interviewDateTime: {
+    type: Date,
+  },
+  interviewLocation: {
+    type: String,
+  },
+  interviewVenueDetails: {
+    type: String,
+  },
+  interviewNotes: {
+    type: String,
+  },
+  interviewFeedback: {
+    type: String,
+  },
   feedback: {
     type: String,
   },

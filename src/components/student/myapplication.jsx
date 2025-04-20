@@ -321,8 +321,8 @@ const ApplicationDetailModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-3xl p-6 max-h-90vh overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg w-full max-w-3xl p-6 max-h-[75vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pt-1 pb-3 z-10">
           <div className="flex items-center space-x-2">
             <Briefcase className="h-5 w-5 text-blue-600" />
             <h2 className="text-xl font-bold">{application.jobTitle}</h2>
@@ -351,6 +351,67 @@ const ApplicationDetailModal = ({
             </div>
           </div>
         )}
+
+        {application.status === "Interview Scheduled" &&
+          application.interviewDateTime && (
+            <div className="bg-purple-50 border-l-4 border-purple-400 p-4 mb-6">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <Calendar className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-purple-800">
+                    Interview Scheduled!
+                  </h3>
+                  <div className="mt-2 text-sm text-purple-700">
+                    <p>Your interview has been scheduled for:</p>
+                    <div className="bg-white rounded-md p-3 mt-2 border border-purple-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Date</p>
+                          <p className="font-medium text-gray-800">
+                            {new Date(
+                              application.interviewDateTime
+                            ).toLocaleDateString([], {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Time</p>
+                          <p className="font-medium text-gray-800">
+                            {new Date(
+                              application.interviewDateTime
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {application.interviewLocation && (
+                        <div className="mt-3 border-t border-purple-100 pt-3">
+                          <p className="text-xs text-gray-500 mb-1">Venue</p>
+                          <p className="font-medium text-gray-800 flex items-center">
+                            <MapPin className="h-4 w-4 mr-1 text-purple-500" />
+                            {application.interviewLocation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1 text-purple-600" />
+                      Please make sure to prepare and be on time for your
+                      interview.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Company Information */}
@@ -393,14 +454,79 @@ const ApplicationDetailModal = ({
                     {new Date(application.applicationDate).toLocaleDateString()}
                   </span>
                 </div>
-                {application.interviewDate && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Interview date:</span>
-                    <span>
-                      {new Date(application.interviewDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
+                {application.status === "Interview Scheduled" &&
+                  application.interviewDateTime && (
+                    <div className="bg-purple-50 p-3 rounded-md mt-2 mb-2">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <Calendar className="h-4 w-4 text-purple-600" />
+                        <span className="font-medium text-purple-800">
+                          Interview Scheduled
+                        </span>
+                      </div>
+                      <div className="ml-6 space-y-1 mt-2">
+                        <div className="grid grid-cols-2 gap-2 bg-white p-2 rounded-md border border-purple-100">
+                          <div>
+                            <span className="text-xs text-gray-500 block mb-1">
+                              Date
+                            </span>
+                            <span className="font-medium text-gray-800 block">
+                              {new Date(
+                                application.interviewDateTime
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500 block mb-1">
+                              Time
+                            </span>
+                            <span className="font-medium text-gray-800 block">
+                              {new Date(
+                                application.interviewDateTime
+                              ).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        {application.interviewLocation && (
+                          <div className="bg-white p-2 rounded-md border border-purple-100 mt-2">
+                            <span className="text-xs text-gray-500 block mb-1">
+                              Venue
+                            </span>
+                            <span className="font-medium text-gray-800 block flex items-center">
+                              <MapPin className="h-3 w-3 mr-1 text-purple-600" />
+                              {application.interviewLocation}
+                            </span>
+                          </div>
+                        )}
+                        <div className="mt-2 text-xs text-purple-700 flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>
+                            {new Date() >
+                            new Date(application.interviewDateTime)
+                              ? "Interview has passed"
+                              : `${Math.ceil(
+                                  (new Date(application.interviewDateTime) -
+                                    new Date()) /
+                                    (1000 * 60 * 60 * 24)
+                                )} days remaining`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                {application.interviewDate &&
+                  application.status !== "Interview Scheduled" && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Interview date:</span>
+                      <span>
+                        {new Date(
+                          application.interviewDate
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 {(application.status === "Accepted" ||
                   application.status === "Offered") &&
                   application.packageOffered && (
@@ -555,6 +681,7 @@ const MyApplications = () => {
               interviewDate: app.interviewDate
                 ? new Date(app.interviewDate).toISOString().split("T")[0]
                 : null,
+              interviewDateTime: app.interviewDateTime || null,
               status: app.status,
               jobDescription: companyExists
                 ? app.company.description
@@ -568,6 +695,7 @@ const MyApplications = () => {
               updates: companyExists ? app.company.updates || "" : "",
               packageOffered: app.packageOffered || "",
               companyDeleted: !companyExists,
+              interviewLocation: app.interviewLocation || "",
             };
           });
 
@@ -965,6 +1093,40 @@ const MyApplications = () => {
                           </TableCell>
                           <TableCell>
                             <StatusBadge status={application.status} />
+                            {application.status === "Interview Scheduled" &&
+                              application.interviewDateTime && (
+                                <div className="mt-2 text-xs text-purple-700 bg-purple-50 p-2 rounded-md">
+                                  <div className="flex items-center mb-1 font-medium">
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    <span>Interview Scheduled</span>
+                                  </div>
+                                  <div className="ml-4 space-y-1">
+                                    <div className="flex items-center">
+                                      <span className="text-gray-600 mr-1">
+                                        Date:
+                                      </span>
+                                      <span className="font-medium">
+                                        {new Date(
+                                          application.interviewDateTime
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="text-gray-600 mr-1">
+                                        Time:
+                                      </span>
+                                      <span className="font-medium">
+                                        {new Date(
+                                          application.interviewDateTime
+                                        ).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                           </TableCell>
                           <TableCell>
                             {(application.status === "Accepted" ||

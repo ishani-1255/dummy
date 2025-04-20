@@ -79,6 +79,25 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
   const [packageOffered, setPackageOffered] = useState(
     application?.packageOffered || ""
   );
+  const [interviewDateTime, setInterviewDateTime] = useState(
+    application?.interviewDateTime || ""
+  );
+  const [interviewDate, setInterviewDate] = useState(
+    application?.interviewDateTime
+      ? new Date(application.interviewDateTime).toISOString().split("T")[0]
+      : ""
+  );
+  const [interviewTime, setInterviewTime] = useState(
+    application?.interviewDateTime
+      ? new Date(application.interviewDateTime)
+          .toTimeString()
+          .split(" ")[0]
+          .substring(0, 5)
+      : ""
+  );
+  const [interviewLocation, setInterviewLocation] = useState(
+    application?.interviewLocation || ""
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -87,6 +106,17 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
       setStatus(application.status || "Applied");
       setFeedback(application.feedback || "");
       setPackageOffered(application.packageOffered || "");
+      setInterviewDateTime(application.interviewDateTime || "");
+      setInterviewLocation(application.interviewLocation || "");
+
+      if (application.interviewDateTime) {
+        const date = new Date(application.interviewDateTime);
+        setInterviewDate(date.toISOString().split("T")[0]);
+        setInterviewTime(date.toTimeString().split(" ")[0].substring(0, 5));
+      } else {
+        setInterviewDate("");
+        setInterviewTime("");
+      }
     }
   }, [application]);
 
@@ -99,6 +129,22 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
 
     try {
       const updateData = { status, feedback };
+
+      // Include interview date time if status is Interview Scheduled
+      if (status === "Interview Scheduled") {
+        if (!interviewDate || !interviewTime) {
+          setError("Please select both interview date and time");
+          setLoading(false);
+          return;
+        }
+
+        // Combine date and time into a single datetime string
+        const combinedDateTime = `${interviewDate}T${interviewTime}:00`;
+        updateData.interviewDateTime = combinedDateTime;
+        updateData.interviewLocation = interviewLocation;
+        console.log("Scheduling interview for:", combinedDateTime);
+        console.log("Interview location:", interviewLocation);
+      }
 
       // Only include package if status is Accepted or Offered
       if (status === "Accepted" || status === "Offered") {
@@ -265,18 +311,18 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
               </div>
             </div>
 
-            {/* Application Status Section */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium mb-4">Update Status</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Admin Update Section */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium mb-4">Update Application</h3>
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Current Status
+                    Status
                   </label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full p-3 border rounded-md bg-white"
                   >
                     {statusOptions.map((option) => (
                       <option key={option} value={option}>
@@ -286,58 +332,104 @@ const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
                   </select>
                 </div>
 
-                {(status === "Accepted" || status === "Offered") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Package Offered
-                    </label>
-                    <div className="relative">
+                {status === "Interview Scheduled" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Interview Date
+                      </label>
                       <input
-                        type="text"
-                        placeholder="e.g., ₹10 LPA"
-                        value={packageOffered}
-                        onChange={(e) => setPackageOffered(e.target.value)}
-                        className="pl-10 w-full p-2 border border-gray-300 rounded-md"
+                        type="date"
+                        value={interviewDate}
+                        onChange={(e) => setInterviewDate(e.target.value)}
+                        className="w-full p-3 border rounded-md bg-white"
                         required
                       />
-                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <span className="text-gray-500 font-medium">₹</span>
-                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Interview Time
+                      </label>
+                      <input
+                        type="time"
+                        value={interviewTime}
+                        onChange={(e) => setInterviewTime(e.target.value)}
+                        className="w-full p-3 border rounded-md bg-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Interview Venue
+                      </label>
+                      <input
+                        type="text"
+                        value={interviewLocation}
+                        onChange={(e) => setInterviewLocation(e.target.value)}
+                        placeholder="Enter interview venue (e.g., Conference Room 5, Building A or Zoom Meeting)"
+                        className="w-full p-3 border rounded-md bg-white"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Specify the venue location or online meeting platform
+                      </p>
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Feedback
-                </label>
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-md min-h-[120px]"
-                  placeholder="Provide feedback for the student..."
-                />
+                {(status === "Accepted" || status === "Offered") && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Offered (LPA)
+                    </label>
+                    <input
+                      type="text"
+                      value={packageOffered}
+                      onChange={(e) => setPackageOffered(e.target.value)}
+                      placeholder="e.g. 12 LPA"
+                      className="w-full p-3 border rounded-md bg-white"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Feedback / Notes
+                  </label>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Enter feedback or notes for the candidate..."
+                    className="w-full p-3 border rounded-md bg-white min-h-[100px]"
+                  ></textarea>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex justify-end space-x-3 mt-6 sticky bottom-0 bg-white pt-2 border-t">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-5 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                disabled={loading}
-              >
-                {loading ? "Updating..." : "Update"}
-              </button>
-            </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="mr-2">Updating...</span>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                </>
+              ) : (
+                "Update Application"
+              )}
+            </button>
           </div>
         </form>
       </div>
@@ -562,6 +654,40 @@ const ApplicationsListModal = ({ company, isOpen, onClose }) => {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <StatusBadge status={application.status || "Applied"} />
+                        {application.status === "Interview Scheduled" &&
+                          application.interviewDateTime && (
+                            <div className="mt-1.5 bg-purple-50 p-2 rounded-md border border-purple-100">
+                              <div className="flex items-center text-xs text-purple-800 font-medium mb-1">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                <span>Interview Scheduled</span>
+                              </div>
+                              <div className="ml-4 space-y-1 text-xs">
+                                <div className="flex items-center text-gray-700">
+                                  <span className="w-10 inline-block text-gray-500">
+                                    Date:
+                                  </span>
+                                  <span className="font-medium">
+                                    {new Date(
+                                      application.interviewDateTime
+                                    ).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-gray-700">
+                                  <span className="w-10 inline-block text-gray-500">
+                                    Time:
+                                  </span>
+                                  <span className="font-medium">
+                                    {new Date(
+                                      application.interviewDateTime
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {application.packageOffered || "-"}
