@@ -14,7 +14,6 @@ import Batches from "./components/admin/Batches";
 import ManageInterviews from "./components/admin/ManageInterviews";
 import PlacementRecords from "./components/admin/PlacementRecords";
 import GeneralQueries from "./components/admin/GeneralQueries";
-import CoordinatorManagement from "./components/admin/CoordinatorManagement";
 import DepartmentApplications from "./components/admin/DepartmentApplications";
 import CompanyApplicationsPage from "./components/admin/CompanyApplicationsPage";
 import ApplicationsView from "./components/admin/ApplicationsView";
@@ -83,14 +82,6 @@ function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <PlacementRecords />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/coordinator-management"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <CoordinatorManagement />
               </ProtectedRoute>
             }
           />

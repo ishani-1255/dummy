@@ -47,6 +47,11 @@ const companySchema = new mongoose.Schema({
     required: true,
     enum: ["CE", "CSE", "IT", "SFE", "ME", "EEE", "EC"],
   },
+  batch: {
+    type: [String],
+    required: true,
+    // Array of batches like "2022-2026", "2023-2027"
+  },
   minimumCgpa: {
     type: Number,
     required: true,

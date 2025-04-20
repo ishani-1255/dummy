@@ -170,16 +170,46 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
   const isEligible = useMemo(() => {
     const { eligibilityCriteria } = job;
 
-    const departmentMatch = eligibilityCriteria.departments.includes(
-      studentProfile.department
+    console.log(`Checking eligibility for ${job.title}:`);
+    console.log("Student department:", studentProfile.department);
+    console.log("Student batch:", studentProfile.batch);
+    console.log("Job eligible departments:", eligibilityCriteria.departments);
+    console.log("Job eligible batches:", eligibilityCriteria.batch);
+
+    // Case-insensitive department matching
+    const studentDept = studentProfile.department.toUpperCase();
+    const normalizedJobDepts = eligibilityCriteria.departments.map((dept) =>
+      typeof dept === "string" ? dept.toUpperCase() : dept
     );
+
+    // Check if student's batch is eligible
+    let batchMatch = false;
+    if (eligibilityCriteria.batch && eligibilityCriteria.batch.length > 0) {
+      batchMatch = eligibilityCriteria.batch.includes(studentProfile.batch);
+    } else {
+      // If no batches are specified, consider it a match
+      batchMatch = true;
+    }
+
+    console.log("Normalized student department:", studentDept);
+    console.log("Normalized job departments:", normalizedJobDepts);
+    console.log("Batch match:", batchMatch);
+
+    const departmentMatch = normalizedJobDepts.includes(studentDept);
     const cgpaMatch = studentProfile.cgpa >= eligibilityCriteria.minCGPA;
     const backlogsMatch =
       studentProfile.activeBacklogs <= eligibilityCriteria.activeBacklogs;
     const yearMatch =
       studentProfile.yearOfPassing === eligibilityCriteria.yearOfPassing;
 
-    return departmentMatch && cgpaMatch && backlogsMatch && yearMatch;
+    console.log("Department match:", departmentMatch);
+    console.log("CGPA match:", cgpaMatch);
+    console.log("Backlogs match:", backlogsMatch);
+    console.log("Year match:", yearMatch);
+
+    return (
+      departmentMatch && cgpaMatch && backlogsMatch && yearMatch && batchMatch
+    );
   }, [job, studentProfile]);
 
   // Calculate days remaining until deadline
@@ -371,6 +401,21 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
 
                 <div className="bg-gray-50 p-3 rounded-md">
                   <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-blue-600" />
+                    <span className="text-sm font-medium">
+                      Eligible Batches
+                    </span>
+                  </div>
+                  <p className="text-sm mt-1">
+                    {job.eligibilityCriteria.batch &&
+                    job.eligibilityCriteria.batch.length > 0
+                      ? job.eligibilityCriteria.batch.join(", ")
+                      : "All batches eligible"}
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <div className="flex items-center">
                     <Award className="h-4 w-4 mr-2 text-blue-600" />
                     <span className="text-sm font-medium">Minimum CGPA</span>
                   </div>
@@ -408,6 +453,17 @@ const JobCard = ({ job, studentProfile, onApply, hasApplied }) => {
                       {job.eligibilityCriteria.departments.join(", ")}
                     </li>
                   )}
+                  {job.eligibilityCriteria.batch &&
+                    job.eligibilityCriteria.batch.length > 0 &&
+                    !job.eligibilityCriteria.batch.includes(
+                      studentProfile.batch
+                    ) && (
+                      <li>
+                        Batch requirement:{" "}
+                        {job.eligibilityCriteria.batch.join(", ")} (Your batch:{" "}
+                        {studentProfile.batch})
+                      </li>
+                    )}
                   {studentProfile.cgpa < job.eligibilityCriteria.minCGPA && (
                     <li>
                       Minimum CGPA required: {job.eligibilityCriteria.minCGPA}{" "}
@@ -783,7 +839,7 @@ const JobListing = () => {
     minSalary: "",
     maxSalary: "",
     deadline: "",
-    hideExpired: true,
+    hideExpired: false,
   });
   const [applications, setApplications] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -824,6 +880,10 @@ const JobListing = () => {
             registrationNumber: userData.registrationNumber,
             department: userData.branch,
             yearOfPassing: parseInt(userData.yearOfAdmission) + 4, // Estimate graduation year
+            yearOfAdmission: parseInt(userData.yearOfAdmission),
+            batch: `${userData.yearOfAdmission}-${
+              parseInt(userData.yearOfAdmission) + 4
+            }`, // Add batch
             cgpa: userData.cgpa,
             activeBacklogs: userData.backlog || 0,
           });
@@ -836,37 +896,74 @@ const JobListing = () => {
             }
           );
 
+          console.log("Student department:", userData.branch);
+          console.log("All companies:", companiesResponse.data);
+
+          // We can directly use the filtered companies from the server
+          const filteredCompanies = companiesResponse.data;
+          console.log("Filtered companies:", filteredCompanies);
+
           // Transform the company data to match our job structure
-          const transformedJobs = companiesResponse.data.map((company) => ({
-            id: company._id,
-            title: company.name,
-            company: company.industry,
-            logo: company.name.substring(0, 2).toUpperCase(),
-            location: company.location,
-            type: "Full-time", // Could be more dynamic based on company data
-            salary: company.package,
-            deadline: new Date(company.visitingDate)
-              .toISOString()
-              .split("T")[0],
-            postedDate: new Date(company.createdAt).toISOString().split("T")[0],
-            description: company.description || "",
-            updates: company.updates || "",
-            email: company.email,
-            phone: company.phone || "",
-            website: company.website || "",
-            requirements: company.requirements
-              ? company.requirements.split("\n").filter((line) => line.trim())
-              : [],
-            responsibilities: [],
-            eligibilityCriteria: {
-              departments: company.department,
-              minCGPA: company.minimumCgpa,
-              activeBacklogs: company.backlogsAllowed,
-              yearOfPassing: parseInt(userData.yearOfAdmission) + 4, // Assuming 4-year program
-            },
-            applicationProcess: [],
-            applicationsCount: 0,
-          }));
+          const transformedJobs = filteredCompanies.map((company) => {
+            console.log(
+              `Transforming company ${company.name} with department:`,
+              company.department
+            );
+
+            // Ensure department is always an array
+            const departments = Array.isArray(company.department)
+              ? company.department
+              : company.department
+              ? [company.department]
+              : [];
+
+            // Ensure batch is always an array
+            const batches = Array.isArray(company.batch)
+              ? company.batch
+              : company.batch
+              ? [company.batch]
+              : [];
+
+            console.log(
+              `Normalized departments for ${company.name}:`,
+              departments
+            );
+            console.log(`Normalized batches for ${company.name}:`, batches);
+
+            return {
+              id: company._id,
+              title: company.name,
+              company: company.industry,
+              logo: company.name.substring(0, 2).toUpperCase(),
+              location: company.location,
+              type: "Full-time", // Could be more dynamic based on company data
+              salary: company.package,
+              deadline: new Date(company.visitingDate)
+                .toISOString()
+                .split("T")[0],
+              postedDate: new Date(company.createdAt)
+                .toISOString()
+                .split("T")[0],
+              description: company.description || "",
+              updates: company.updates || "",
+              email: company.email,
+              phone: company.phone || "",
+              website: company.website || "",
+              requirements: company.requirements
+                ? company.requirements.split("\n").filter((line) => line.trim())
+                : [],
+              responsibilities: [],
+              eligibilityCriteria: {
+                departments: departments,
+                batch: batches,
+                minCGPA: company.minimumCgpa,
+                activeBacklogs: company.backlogsAllowed,
+                yearOfPassing: parseInt(userData.yearOfAdmission) + 4, // Assuming 4-year program
+              },
+              applicationProcess: [],
+              applicationsCount: 0,
+            };
+          });
 
           setJobs(transformedJobs);
 
@@ -881,10 +978,20 @@ const JobListing = () => {
           if (applicationsResponse.data) {
             // Transform applications to include company IDs
             const transformedApplications = applicationsResponse.data.map(
-              (app) => ({
-                ...app,
-                company: app.company._id, // Ensure we have the company ID
-              })
+              (app) => {
+                // Check if company exists and is a valid object with an ID
+                const companyExists =
+                  app.company &&
+                  typeof app.company === "object" &&
+                  app.company._id;
+
+                return {
+                  ...app,
+                  company: companyExists ? app.company._id : null,
+                  // Add a flag to indicate deleted companies
+                  companyDeleted: !companyExists,
+                };
+              }
             );
             setApplications(transformedApplications);
           }
@@ -932,12 +1039,19 @@ const JobListing = () => {
         const now = new Date();
         const deadlineNotPassed = deadline >= now;
 
+        // Check if student's batch is eligible
+        let batchMatch = true;
+        if (eligibilityCriteria.batch && eligibilityCriteria.batch.length > 0) {
+          batchMatch = eligibilityCriteria.batch.includes(studentProfile.batch);
+        }
+
         return (
           deadlineNotPassed &&
           eligibilityCriteria.departments.includes(studentProfile.department) &&
           studentProfile.cgpa >= eligibilityCriteria.minCGPA &&
           studentProfile.activeBacklogs <= eligibilityCriteria.activeBacklogs &&
-          studentProfile.yearOfPassing === eligibilityCriteria.yearOfPassing
+          studentProfile.yearOfPassing === eligibilityCriteria.yearOfPassing &&
+          batchMatch
         );
       });
     }
@@ -1101,13 +1215,19 @@ const JobListing = () => {
       );
 
       if (applicationsResponse.data) {
-        // Transform applications to ensure company is an ID string for comparison
-        const transformedApplications = applicationsResponse.data.map(
-          (app) => ({
+        // Transform applications to include company IDs
+        const transformedApplications = applicationsResponse.data.map((app) => {
+          // Check if company exists and is a valid object with an ID
+          const companyExists =
+            app.company && typeof app.company === "object" && app.company._id;
+
+          return {
             ...app,
-            company: app.company._id || app.company, // Handle both object and string cases
-          })
-        );
+            company: companyExists ? app.company._id : null,
+            // Add a flag to indicate deleted companies
+            companyDeleted: !companyExists,
+          };
+        });
         setApplications(transformedApplications);
       }
     } catch (err) {
@@ -1118,9 +1238,15 @@ const JobListing = () => {
   // Check if user has applied to a job
   const hasAppliedToJob = (jobId) => {
     return applications.some((app) => {
+      // Skip applications where the company has been deleted
+      if (app.companyDeleted || !app.company) {
+        return false;
+      }
+
       // Handle case where company might be an object or string
       const companyId =
         typeof app.company === "object" ? app.company._id : app.company;
+
       return (
         companyId === jobId &&
         app.status !== "Rejected" &&
@@ -1139,7 +1265,7 @@ const JobListing = () => {
       minSalary: "",
       maxSalary: "",
       deadline: "",
-      hideExpired: true,
+      hideExpired: false,
     });
     setSearchQuery("");
   };

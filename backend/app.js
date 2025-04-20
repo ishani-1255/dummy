@@ -650,10 +650,13 @@ app.get("/api/companies", async (req, res) => {
     let query = {};
 
     if (department) {
-      query.department = department;
+      // Using $in operator to check if the department exists in the department array
+      query = { department: { $in: [department] } };
+      console.log(`Filtering companies by department: ${department}`, query);
     }
 
     const companies = await Company.find(query);
+    console.log(`Found ${companies.length} companies matching query`);
     res.status(200).json(companies);
   } catch (error) {
     console.error("Error fetching companies:", error);
@@ -885,12 +888,33 @@ app.get("/api/applications", isLoggedIn, async (req, res) => {
         .json({ message: "Only students can view their applications" });
     }
 
+    // Find all applications for this student
     const applications = await Application.find({
       student: req.user._id,
       studentModel: req.user.branch,
     }).populate("company");
 
-    res.status(200).json(applications);
+    // Post-process to handle potentially deleted companies
+    const processedApplications = applications.map((app) => {
+      const appObj = app.toObject();
+
+      // If company is null (was deleted), provide a placeholder
+      if (!appObj.company) {
+        appObj.company = {
+          _id: null,
+          name: "Company no longer available",
+          industry: "N/A",
+          location: "N/A",
+          package: "N/A",
+          description:
+            "This company's information is no longer available in the system.",
+        };
+      }
+
+      return appObj;
+    });
+
+    res.status(200).json(processedApplications);
   } catch (error) {
     console.error("Error fetching applications:", error);
     res

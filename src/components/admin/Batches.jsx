@@ -30,6 +30,7 @@ import {
 } from "./UIComponents";
 import Sidebar from "./Sidebar";
 import * as XLSX from "xlsx";
+import AdminLayout from "./AdminLayout";
 
 // Configure axios
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:6400";
@@ -894,9 +895,8 @@ const Batches = () => {
 
   if (error) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex h-screen w-full bg-gray-50 items-center justify-center">
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
           <div className="text-xl text-red-600">{error}</div>
         </div>
       </div>
@@ -904,9 +904,8 @@ const Batches = () => {
   }
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="min-h-screen bg-gray-50 p-6 w-full">
+    <AdminLayout>
+      <div className="p-6 w-full">
         <div className="max-w-5xl mx-auto">
           {notification && (
             <Alert
@@ -997,7 +996,7 @@ const Batches = () => {
           />
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 

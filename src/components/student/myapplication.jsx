@@ -29,6 +29,7 @@ import {
   Download,
   ExternalLink,
   ChevronDown,
+  XCircle,
 } from "lucide-react";
 import {
   Card,
@@ -334,6 +335,23 @@ const ApplicationDetailModal = ({
           </button>
         </div>
 
+        {application.companyDeleted && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  This company is no longer available in the system. It may have
+                  been deleted by the administrator. Some information may be
+                  missing or incomplete.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Company Information */}
           <Card>
@@ -394,20 +412,34 @@ const ApplicationDetailModal = ({
                     </div>
                   )}
                 {application.status === "Offered" && (
-                  <div className="mt-3 flex flex-col space-y-2">
+                  <div className="flex justify-center mt-6 space-x-4">
                     <button
                       onClick={handleAcceptOffer}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center justify-center"
+                      className={`px-4 py-2 rounded-md ${
+                        application.companyDeleted
+                          ? "bg-gray-400 text-white cursor-not-allowed"
+                          : "bg-green-600 text-white hover:bg-green-700"
+                      }`}
+                      disabled={application.companyDeleted}
                     >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept Offer
+                      <div className="flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Accept Offer
+                      </div>
                     </button>
                     <button
                       onClick={handleDeclineOffer}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md flex items-center justify-center"
+                      className={`px-4 py-2 rounded-md ${
+                        application.companyDeleted
+                          ? "bg-gray-400 text-white cursor-not-allowed"
+                          : "bg-red-600 text-white hover:bg-red-700"
+                      }`}
+                      disabled={application.companyDeleted}
                     >
-                      <X className="h-4 w-4 mr-2" />
-                      Decline Offer
+                      <div className="flex items-center">
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Decline Offer
+                      </div>
                     </button>
                   </div>
                 )}
@@ -504,28 +536,40 @@ const MyApplications = () => {
 
         if (response.data) {
           // Transform API data to match our component structure
-          const transformedApplications = response.data.map((app) => ({
-            id: app._id,
-            jobTitle: app.company.name,
-            company: app.company.industry,
-            location: app.company.location,
-            salary: app.company.package,
-            applicationDate: new Date(app.appliedDate)
-              .toISOString()
-              .split("T")[0],
-            interviewDate: app.interviewDate
-              ? new Date(app.interviewDate).toISOString().split("T")[0]
-              : null,
-            status: app.status,
-            jobDescription: app.company.description,
-            requiredSkills: app.company.requirements
-              ? app.company.requirements.split("\n")
-              : [],
-            applicationNotes: app.additionalInfo || "",
-            feedback: app.feedback || "",
-            updates: app.company.updates || "",
-            packageOffered: app.packageOffered || "",
-          }));
+          const transformedApplications = response.data.map((app) => {
+            // Check if company exists or if it's been deleted
+            const companyExists =
+              app.company && typeof app.company === "object" && app.company._id;
+
+            return {
+              id: app._id,
+              jobTitle: companyExists
+                ? app.company.name
+                : "Company no longer available",
+              company: companyExists ? app.company.industry : "N/A",
+              location: companyExists ? app.company.location : "N/A",
+              salary: companyExists ? app.company.package : "N/A",
+              applicationDate: new Date(app.appliedDate)
+                .toISOString()
+                .split("T")[0],
+              interviewDate: app.interviewDate
+                ? new Date(app.interviewDate).toISOString().split("T")[0]
+                : null,
+              status: app.status,
+              jobDescription: companyExists
+                ? app.company.description
+                : "Company information no longer available",
+              requiredSkills:
+                companyExists && app.company.requirements
+                  ? app.company.requirements.split("\n")
+                  : [],
+              applicationNotes: app.additionalInfo || "",
+              feedback: app.feedback || "",
+              updates: companyExists ? app.company.updates || "" : "",
+              packageOffered: app.packageOffered || "",
+              companyDeleted: !companyExists,
+            };
+          });
 
           setApplications(transformedApplications);
         }
@@ -896,10 +940,22 @@ const MyApplications = () => {
                       filteredApplications.map((application) => (
                         <TableRow
                           key={application.id}
-                          className="hover:bg-gray-50"
+                          className={`hover:bg-gray-50 ${
+                            application.companyDeleted ? "bg-yellow-50" : ""
+                          }`}
                         >
                           <TableCell className="font-medium">
-                            {application.jobTitle}
+                            {application.companyDeleted ? (
+                              <div className="flex items-center">
+                                {application.jobTitle}
+                                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  <AlertTriangle className="h-3 w-3 mr-1" />
+                                  Deleted
+                                </span>
+                              </div>
+                            ) : (
+                              application.jobTitle
+                            )}
                           </TableCell>
                           <TableCell>{application.company}</TableCell>
                           <TableCell>

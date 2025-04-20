@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import AdminLayout from "./AdminLayout";
 import axios from "axios"; // Make sure to install axios
 
 // Status Badge Component
@@ -1133,12 +1134,25 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
     visitingDate: "",
     description: "",
     requirements: "",
-    updates: "", // Add updates field to formData
+    updates: "",
     package: "",
     minimumCgpa: "",
     backlogsAllowed: 0,
     department: [],
+    batch: [],
   });
+
+  // Calculate the current year and generate years around it
+  const currentYear = new Date().getFullYear();
+
+  // Generate batches for 3 years before and 3 years after current year
+  const batchOptions = [];
+  for (let year = currentYear - 3; year <= currentYear + 3; year++) {
+    batchOptions.push({
+      value: `${year}-${year + 4}`,
+      label: `${year}-${year + 4}`,
+    });
+  }
 
   const handleDepartmentChange = (dept) => {
     if (formData.department.includes(dept)) {
@@ -1154,10 +1168,22 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
     }
   };
 
+  const handleBatchChange = (e) => {
+    const selectedBatch = e.target.value;
+    setFormData({
+      ...formData,
+      batch: [selectedBatch],
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.department.length === 0) {
       alert("Please select at least one department");
+      return;
+    }
+    if (formData.batch.length === 0) {
+      alert("Please select a batch");
       return;
     }
     onAdd({
@@ -1306,6 +1332,25 @@ const AddCompanyModal = ({ isOpen, onClose, onAdd }) => {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Eligible Batch
+              </label>
+              <select
+                value={formData.batch[0] || ""}
+                onChange={handleBatchChange}
+                className="w-full p-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a batch</option>
+                {batchOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -1449,7 +1494,20 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
     visitingDate: company.visitingDate
       ? new Date(company.visitingDate).toISOString().split("T")[0]
       : "",
+    batch: company.batch || [],
   });
+
+  // Calculate the current year and generate years around it
+  const currentYear = new Date().getFullYear();
+
+  // Generate batches for 3 years before and 3 years after current year
+  const batchOptions = [];
+  for (let year = currentYear - 3; year <= currentYear + 3; year++) {
+    batchOptions.push({
+      value: `${year}-${year + 4}`,
+      label: `${year}-${year + 4}`,
+    });
+  }
 
   const handleDepartmentChange = (dept) => {
     if (formData.department.includes(dept)) {
@@ -1465,10 +1523,22 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
     }
   };
 
+  const handleBatchChange = (e) => {
+    const selectedBatch = e.target.value;
+    setFormData({
+      ...formData,
+      batch: [selectedBatch],
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (formData.department.length === 0) {
       alert("Please select at least one department");
+      return;
+    }
+    if (formData.batch.length === 0) {
+      alert("Please select a batch");
       return;
     }
     onSave({
@@ -1615,6 +1685,25 @@ const EditCompanyModal = ({ company, isOpen, onClose, onSave }) => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Eligible Batch
+              </label>
+              <select
+                value={formData.batch[0] || ""}
+                onChange={handleBatchChange}
+                className="w-full p-2 border border-gray-300 rounded-md text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a batch</option>
+                {batchOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
@@ -1911,127 +2000,122 @@ const ManageCompany = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Manage Companies
-            </h1>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Add Company</span>
-            </button>
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search companies..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-gray-500" />
-              <select
-                className="border border-gray-300 rounded-md px-3 py-2"
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-              >
-                <option value="">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p className="text-gray-500">Loading companies...</p>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 p-4 rounded-md">
-              <p className="text-red-700">{error}</p>
-            </div>
-          ) : filteredCompanies.length === 0 ? (
-            <div className="bg-gray-50 p-6 rounded-lg text-center">
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">
-                No companies found
-              </h3>
-              <p className="mt-1 text-gray-500">
-                {searchTerm || filterDepartment
-                  ? "Try adjusting your search or filter"
-                  : "Add a company to get started"}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCompanies.map((company) => (
-                <CompanyCard
-                  key={company._id}
-                  company={company}
-                  onViewDetails={handleViewDetails}
-                  onEdit={handleEditCompany}
-                  onDelete={handleDeleteCompany}
-                />
-              ))}
-            </div>
-          )}
+    <AdminLayout>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Manage Companies</h1>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Company</span>
+          </button>
         </div>
 
-        {/* Details Modal */}
-        {selectedCompany && (
-          <CompanyDetailsModal
-            company={selectedCompany}
-            onClose={() => setSelectedCompany(null)}
-          />
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search companies..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Users className="h-5 w-5 text-gray-500" />
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2"
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+            >
+              <option value="">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-gray-500">Loading companies...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 p-4 rounded-md">
+            <p className="text-red-700">{error}</p>
+          </div>
+        ) : filteredCompanies.length === 0 ? (
+          <div className="bg-gray-50 p-6 rounded-lg text-center">
+            <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">
+              No companies found
+            </h3>
+            <p className="mt-2 text-gray-500">
+              {searchTerm || filterDepartment
+                ? "Try adjusting your search or filter"
+                : "Add a company to get started"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCompanies.map((company) => (
+              <CompanyCard
+                key={company._id}
+                company={company}
+                onViewDetails={handleViewDetails}
+                onEdit={handleEditCompany}
+                onDelete={handleDeleteCompany}
+              />
+            ))}
+          </div>
         )}
-
-        {/* Add Modal */}
-        <AddCompanyModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onAdd={handleAddCompany}
-        />
-
-        {/* Edit Modal */}
-        {editingCompany && (
-          <EditCompanyModal
-            company={editingCompany}
-            isOpen={isEditModalOpen}
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setEditingCompany(null);
-            }}
-            onSave={handleSaveEdit}
-          />
-        )}
-
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={deleteModalOpen}
-          onClose={() => {
-            setDeleteModalOpen(false);
-            setCompanyToDelete(null);
-          }}
-          onConfirm={confirmDelete}
-          companyName={companyToDelete?.name || ""}
-        />
       </div>
-    </div>
+
+      {/* Details Modal */}
+      {selectedCompany && (
+        <CompanyDetailsModal
+          company={selectedCompany}
+          onClose={() => setSelectedCompany(null)}
+        />
+      )}
+
+      {/* Add Modal */}
+      <AddCompanyModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddCompany}
+      />
+
+      {/* Edit Modal */}
+      {editingCompany && (
+        <EditCompanyModal
+          company={editingCompany}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingCompany(null);
+          }}
+          onSave={handleSaveEdit}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setCompanyToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        companyName={companyToDelete?.name || ""}
+      />
+    </AdminLayout>
   );
 };
 
