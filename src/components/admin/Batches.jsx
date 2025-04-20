@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from "react";
-import {
-  Plus,
-  Search,
-  Download,
-  FileText,
-  Building2,
-  ChevronDown,
-  X,
-} from "lucide-react";
+import { Plus, Search, Download, ChevronDown } from "lucide-react";
 import axios from "axios";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Select,
   SelectContent,
   SelectItem,
@@ -28,7 +18,6 @@ import {
   Input,
   Button,
 } from "./UIComponents";
-import Sidebar from "./Sidebar";
 import * as XLSX from "xlsx";
 import AdminLayout from "./AdminLayout";
 
@@ -37,7 +26,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:6400";
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
 
-// Add department code mapping
+// Department code mapping
 const departmentMapping = {
   CSE: "Computer Science",
   CE: "Civil Engineering",
@@ -50,21 +39,7 @@ const departmentMapping = {
 
 const departments = ["All Departments", ...Object.values(departmentMapping)];
 
-const generateBatchYears = () => {
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  for (let i = -4; i < 5; i++) {
-    // Show past 4 years and future 4 years
-    const startYear = currentYear + i;
-    const endYear = startYear + 4;
-    years.push(`${startYear}-${endYear}`);
-  }
-  return years;
-};
-
-const batchYears = generateBatchYears();
-
-// Update the departmentMapping with inverse mapping for filtering
+// Inverse mapping for filtering
 const departmentCodeFromName = {
   "Computer Science": "CSE",
   "Civil Engineering": "CE",
@@ -75,40 +50,18 @@ const departmentCodeFromName = {
   "Electronics and Communication": "EC",
 };
 
-// New component for Download Modal
-const DownloadModal = ({ isOpen, onClose, type, department }) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Download {type} Report</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Download {type} report for {department} department.
-          </p>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                // Handle download logic here
-                onClose();
-              }}
-            >
-              Download
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// New component for Add Batch Modal
+// Add Batch Modal Component
 const AddBatchModal = ({ isOpen, onClose, onAdd }) => {
   const [batchYear, setBatchYear] = useState("");
+
+  const handleInputChange = (e) => {
+    setBatchYear(e.target.value);
+  };
+
+  const calculateEndYear = (startYear) => {
+    const start = parseInt(startYear);
+    return isNaN(start) ? "" : `${startYear}-${start + 4}`;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -119,20 +72,19 @@ const AddBatchModal = ({ isOpen, onClose, onAdd }) => {
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1 block">
-              Select Batch Year
+              Enter Admission Year
             </label>
-            <Select value={batchYear} onValueChange={setBatchYear}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                {batchYears.map((year) => (
-                  <SelectItem key={year} value={year}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              type="number"
+              value={batchYear}
+              onChange={handleInputChange}
+              placeholder="e.g. 2022"
+            />
+            {batchYear && (
+              <p className="mt-2 text-sm text-gray-600">
+                Batch will be created as: {calculateEndYear(batchYear)}
+              </p>
+            )}
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={onClose}>
@@ -141,10 +93,11 @@ const AddBatchModal = ({ isOpen, onClose, onAdd }) => {
             <Button
               onClick={() => {
                 if (batchYear) {
-                  onAdd(batchYear);
+                  onAdd(calculateEndYear(batchYear));
                   onClose();
                 }
               }}
+              disabled={!batchYear}
             >
               Add Batch
             </Button>
@@ -155,70 +108,14 @@ const AddBatchModal = ({ isOpen, onClose, onAdd }) => {
   );
 };
 
-const BatchSummary = ({ departments }) => {
-  const totalStudents = departments.reduce(
-    (sum, dept) => sum + (parseInt(dept.totalStudents) || 0),
-    0
-  );
-
-  const totalPlaced = departments.reduce(
-    (sum, dept) => sum + (parseInt(dept.placed) || 0),
-    0
-  );
-
-  // Safely calculate average package
-  let avgPackage = 0;
-  if (departments.length > 0) {
-    // Only consider departments with actual placement data
-    const departmentsWithPlacements = departments.filter(
-      (dept) => (parseInt(dept.placed) || 0) > 0
-    );
-
-    if (departmentsWithPlacements.length > 0) {
-      const totalPackageSum = departmentsWithPlacements.reduce((sum, dept) => {
-        const pkgStr = dept.averagePackage || "0";
-        const pkg = parseFloat(pkgStr.replace(/[^\d.]/g, ""));
-        return sum + (isNaN(pkg) ? 0 : pkg);
-      }, 0);
-
-      avgPackage = totalPackageSum / departmentsWithPlacements.length;
-    }
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
-      <div>
-        <p className="text-sm text-gray-500">Total Students</p>
-        <p className="font-medium text-lg">{totalStudents}</p>
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">Total Placed</p>
-        <p className="font-medium text-lg">{totalPlaced}</p>
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">Average Package</p>
-        <p className="font-medium text-lg">{avgPackage.toFixed(2)} LPA</p>
-      </div>
-    </div>
-  );
-};
-
-const DepartmentRow = ({ department, isCompleted }) => {
-  // Safely parse numeric values with fallbacks
+// Department Row Component
+const DepartmentRow = ({ department }) => {
   const totalStudents = parseInt(department.totalStudents) || 0;
   const placedStudents = parseInt(department.placed) || 0;
-
-  // Safely calculate placement percentage, avoid division by zero
   const placementPercentage =
     totalStudents > 0 ? (placedStudents / totalStudents) * 100 : 0;
-
-  // Get proper department display name
   const departmentDisplayName =
     departmentMapping[department.name] || department.name;
-
-  // Safely parse package values
-  const averagePackage = department.averagePackage || "0 LPA";
-  const highestPackage = department.highestPackage || "0 LPA";
 
   return (
     <div className="flex flex-col p-4 border-b last:border-b-0 hover:bg-gray-50">
@@ -250,11 +147,15 @@ const DepartmentRow = ({ department, isCompleted }) => {
         </div>
         <div className="bg-gray-50 p-3 rounded-lg">
           <p className="text-sm text-gray-500">Average Package</p>
-          <p className="font-medium text-lg">{averagePackage}</p>
+          <p className="font-medium text-lg">
+            {department.averagePackage || "0 LPA"}
+          </p>
         </div>
         <div className="bg-gray-50 p-3 rounded-lg">
           <p className="text-sm text-gray-500">Highest Package</p>
-          <p className="font-medium text-lg">{highestPackage}</p>
+          <p className="font-medium text-lg">
+            {department.highestPackage || "0 LPA"}
+          </p>
         </div>
       </div>
 
@@ -277,22 +178,60 @@ const DepartmentRow = ({ department, isCompleted }) => {
   );
 };
 
+// Batch Summary Component
+const BatchSummary = ({ departments }) => {
+  const totalStudents = departments.reduce(
+    (sum, dept) => sum + (parseInt(dept.totalStudents) || 0),
+    0
+  );
+
+  const totalPlaced = departments.reduce(
+    (sum, dept) => sum + (parseInt(dept.placed) || 0),
+    0
+  );
+
+  let avgPackage = 0;
+  const departmentsWithPlacements = departments.filter(
+    (dept) => (parseInt(dept.placed) || 0) > 0
+  );
+
+  if (departmentsWithPlacements.length > 0) {
+    const totalPackageSum = departmentsWithPlacements.reduce((sum, dept) => {
+      const pkgStr = dept.averagePackage || "0";
+      const pkg = parseFloat(pkgStr.replace(/[^\d.]/g, ""));
+      return sum + (isNaN(pkg) ? 0 : pkg);
+    }, 0);
+
+    avgPackage = totalPackageSum / departmentsWithPlacements.length;
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+      <div>
+        <p className="text-sm text-gray-500">Total Students</p>
+        <p className="font-medium text-lg">{totalStudents}</p>
+      </div>
+      <div>
+        <p className="text-sm text-gray-500">Total Placed</p>
+        <p className="font-medium text-lg">{totalPlaced}</p>
+      </div>
+      <div>
+        <p className="text-sm text-gray-500">Average Package</p>
+        <p className="font-medium text-lg">{avgPackage.toFixed(2)} LPA</p>
+      </div>
+    </div>
+  );
+};
+
+// Batch Card Component
 const BatchCard = ({ batch, showNotification }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const filteredDepartments = batch.departments || [];
 
-  // Get departments that have data
-  const getFilteredDepartments = () => {
-    if (!batch || !batch.departments) return [];
-    return batch.departments;
-  };
-
-  const filteredDepartments = getFilteredDepartments();
-
-  // Safe export function with better error handling
+  // Excel export function
   const handleDownload = (batchYear, exportType) => {
     try {
       const wb = XLSX.utils.book_new();
-      console.log("Creating Excel file for batch", batchYear);
 
       if (exportType === "summary") {
         // Create summary worksheet with all departments
@@ -329,9 +268,7 @@ const BatchCard = ({ batch, showNotification }) => {
       } else {
         // Create individual worksheets for each department
         filteredDepartments.forEach((dept) => {
-          // Safely get the department name for sheet name
           const deptName = departmentMapping[dept.name] || dept.name;
-          // Excel sheet names must be <= 31 chars
           const safeDeptName = deptName.substring(0, 31);
 
           const departmentData = [
@@ -370,19 +307,14 @@ const BatchCard = ({ batch, showNotification }) => {
       }.xlsx`;
       XLSX.writeFile(wb, fileName);
 
-      // Show success notification
-      if (showNotification) {
-        showNotification(`${batchYear} report downloaded successfully`);
-      }
+      showNotification(`${batchYear} report downloaded successfully`);
     } catch (error) {
       console.error("Error generating Excel file:", error);
-      if (showNotification) {
-        showNotification("Failed to generate Excel file. Please try again.");
-      }
+      showNotification("Failed to generate Excel file. Please try again.");
     }
   };
 
-  // Calculate totals for the batch summary
+  // Calculate batch statistics
   const totalStudents = filteredDepartments.reduce(
     (sum, dept) => sum + (parseInt(dept.totalStudents) || 0),
     0
@@ -393,13 +325,11 @@ const BatchCard = ({ batch, showNotification }) => {
     0
   );
 
-  // Calculate average package with proper handling of string LPA values
+  let avgBatchPackage = 0;
   const departmentsWithPlacements = filteredDepartments.filter(
     (dept) => (parseInt(dept.placed) || 0) > 0
   );
 
-  // Safely calculate average package
-  let avgBatchPackage = 0;
   if (departmentsWithPlacements.length > 0) {
     const totalPackageValue = departmentsWithPlacements.reduce((sum, dept) => {
       const pkgStr = dept.averagePackage || "0";
@@ -410,7 +340,6 @@ const BatchCard = ({ batch, showNotification }) => {
     avgBatchPackage = totalPackageValue / departmentsWithPlacements.length;
   }
 
-  // Calculate placement percentage
   const placementPercentage =
     totalStudents > 0 ? ((placedStudents / totalStudents) * 100).toFixed(1) : 0;
 
@@ -445,11 +374,11 @@ const BatchCard = ({ batch, showNotification }) => {
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-1 rounded-full hover:bg-gray-100"
             >
-              {isExpanded ? (
-                <ChevronDown className="h-5 w-5 text-gray-500 transform rotate-180" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-gray-500" />
-              )}
+              <ChevronDown
+                className={`h-5 w-5 text-gray-500 transform ${
+                  isExpanded ? "rotate-180" : ""
+                }`}
+              />
             </button>
           </div>
         </div>
@@ -498,49 +427,7 @@ const BatchCard = ({ batch, showNotification }) => {
   );
 };
 
-// Add a function to create mock data for demo purposes if real data is missing
-const createSampleData = () => {
-  const currentYear = new Date().getFullYear();
-  return [
-    {
-      id: `${currentYear - 4}-${currentYear}`,
-      year: `${currentYear - 4}-${currentYear}`,
-      isCompleted: true,
-      departments: Object.keys(departmentMapping).map((code) => ({
-        name: code,
-        totalStudents: Math.floor(Math.random() * 50) + 30, // 30-80 students
-        placed: Math.floor(Math.random() * 30) + 15, // 15-45 placed students
-        placedSoFar: Math.floor(Math.random() * 30) + 15,
-        averagePackage: (Math.random() * 5 + 5).toFixed(2) + " LPA", // 5-10 LPA
-        highestPackage: (Math.random() * 15 + 10).toFixed(2) + " LPA", // 10-25 LPA
-        companies: ["TCS", "Infosys", "Wipro", "Accenture", "IBM"].slice(
-          0,
-          Math.floor(Math.random() * 3) + 2
-        ),
-        ongoingPlacements: false,
-      })),
-    },
-    {
-      id: `${currentYear - 3}-${currentYear + 1}`,
-      year: `${currentYear - 3}-${currentYear + 1}`,
-      isCompleted: false,
-      departments: Object.keys(departmentMapping).map((code) => ({
-        name: code,
-        totalStudents: Math.floor(Math.random() * 50) + 30, // 30-80 students
-        placed: Math.floor(Math.random() * 20) + 10, // 10-30 placed students (ongoing)
-        placedSoFar: Math.floor(Math.random() * 20) + 10,
-        averagePackage: (Math.random() * 4 + 4).toFixed(2) + " LPA", // 4-8 LPA
-        highestPackage: (Math.random() * 10 + 8).toFixed(2) + " LPA", // 8-18 LPA
-        companies: ["Google", "Microsoft", "Amazon", "Meta"].slice(
-          0,
-          Math.floor(Math.random() * 2) + 1
-        ),
-        ongoingPlacements: true,
-      })),
-    },
-  ];
-};
-
+// Main Batches Component
 const Batches = () => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -548,15 +435,10 @@ const Batches = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] =
     useState("All Departments");
-  const [downloadModal, setDownloadModal] = useState({
-    open: false,
-    type: null,
-    department: null,
-  });
   const [addBatchModal, setAddBatchModal] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Fetch batches data
+  // Fetch batches data from database
   useEffect(() => {
     const fetchBatchesData = async () => {
       try {
@@ -565,7 +447,7 @@ const Batches = () => {
 
         console.log("Fetching batch data from API...");
 
-        // First, fetch placement data to get company and package information
+        // Get placement data
         const placementResponse = await axios
           .get("/api/admin/placements", {
             withCredentials: true,
@@ -578,7 +460,7 @@ const Batches = () => {
         const placementData = placementResponse.data || [];
         console.log(`Fetched ${placementData.length} placement records`);
 
-        // Create a mapping from student ID to placement info for quick lookup
+        // Create a mapping from student ID to placement info
         const placementMap = new Map();
         placementData.forEach((placement) => {
           if (placement.studentId) {
@@ -603,94 +485,62 @@ const Batches = () => {
         );
 
         const responses = await Promise.all(departmentPromises);
-        console.log("All department API calls completed");
-
-        // Log the responses to debug
-        responses.forEach((response, index) => {
-          console.log(
-            `Department ${departmentCodes[index]} data:`,
-            response.data ? response.data.length : 0,
-            "students"
-          );
-        });
-
         const allStudents = responses.flatMap(
           (response) => response.data || []
         );
-
         console.log("Total students fetched:", allStudents.length);
 
-        // If we have no real data, fall back to sample data
-        if (allStudents.length === 0) {
-          console.log("No student data found, using sample data");
-          const sampleData = createSampleData();
-          setBatches(sampleData);
-          setLoading(false);
-          return;
-        }
-
-        // Group students by batch
+        // Group students by batch based on yearOfAdmission
         const batchesMap = new Map();
 
-        // First identify all the batches from student data
-        let batchYears = new Set();
+        // First identify all batches from student data
         allStudents.forEach((student) => {
           if (student.yearOfAdmission) {
-            const batchYear = `${student.yearOfAdmission}-${
-              parseInt(student.yearOfAdmission) + 4
-            }`;
-            batchYears.add(batchYear);
+            const admissionYear = parseInt(student.yearOfAdmission);
+            const graduationYear = admissionYear + 4;
+            const batchYear = `${admissionYear}-${graduationYear}`;
+
+            if (!batchesMap.has(batchYear)) {
+              // Create a new batch with the correct year format
+              batchesMap.set(batchYear, {
+                id: batchYear,
+                year: batchYear,
+                isCompleted: graduationYear <= new Date().getFullYear(),
+                departments: departmentCodes.reduce((acc, code) => {
+                  acc[code] = {
+                    name: code,
+                    totalStudents: 0,
+                    placed: 0,
+                    averagePackage: "0 LPA",
+                    highestPackage: "0 LPA",
+                    companies: [],
+                  };
+                  return acc;
+                }, {}),
+              });
+            }
           }
         });
 
-        // If no batches found, just create the current batch with real (empty) data
-        if (batchYears.size === 0) {
-          const currentYear = new Date().getFullYear();
-          batchYears.add(`${currentYear - 4}-${currentYear}`);
-        }
-
-        // Initialize all batches with all departments
-        batchYears.forEach((batchYear) => {
-          batchesMap.set(batchYear, {
-            id: batchYear,
-            year: batchYear,
-            isCompleted:
-              parseInt(batchYear.split("-")[0]) + 4 <= new Date().getFullYear(),
-            departments: new Map(),
-          });
-
-          // Initialize all departments for this batch
-          const batch = batchesMap.get(batchYear);
-          departmentCodes.forEach((deptCode) => {
-            batch.departments.set(deptCode, {
-              name: deptCode,
-              totalStudents: 0,
-              placed: 0,
-              placedSoFar: 0,
-              averagePackage: 0,
-              highestPackage: 0,
-              companies: new Set(),
-              ongoingPlacements: !batch.isCompleted,
-            });
-          });
-        });
-
-        // Now populate with actual student data
+        // Fill in student data for each batch
         allStudents.forEach((student) => {
           if (student && student.yearOfAdmission && student.department) {
-            const batchYear = `${student.yearOfAdmission}-${
-              parseInt(student.yearOfAdmission) + 4
-            }`;
+            const admissionYear = parseInt(student.yearOfAdmission);
+            const graduationYear = admissionYear + 4;
+            const batchYear = `${admissionYear}-${graduationYear}`;
+            const deptCode = student.department;
 
-            const batch = batchesMap.get(batchYear);
-            const deptName = student.department;
+            if (
+              batchesMap.has(batchYear) &&
+              batchesMap.get(batchYear).departments[deptCode]
+            ) {
+              const batch = batchesMap.get(batchYear);
+              const dept = batch.departments[deptCode];
 
-            if (batch && batch.departments.has(deptName)) {
-              const deptStats = batch.departments.get(deptName);
-              deptStats.totalStudents++;
+              // Increment total students
+              dept.totalStudents = (dept.totalStudents || 0) + 1;
 
-              // Check if student is placed using either the isPlaced property
-              // or looking up in the placement data
+              // Check if student is placed
               const placementInfo =
                 placementMap.get(student._id) ||
                 placementMap.get(student.id) ||
@@ -699,34 +549,29 @@ const Batches = () => {
               const isPlaced = student.isPlaced || placementInfo != null;
 
               if (isPlaced) {
-                deptStats.placed++;
-                deptStats.placedSoFar++;
+                // Increment placed count
+                dept.placed = (dept.placed || 0) + 1;
 
-                // Extract company name
+                // Get company name
                 let companyName = "Unknown Company";
-
-                // Try to get company from placement map first
                 if (placementInfo && placementInfo.company) {
-                  if (typeof placementInfo.company === "object") {
-                    companyName =
-                      placementInfo.company.name || "Unknown Company";
-                  } else {
-                    companyName = placementInfo.company;
-                  }
-                }
-                // Fall back to student's placement company if available
-                else if (student.placementCompany) {
-                  if (typeof student.placementCompany === "object") {
-                    companyName =
-                      student.placementCompany.name || "Unknown Company";
-                  } else {
-                    companyName = student.placementCompany;
-                  }
+                  companyName =
+                    typeof placementInfo.company === "object"
+                      ? placementInfo.company.name || "Unknown Company"
+                      : placementInfo.company;
+                } else if (student.placementCompany) {
+                  companyName =
+                    typeof student.placementCompany === "object"
+                      ? student.placementCompany.name || "Unknown Company"
+                      : student.placementCompany;
                 }
 
-                deptStats.companies.add(companyName);
+                // Add company to list if not already present
+                if (!dept.companies.includes(companyName)) {
+                  dept.companies.push(companyName);
+                }
 
-                // Get package information
+                // Update package information
                 let packageValue = 0;
                 if (placementInfo && placementInfo.package) {
                   packageValue = parseFloat(placementInfo.package);
@@ -735,116 +580,70 @@ const Batches = () => {
                 }
 
                 if (!isNaN(packageValue) && packageValue > 0) {
-                  // Update department statistics
-                  if (deptStats.placed === 1) {
-                    deptStats.averagePackage = packageValue;
+                  // Calculate running average
+                  const currentAvg = parseFloat(dept.averagePackage) || 0;
+                  const currentPlaced = dept.placed;
+
+                  if (currentPlaced === 1) {
+                    dept.averagePackage = `${packageValue.toFixed(2)} LPA`;
                   } else {
-                    deptStats.averagePackage =
-                      (deptStats.averagePackage * (deptStats.placed - 1) +
-                        packageValue) /
-                      deptStats.placed;
+                    const newAvg =
+                      (currentAvg * (currentPlaced - 1) + packageValue) /
+                      currentPlaced;
+                    dept.averagePackage = `${newAvg.toFixed(2)} LPA`;
                   }
 
-                  deptStats.highestPackage = Math.max(
-                    deptStats.highestPackage,
-                    packageValue
-                  );
+                  // Update highest package
+                  const currentHighest = parseFloat(dept.highestPackage) || 0;
+                  if (packageValue > currentHighest) {
+                    dept.highestPackage = `${packageValue.toFixed(2)} LPA`;
+                  }
                 }
               }
             }
           }
         });
 
-        // Convert Maps to arrays and format the data
-        const formattedBatches = Array.from(batchesMap.values()).map(
-          (batch) => ({
-            ...batch,
-            departments: Array.from(batch.departments.values()).map((dept) => ({
-              ...dept,
-              companies: Array.from(dept.companies),
-              averagePackage:
-                dept.averagePackage > 0
-                  ? dept.averagePackage.toFixed(2) + " LPA"
-                  : "0 LPA",
-              highestPackage:
-                dept.highestPackage > 0
-                  ? dept.highestPackage.toFixed(2) + " LPA"
-                  : "0 LPA",
-            })),
-          })
-        );
+        // Convert map to array and format it for the UI
+        const batchesArray = Array.from(batchesMap.values()).map((batch) => ({
+          ...batch,
+          departments: Object.values(batch.departments),
+        }));
 
         // Sort batches by year (newest first)
-        formattedBatches.sort((a, b) => {
+        batchesArray.sort((a, b) => {
           const yearA = parseInt(a.year.split("-")[0]);
           const yearB = parseInt(b.year.split("-")[0]);
           return yearB - yearA;
         });
 
-        console.log("Processed batch data:", formattedBatches);
-        setBatches(formattedBatches);
+        console.log("Processed batch data:", batchesArray);
+        setBatches(batchesArray);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching batch data:", err);
         setError("Failed to fetch batch data. Please try again later.");
         setLoading(false);
-
-        // Fall back to sample data if API failed
-        console.log("Falling back to sample data due to error");
-        const sampleData = createSampleData();
-        setBatches(sampleData);
       }
     };
 
     fetchBatchesData();
   }, []);
 
-  const showNotification = (message, type = "success") => {
-    // Handle both old (message, type) and new (message only) formats
-    const notificationType = typeof type === "string" ? type : "success";
-    setNotification({ message, type: notificationType });
+  // Show notification
+  const showNotification = (message) => {
+    setNotification({ message, type: "success" });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleDownload = (type, department) => {
-    if (type === "excel") {
-      // Export to Excel
-      const workbook = XLSX.utils.book_new();
-
-      // Create worksheet data
-      const wsData = [
-        ["Department Statistics Report"],
-        ["Department Name", department.name],
-        ["Total Students", department.totalStudents],
-        ["Placed Students", department.placed],
-        ["Average Package", department.averagePackage],
-        ["Highest Package", department.highestPackage],
-        [],
-        ["Companies"],
-        ...(department.companies || []).map((company) => [company]),
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(workbook, ws, department.name);
-
-      // Generate Excel file
-      XLSX.writeFile(workbook, `${department.name}_Statistics.xlsx`);
-      showNotification(
-        `Successfully exported ${department.name} statistics to Excel`
-      );
-    } else if (type === "report") {
-      // Generate PDF report
-      // For now, we'll just show a notification
-      showNotification("PDF report generation will be implemented soon");
-    }
-  };
-
-  const handleAddBatch = async (batchYear) => {
+  // Add a new batch
+  const handleAddBatch = (batchYear) => {
     try {
-      const [startYear] = batchYear.split("-");
-      const isCompleted = parseInt(startYear) + 4 <= new Date().getFullYear();
+      // Parse year from format "YYYY-YYYY"
+      const [startYear, endYear] = batchYear.split("-").map(Number);
+      const isCompleted = endYear <= new Date().getFullYear();
 
-      // Create with department codes, not full names
+      // Create a new batch with empty department data
       const newBatch = {
         id: batchYear,
         year: batchYear,
@@ -853,53 +652,67 @@ const Batches = () => {
           name: deptCode,
           totalStudents: 0,
           placed: 0,
-          placedSoFar: 0,
           averagePackage: "0 LPA",
           highestPackage: "0 LPA",
           companies: [],
-          ongoingPlacements: !isCompleted,
         })),
       };
 
-      setBatches((prev) => [...prev, newBatch]);
+      // Add to state
+      setBatches((prev) => [
+        newBatch,
+        ...prev.sort((a, b) => {
+          const yearA = parseInt(a.year.split("-")[0]);
+          const yearB = parseInt(b.year.split("-")[0]);
+          return yearB - yearA;
+        }),
+      ]);
+
       showNotification(`Successfully added batch ${batchYear}`);
     } catch (error) {
-      showNotification("Failed to add batch. Please try again.", "error");
+      console.error("Error adding batch:", error);
+      setNotification({ message: "Failed to add batch", type: "error" });
     }
   };
 
-  const filteredBatches = batches
-    .filter(
-      (batch) =>
-        batch.year.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (selectedDepartment === "All Departments" ||
-          batch.departments.some(
-            (dept) =>
-              dept.name === selectedDepartment ||
-              dept.name === departmentCodeFromName[selectedDepartment] ||
-              departmentMapping[dept.name] === selectedDepartment
-          ))
-    )
-    .sort((a, b) => b.year.localeCompare(a.year));
+  // Filter batches based on search and department selection
+  const filteredBatches = batches.filter((batch) => {
+    // Filter by search term
+    const matchesSearch = batch.year
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    // Filter by department
+    const matchesDepartment =
+      selectedDepartment === "All Departments" ||
+      batch.departments.some(
+        (dept) =>
+          dept.name === departmentCodeFromName[selectedDepartment] ||
+          departmentMapping[dept.name] === selectedDepartment
+      );
+
+    return matchesSearch && matchesDepartment;
+  });
 
   if (loading) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex h-screen w-full bg-gray-50 items-center justify-center">
+      <AdminLayout>
+        <div className="flex h-full w-full items-center justify-center">
           <div className="text-xl text-gray-600">Loading batch data...</div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-center">
-          <div className="text-xl text-red-600">{error}</div>
+      <AdminLayout>
+        <div className="flex justify-center items-center h-full">
+          <div className="text-center">
+            <div className="text-xl text-red-600">{error}</div>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -968,8 +781,6 @@ const Batches = () => {
                 <BatchCard
                   key={batch.id}
                   batch={batch}
-                  onDownload={handleDownload}
-                  selectedDepartment={selectedDepartment}
                   showNotification={showNotification}
                 />
               ))
@@ -979,15 +790,6 @@ const Batches = () => {
               </div>
             )}
           </div>
-
-          <DownloadModal
-            isOpen={downloadModal.open}
-            onClose={() =>
-              setDownloadModal({ open: false, type: null, department: null })
-            }
-            type={downloadModal.type}
-            department={downloadModal.department}
-          />
 
           <AddBatchModal
             isOpen={addBatchModal}

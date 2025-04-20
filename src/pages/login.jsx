@@ -130,20 +130,24 @@ const LoginForm = () => {
         <div className="w-1/2 bg-blue-50 flex flex-col items-center justify-center p-8">
           <div className="mb-6">
             {/* Replace with your actual college logo */}
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/en/6/6f/Cochin_University_of_Science_and_Technology_Logo.png" 
-              alt="College Logo" 
+            <img
+              src="https://upload.wikimedia.org/wikipedia/en/6/6f/Cochin_University_of_Science_and_Technology_Logo.png"
+              alt="College Logo"
               className="w-40 h-40 object-contain"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 text-center">Cochin University of Science and Tecnology</h1>
+          <h1 className="text-2xl font-bold text-gray-800 text-center">
+            Cochin University of Science and Tecnology
+          </h1>
         </div>
 
         {/* Right Side - Login Form */}
         <div className="w-1/2 p-8">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="mt-1 text-sm text-gray-600">Sign in to your account</p>
+            <p className="mt-1 text-sm text-gray-600">
+              Sign in to your account
+            </p>
           </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>
@@ -234,6 +238,7 @@ const LoginForm = () => {
               <button
                 type="button"
                 className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                onClick={() => navigate("/forgot-password")}
               >
                 Forgot password?
               </button>

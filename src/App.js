@@ -6,6 +6,7 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import StudentSignUpForm from "./pages/signup-student";
 import AdminSignUpForm from "./pages/signup-admin";
 import SignInForm from "./pages/login";
+import ForgotPassword from "./pages/ForgotPassword";
 
 import Admin from "./pages/admin";
 import ManageCompanies from "./components/admin/ManageCompanies";
@@ -35,6 +36,7 @@ function App() {
           <Route path="/" element={<SignInForm />} />
           <Route path="/Student-SignUp" element={<StudentSignUpForm />} />
           <Route path="/Admin-SignUp" element={<AdminSignUpForm />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Admin routes */}
           <Route

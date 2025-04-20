@@ -37,6 +37,8 @@ const Profile = require("./model/profileSchema");
 const Quiz = require("./model/quizSchema");
 const quizRoutes = require("./routes/quizRoutes");
 const resumeRoutes = require("./routes/resumeRoutes");
+const forgotPasswordRoutes = require("./routes/student");
+const adminForgotPasswordRoutes = require("./routes/admin");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -112,6 +114,10 @@ app.use("/api/quiz", quizRoutes);
 
 // Include resume routes
 app.use("/api/resume", resumeRoutes);
+
+// Include forgot password routes
+app.use("/api/student", forgotPasswordRoutes);
+app.use("/api/admin", adminForgotPasswordRoutes);
 
 // **Passport Local Strategy for Admin**
 passport.use("admin", adminInfo.createStrategy());
