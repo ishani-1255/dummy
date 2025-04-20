@@ -86,7 +86,7 @@ const initialApplications = [
     jobTitle: "Software Developer Intern",
     company: "Tech Solutions Inc",
     location: "San Francisco, CA",
-    salary: "$5000/month",
+    salary: "₹5000/month",
     applicationDate: "2024-02-10",
     interviewDate: "2024-02-25",
     status: "Offered",
@@ -100,7 +100,7 @@ const initialApplications = [
     jobTitle: "Data Analyst",
     company: "Analytics Corp",
     location: "Boston, MA",
-    salary: "$4500/month",
+    salary: "₹4500/month",
     applicationDate: "2024-02-15",
     interviewDate: "2024-03-01",
     status: "Interview Scheduled",
@@ -115,7 +115,7 @@ const initialApplications = [
     jobTitle: "UX/UI Designer",
     company: "Creative Designs Ltd",
     location: "New York, NY",
-    salary: "$4800/month",
+    salary: "₹4800/month",
     applicationDate: "2024-01-28",
     interviewDate: "2024-02-15",
     status: "Rejected",
@@ -129,7 +129,7 @@ const initialApplications = [
     jobTitle: "Machine Learning Engineer",
     company: "AI Innovations",
     location: "Seattle, WA",
-    salary: "$6000/month",
+    salary: "₹6000/month",
     applicationDate: "2024-02-20",
     interviewDate: null,
     status: "Applied",
@@ -143,7 +143,7 @@ const initialApplications = [
     jobTitle: "Backend Developer",
     company: "Cloud Systems Inc",
     location: "Austin, TX",
-    salary: "$5500/month",
+    salary: "₹5500/month",
     applicationDate: "2024-02-05",
     interviewDate: "2024-02-18",
     status: "Interviewed",
@@ -158,7 +158,7 @@ const initialApplications = [
     jobTitle: "DevOps Engineer",
     company: "Deployment Solutions",
     location: "Denver, CO",
-    salary: "$5800/month",
+    salary: "₹5800/month",
     applicationDate: "2024-01-15",
     interviewDate: "2024-02-10",
     status: "Accepted",
@@ -173,7 +173,7 @@ const initialApplications = [
     jobTitle: "Mobile App Developer",
     company: "App Creators LLC",
     location: "Chicago, IL",
-    salary: "$5200/month",
+    salary: "₹5200/month",
     applicationDate: "2024-02-12",
     interviewDate: null,
     status: "Under Review",
@@ -185,8 +185,138 @@ const initialApplications = [
 ];
 
 // Application Detail Modal Component
-const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
+const ApplicationDetailModal = ({
+  isOpen,
+  onClose,
+  application,
+  onUpdateStatus,
+}) => {
   if (!isOpen || !application) return null;
+
+  const handleAcceptOffer = async () => {
+    try {
+      console.log("Accepting offer for application:", application);
+
+      // Use id instead of _id, as the sample data might use either format
+      const applicationId = application._id || application.id;
+
+      if (!applicationId) {
+        console.error("No application ID found:", application);
+        alert("Error: Application ID not found");
+        return;
+      }
+
+      console.log("Calling API with application ID:", applicationId);
+
+      // Show loading state to user
+      const loadingMessage = "Processing your acceptance...";
+      alert(loadingMessage);
+
+      // Call API to update application status to "Accepted"
+      const response = await axios.put(
+        `http://localhost:6400/api/student/applications/${applicationId}/accept`,
+        {},
+        {
+          withCredentials: true,
+          timeout: 10000, // Add a 10-second timeout
+        }
+      );
+
+      console.log("API response:", response.data);
+
+      // Update the local application state
+      onUpdateStatus({
+        ...application,
+        status: "Accepted",
+      });
+
+      alert("You have successfully accepted the offer!");
+    } catch (error) {
+      console.error("Error accepting offer:", error);
+
+      let errorMessage = "Failed to accept offer.";
+
+      // Try to extract a more specific error message
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(
+        `Error: ${errorMessage} Please try again or contact support if the issue persists.`
+      );
+    }
+  };
+
+  const handleDeclineOffer = async () => {
+    try {
+      // Confirm with the user before proceeding
+      if (
+        !window.confirm(
+          "Are you sure you want to decline this offer? This action cannot be undone."
+        )
+      ) {
+        return;
+      }
+
+      console.log("Declining offer for application:", application);
+
+      // Use id instead of _id, as the sample data might use either format
+      const applicationId = application._id || application.id;
+
+      if (!applicationId) {
+        console.error("No application ID found:", application);
+        alert("Error: Application ID not found");
+        return;
+      }
+
+      console.log("Calling API with application ID:", applicationId);
+
+      // Show loading state to user
+      const loadingMessage = "Processing your decline request...";
+      alert(loadingMessage);
+
+      // Call API to update application status to "Declined"
+      const response = await axios.put(
+        `http://localhost:6400/api/student/applications/${applicationId}/decline`,
+        {},
+        {
+          withCredentials: true,
+          timeout: 10000, // Add a 10-second timeout
+        }
+      );
+
+      console.log("API response:", response.data);
+
+      // Update the local application state
+      onUpdateStatus({
+        ...application,
+        status: "Declined",
+      });
+
+      alert("You have declined the offer.");
+    } catch (error) {
+      console.error("Error declining offer:", error);
+
+      let errorMessage = "Failed to decline offer.";
+
+      // Try to extract a more specific error message
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(
+        `Error: ${errorMessage} Please try again or contact support if the issue persists.`
+      );
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -263,6 +393,24 @@ const ApplicationDetailModal = ({ isOpen, onClose, application }) => {
                       </span>
                     </div>
                   )}
+                {application.status === "Offered" && (
+                  <div className="mt-3 flex flex-col space-y-2">
+                    <button
+                      onClick={handleAcceptOffer}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center justify-center"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Accept Offer
+                    </button>
+                    <button
+                      onClick={handleDeclineOffer}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md flex items-center justify-center"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Decline Offer
+                    </button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -471,6 +619,15 @@ const MyApplications = () => {
   const handleViewDetails = (application) => {
     setSelectedApplication(application);
     setIsDetailModalOpen(true);
+  };
+
+  const handleUpdateApplicationStatus = (updatedApplication) => {
+    setApplications(
+      applications.map((app) =>
+        app._id === updatedApplication._id ? updatedApplication : app
+      )
+    );
+    setSelectedApplication(updatedApplication);
   };
 
   if (loading) {
@@ -820,6 +977,7 @@ const MyApplications = () => {
           setSelectedApplication(null);
         }}
         application={selectedApplication}
+        onUpdateStatus={handleUpdateApplicationStatus}
       />
     </div>
   );

@@ -96,7 +96,16 @@ const studentSchema = new mongoose.Schema({
 // Apply the passport-local-mongoose plugin to the schema
 studentSchema.plugin(passportLocalMongoose);
 
-// Create the Mongoose model
+// Create the Mongoose model using the same name that was used when creating existing accounts
+// This maintains backward compatibility with any existing data
 const sfe = mongoose.model("Safety", studentSchema);
+
+// Also export the model registered with the SFE name for new code
+try {
+  // This may fail if the model is already registered
+  mongoose.model("SFE", studentSchema);
+} catch (err) {
+  console.log("SFE model already registered");
+}
 
 module.exports = sfe;

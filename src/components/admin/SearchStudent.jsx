@@ -9,6 +9,7 @@ import {
   X,
   Download,
   Info,
+  FileText,
 } from "lucide-react";
 import axios from "axios";
 import * as XLSX from "xlsx";
@@ -46,120 +47,11 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:6400";
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true; // Ensures cookies are sent with requests
 
-// Add a simplified dialog component before the main PlacementDetailsDialog component
-const SimplePlacementInfoDialog = ({
+// Application details dialog component
+const ApplicationDetailsDialog = ({
   isOpen,
   onClose,
-  student,
-  onViewMoreDetails,
-}) => {
-  if (!isOpen) return null;
-
-  // Function to safely format dates
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-
-    try {
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return "N/A";
-      return date.toLocaleDateString();
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "N/A";
-    }
-  };
-
-  // Function to safely get company name
-  const getCompanyName = () => {
-    if (!student?.placementCompany) return "N/A";
-
-    // If placementCompany is an object with a name property
-    if (
-      typeof student.placementCompany === "object" &&
-      student.placementCompany?.name
-    ) {
-      return student.placementCompany.name;
-    }
-
-    // If it's just a string (company name directly)
-    return student.placementCompany.toString();
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg">
-            Placement Status - {student?.name}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Status</p>
-              <p
-                className={`font-medium ${
-                  student?.isPlaced ? "text-green-600" : "text-yellow-600"
-                }`}
-              >
-                {student?.isPlaced ? "Placed" : "Not Placed"}
-              </p>
-            </div>
-
-            {student?.isPlaced && (
-              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                Placed
-              </div>
-            )}
-          </div>
-
-          {student?.isPlaced && (
-            <div className="space-y-2 mb-4">
-              <div>
-                <p className="text-sm text-gray-500">Company</p>
-                <p className="font-medium">{getCompanyName()}</p>
-              </div>
-
-              {student.placementPackage && (
-                <div>
-                  <p className="text-sm text-gray-500">Package</p>
-                  <p className="font-medium">₹{student.placementPackage} LPA</p>
-                </div>
-              )}
-
-              {student.placementDate && (
-                <div>
-                  <p className="text-sm text-gray-500">Placement Date</p>
-                  <p className="font-medium">
-                    {formatDate(student.placementDate)}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <Button
-            className="w-full mt-2"
-            onClick={(e) => {
-              e.preventDefault();
-              onViewMoreDetails();
-            }}
-          >
-            View Application History
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Update the PlacementDetailsDialog title and layout
-const PlacementDetailsDialog = ({
-  isOpen,
-  onClose,
-  placementInfo,
+  applicationInfo,
   studentName,
 }) => {
   if (!isOpen) return null;
@@ -192,139 +84,170 @@ const PlacementDetailsDialog = ({
     return companyData.toString();
   };
 
-  // Log placementInfo data for debugging
-  console.log("Rendering PlacementDetailsDialog with data:", placementInfo);
+  // Log applicationInfo data for debugging
+  console.log("Rendering ApplicationDetailsDialog with data:", applicationInfo);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            Complete Placement History - {studentName}
+            Complete Application History - {studentName}
           </DialogTitle>
         </DialogHeader>
 
-        {placementInfo.loading && (
+        {applicationInfo.loading && (
           <div className="p-8 text-center">
             <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-            <p className="mt-4">Loading placement information...</p>
+            <p className="mt-4">Loading application information...</p>
           </div>
         )}
 
-        {placementInfo.error && (
+        {applicationInfo.error && (
           <div className="p-6 bg-red-50 text-red-700 rounded-md">
             <AlertCircle className="h-6 w-6 mb-2" />
-            <p>{placementInfo.error}</p>
+            <p>{applicationInfo.error}</p>
           </div>
         )}
 
-        {placementInfo.data && (
+        {applicationInfo.data && (
           <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="text-lg font-medium mb-4 flex items-center">
-                <span className="mr-2">Current Placement Status</span>
-                {placementInfo.data.isPlaced && (
-                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Placed
-                  </span>
-                )}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-500 text-sm mb-1">Status</p>
-                  <p
-                    className={`font-medium ${
-                      placementInfo.data.isPlaced
-                        ? "text-green-600"
-                        : "text-yellow-600"
-                    }`}
-                  >
-                    {placementInfo.data.isPlaced ? "Placed" : "Not Placed"}
-                  </p>
-                </div>
-
-                {placementInfo.data.isPlaced && (
-                  <>
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">Company</p>
-                      <p className="font-medium">
-                        {getCompanyName(placementInfo.data.placementCompany)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">Package</p>
-                      <p className="font-medium">
-                        {placementInfo.data.placementPackage
-                          ? `₹${placementInfo.data.placementPackage} LPA`
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">
-                        Placement Date
-                      </p>
-                      <p className="font-medium">
-                        {formatDate(placementInfo.data.placementDate)}
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium mb-4">
                 Detailed Application History
               </h3>
-              {placementInfo.applications &&
-              placementInfo.applications.length > 0 ? (
-                <div className="border rounded-md overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Company</TableHead>
-                        <TableHead>Application Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Package (if offered)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {placementInfo.applications.map((application) => (
-                        <TableRow
-                          key={application._id || Math.random().toString()}
-                        >
-                          <TableCell className="font-medium">
-                            {getCompanyName(application.company)}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(
-                              application.createdAt || application.appliedDate
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                application.status === "Accepted"
-                                  ? "bg-green-100 text-green-800"
-                                  : application.status === "Rejected"
-                                  ? "bg-red-100 text-red-800"
-                                  : application.status === "Offered"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {application.status || "Applied"}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {application.packageOffered
-                              ? `₹${application.packageOffered} LPA`
-                              : "N/A"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              {applicationInfo.applications &&
+              applicationInfo.applications.length > 0 ? (
+                <div className="space-y-6">
+                  {applicationInfo.applications.map((application, index) => (
+                    <div
+                      key={application._id || `app-${index}`}
+                      className="border rounded-md overflow-hidden"
+                    >
+                      <div className="bg-gray-50 p-4 border-b">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1">
+                            <h4 className="font-semibold text-lg">
+                              {getCompanyName(application.company)}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              Applied on:{" "}
+                              {formatDate(
+                                application.createdAt || application.appliedDate
+                              )}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm ${
+                              application.status === "Accepted"
+                                ? "bg-green-100 text-green-800"
+                                : application.status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : application.status === "Offered"
+                                ? "bg-blue-100 text-blue-800"
+                                : application.status === "Interview Scheduled"
+                                ? "bg-purple-100 text-purple-800"
+                                : application.status === "Interviewed"
+                                ? "bg-indigo-100 text-indigo-800"
+                                : application.status === "Declined"
+                                ? "bg-gray-100 text-gray-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {application.status || "Applied"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Package Details
+                            </h5>
+                            <p className="text-sm">
+                              {application.packageOffered
+                                ? `₹${application.packageOffered} LPA`
+                                : "Not applicable"}
+                            </p>
+                          </div>
+
+                          {application.interviewDate && (
+                            <div>
+                              <h5 className="font-medium text-gray-700 mb-2">
+                                Interview Date
+                              </h5>
+                              <p className="text-sm">
+                                {formatDate(application.interviewDate)}
+                              </p>
+                            </div>
+                          )}
+
+                          {application.responseDate && (
+                            <div>
+                              <h5 className="font-medium text-gray-700 mb-2">
+                                Response Date
+                              </h5>
+                              <p className="text-sm">
+                                {formatDate(application.responseDate)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {application.resume && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Resume
+                            </h5>
+                            <div className="p-3 bg-gray-50 rounded-md text-sm">
+                              <a
+                                href={application.resume}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <FileText className="h-4 w-4 mr-2" />
+                                View Resume
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {application.coverLetter && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Cover Letter
+                            </h5>
+                            <div className="p-3 bg-gray-50 rounded-md text-sm whitespace-pre-line">
+                              {application.coverLetter}
+                            </div>
+                          </div>
+                        )}
+
+                        {application.additionalInfo && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Additional Information
+                            </h5>
+                            <div className="p-3 bg-gray-50 rounded-md text-sm whitespace-pre-line">
+                              {application.additionalInfo}
+                            </div>
+                          </div>
+                        )}
+
+                        {application.feedback && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-gray-700 mb-2">
+                              Feedback
+                            </h5>
+                            <div className="p-3 bg-gray-50 rounded-md text-sm whitespace-pre-line">
+                              {application.feedback}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center p-8 bg-gray-50 rounded-md">
@@ -358,15 +281,14 @@ const EnhancedStudentSearch = () => {
     batch: "all",
   });
 
-  const [placementInfo, setPlacementInfo] = useState({
+  const [applicationInfo, setApplicationInfo] = useState({
     studentId: null,
     loading: false,
     applications: [],
   });
 
-  // Add a state for the simplified dialog
-  const [simpleDialogOpen, setSimpleDialogOpen] = useState(false);
-  const [placementDialogOpen, setPlacementDialogOpen] = useState(false);
+  // State for application dialog and selected student
+  const [applicationDialogOpen, setApplicationDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   const columnOptions = [
@@ -489,6 +411,9 @@ const EnhancedStudentSearch = () => {
                   placementCompany: student.placementCompany || null,
                   placementPackage: student.placementPackage || 0,
                   placementDate: student.placementDate || null,
+                  placementStatus:
+                    student.placementStatus ||
+                    (student.isPlaced ? "Accepted" : "Not Placed"),
                   backlog: student.backlog || 0,
                   attendance: student.attendance || 0,
                   semester: student.semester || 1,
@@ -659,7 +584,17 @@ const EnhancedStudentSearch = () => {
           filters.placementStatus === "all" ||
           (filters.placementStatus === "placed"
             ? student.isPlaced
-            : !student.isPlaced);
+            : !student.isPlaced) ||
+          student.placementStatus ===
+            {
+              applied: "Applied",
+              "under-review": "Under Review",
+              "interview-scheduled": "Interview Scheduled",
+              interviewed: "Interviewed",
+              offered: "Offered",
+              rejected: "Rejected",
+              declined: "Declined",
+            }[filters.placementStatus];
         const matchesCGPA =
           filters.cgpaRange === "all" ||
           (filters.cgpaRange === "above8.5"
@@ -825,11 +760,30 @@ const EnhancedStudentSearch = () => {
       }
 
       // Placement status filter
-      if (
-        (filters.placementStatus === "placed" && !student.isPlaced) ||
-        (filters.placementStatus === "not-placed" && student.isPlaced)
-      ) {
-        return false;
+      if (filters.placementStatus !== "all") {
+        // Handle the simple "placed" and "not-placed" for backward compatibility
+        if (filters.placementStatus === "placed" && !student.isPlaced) {
+          return false;
+        }
+        if (filters.placementStatus === "not-placed" && student.isPlaced) {
+          return false;
+        }
+
+        // Handle other status options by checking placementStatus
+        const statusMapping = {
+          applied: "Applied",
+          "under-review": "Under Review",
+          "interview-scheduled": "Interview Scheduled",
+          interviewed: "Interviewed",
+          offered: "Offered",
+          rejected: "Rejected",
+          declined: "Declined",
+        };
+
+        const targetStatus = statusMapping[filters.placementStatus];
+        if (targetStatus && student.placementStatus !== targetStatus) {
+          return false;
+        }
       }
 
       // CGPA range filter
@@ -867,23 +821,15 @@ const EnhancedStudentSearch = () => {
     });
   };
 
-  // Modify the fetchPlacementInfo function to first open the simple dialog
+  // Show application history immediately upon clicking the info button
   const handleInfoButtonClick = (student) => {
     setSelectedStudent(student);
-    setSimpleDialogOpen(true);
-  };
-
-  // Add function to handle "View More Details" button click
-  const handleViewMoreDetails = () => {
-    // Close the simple dialog
-    setSimpleDialogOpen(false);
-
-    // Fetch detailed placement info and open the detailed dialog
-    fetchPlacementInfo(selectedStudent.id, selectedStudent.department);
+    // Skip the simple dialog and fetch application history directly
+    fetchApplicationInfo(student.id, student.department);
   };
 
   // Update the fetchPlacementInfo function to handle company name properly
-  const fetchPlacementInfo = async (studentId, departmentCode) => {
+  const fetchApplicationInfo = async (studentId, departmentCode) => {
     try {
       // Find the student to get the name
       const student = departments
@@ -891,10 +837,10 @@ const EnhancedStudentSearch = () => {
         ?.students.find((s) => s.id === studentId);
 
       setSelectedStudent(student);
-      setPlacementDialogOpen(true);
+      setApplicationDialogOpen(true);
 
-      setPlacementInfo({
-        ...placementInfo,
+      setApplicationInfo({
+        ...applicationInfo,
         studentId,
         loading: true,
         error: null,
@@ -909,12 +855,12 @@ const EnhancedStudentSearch = () => {
       const applications = response.data.applications;
 
       // Log the data for debugging
-      console.log("Placement data received:", {
+      console.log("Application data received:", {
         student: studentData,
         applications,
       });
 
-      setPlacementInfo({
+      setApplicationInfo({
         studentId,
         loading: false,
         data: studentData,
@@ -922,12 +868,13 @@ const EnhancedStudentSearch = () => {
         error: null,
       });
     } catch (error) {
-      console.error("Error fetching placement details:", error);
-      setPlacementInfo({
-        ...placementInfo,
+      console.error("Error fetching application details:", error);
+      setApplicationInfo({
+        ...applicationInfo,
         loading: false,
         error:
-          error.response?.data?.message || "Failed to fetch placement details",
+          error.response?.data?.message ||
+          "Failed to fetch application details",
       });
     }
   };
@@ -1150,6 +1097,15 @@ const EnhancedStudentSearch = () => {
                   }
                 >
                   <option value="all">All Placement Status</option>
+                  <option value="applied">Applied</option>
+                  <option value="under-review">Under Review</option>
+                  <option value="interview-scheduled">
+                    Interview Scheduled
+                  </option>
+                  <option value="interviewed">Interviewed</option>
+                  <option value="offered">Offered</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="declined">Declined</option>
                   <option value="placed">Placed</option>
                   <option value="not-placed">Not Placed</option>
                 </select>
@@ -1315,6 +1271,7 @@ const EnhancedStudentSearch = () => {
                                         e.stopPropagation();
                                         handleInfoButtonClick(student);
                                       }}
+                                      title="View application history"
                                     />
                                   </div>
                                 </TableCell>
@@ -1681,6 +1638,7 @@ const EnhancedStudentSearch = () => {
                                 e.stopPropagation();
                                 handleInfoButtonClick(student);
                               }}
+                              title="View application history"
                             />
                           </div>
                         </td>
@@ -1829,15 +1787,16 @@ const EnhancedStudentSearch = () => {
                                     </DialogTitle>
                                   </DialogHeader>
                                   <div className="mt-4">
-                                    {placementInfo.loading ? (
+                                    {applicationInfo.loading ? (
                                       <div className="text-center py-4">
                                         <p>Loading application history...</p>
                                       </div>
-                                    ) : placementInfo.studentId ===
+                                    ) : applicationInfo.studentId ===
                                         student.id &&
-                                      placementInfo.applications.length > 0 ? (
+                                      applicationInfo.applications.length >
+                                        0 ? (
                                       <div className="space-y-4">
-                                        {placementInfo.applications.map(
+                                        {applicationInfo.applications.map(
                                           (app, index) => (
                                             <div
                                               key={index}
@@ -1993,18 +1952,11 @@ const EnhancedStudentSearch = () => {
             ))}
           </div>
 
-          {/* Add both dialogs at the end of the return statement */}
-          <SimplePlacementInfoDialog
-            isOpen={simpleDialogOpen}
-            onClose={() => setSimpleDialogOpen(false)}
-            student={selectedStudent}
-            onViewMoreDetails={handleViewMoreDetails}
-          />
-
-          <PlacementDetailsDialog
-            isOpen={placementDialogOpen}
-            onClose={() => setPlacementDialogOpen(false)}
-            placementInfo={placementInfo}
+          {/* Only keep the ApplicationDetailsDialog */}
+          <ApplicationDetailsDialog
+            isOpen={applicationDialogOpen}
+            onClose={() => setApplicationDialogOpen(false)}
+            applicationInfo={applicationInfo}
             studentName={selectedStudent?.name || "Student"}
           />
         </div>

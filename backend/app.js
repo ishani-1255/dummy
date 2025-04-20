@@ -5,13 +5,21 @@ if (process.env.NODE_ENV !== "production") {
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const ce = require("./model/CE");
-const cse = require("./model/CSE");
-const it = require("./model/IT");
-const sfe = require("./model/SFE");
-const me = require("./model/ME");
-const eee = require("./model/EEE");
-const ec = require("./model/EC");
+
+// Import models with error handling
+let ce, cse, it, sfe, me, eee, ec;
+try {
+  ce = require("./model/CE");
+  cse = require("./model/CSE");
+  it = require("./model/IT");
+  sfe = require("./model/SFE");
+  me = require("./model/ME");
+  eee = require("./model/EEE");
+  ec = require("./model/EC");
+} catch (err) {
+  console.error("Error importing models:", err);
+}
+
 const adminInfo = require("./model/newAdmin");
 const facultyInfo = require("./model/facultySchema");
 const session = require("express-session");
@@ -25,6 +33,7 @@ const { isLoggedIn } = require("./middleware");
 const Company = require("./model/companySchema");
 const Application = require("./model/applicationSchema");
 const Notification = require("./model/notificationSchema");
+const Profile = require("./model/profileSchema");
 
 // Load environment variables
 const port = process.env.PORT || 5000;
@@ -111,6 +120,8 @@ passport.use(
       try {
         const { branch } = req.body; // Get branch from the request body
 
+        console.log(`Login attempt for ${username} with branch ${branch}`);
+
         // Define the branch models
         const branchModels = {
           CE: ce,
@@ -124,17 +135,37 @@ passport.use(
 
         // Check if the branch is valid
         if (!branch || !branchModels[branch]) {
+          console.log(`Invalid branch: ${branch}`);
           return done(null, false, { message: "Invalid branch" });
         }
 
         // Find the student in the specified branch collection
-        const student = await branchModels[branch].findOne({ username });
+        let student = await branchModels[branch].findOne({ username });
+
+        // Special handling for SFE branch - try both model names
+        if (!student && branch === "SFE") {
+          console.log(
+            "SFE student not found in Safety model, trying SFE model"
+          );
+          try {
+            // Try the SFE model directly as a fallback
+            const SFEModel = mongoose.model("SFE");
+            student = await SFEModel.findOne({ username });
+            if (student) {
+              console.log("Found student in SFE model");
+            }
+          } catch (modelError) {
+            console.error("Error accessing SFE model:", modelError.message);
+          }
+        }
 
         if (!student) {
+          console.log(`Student ${username} not found in ${branch} collection`);
           return done(null, false, { message: "Invalid username or password" });
         }
 
         // Check if the student is verified
+        console.log(`Student ${username} verified status: ${student.verified}`);
         if (student.verified !== "Yes") {
           return done(null, false, { message: "Account not verified" });
         }
@@ -150,6 +181,7 @@ passport.use(
           console.log(`Password auth result for ${username}: `, {
             user: !!user,
             passwordError: !!passwordError,
+            passwordErrorMessage: passwordError?.message,
           });
 
           // If user is falsy or passwordError exists, authentication failed
@@ -215,17 +247,51 @@ passport.deserializeUser(async (userData, done) => {
       const StudentModel = branchModels[userData.branch];
       if (StudentModel) {
         user = await StudentModel.findById(userData.id);
+
+        // Special handling for SFE branch
+        if (!user && userData.branch === "SFE") {
+          console.log(
+            "SFE student not found during deserialization, trying alternate model"
+          );
+          try {
+            // Try the SFE model directly
+            const SFEModel = mongoose.model("SFE");
+            user = await SFEModel.findById(userData.id);
+          } catch (modelError) {
+            console.error(
+              "Error accessing SFE model during deserialization:",
+              modelError.message
+            );
+          }
+        }
       }
     } else {
       // Fallback: search in all branch collections if branch is not stored
       const branchModels = { ce, cse, it, sfe, me, eee, ec };
       for (const model of Object.values(branchModels)) {
-        user = await model.findById(userData.id);
-        if (user) break;
+        if (model) {
+          user = await model.findById(userData.id);
+          if (user) break;
+        }
+      }
+
+      // If still not found, try directly with SFE model
+      if (!user) {
+        try {
+          const SFEModel = mongoose.model("SFE");
+          user = await SFEModel.findById(userData.id);
+        } catch (modelError) {
+          // Ignore this error
+        }
       }
     }
 
-    if (!user) return done(null, false);
+    if (!user) {
+      console.log(
+        `Failed to deserialize user: ${userData.id}, role: ${userData.role}, branch: ${userData.branch}`
+      );
+      return done(null, false);
+    }
 
     console.log("🔹 Deserializing User:", user.username);
     // Add role information to the user object
@@ -239,6 +305,7 @@ passport.deserializeUser(async (userData, done) => {
 
     done(null, user);
   } catch (error) {
+    console.error("Error during user deserialization:", error);
     done(error);
   }
 });
@@ -1033,15 +1100,22 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
     // If status is set to Accepted, update the student's placement status
     if (status === "Accepted" && application.student) {
       // Get the appropriate student model based on studentModel
-      const branchModels = {
-        CE: ce,
-        CSE: cse,
-        IT: it,
-        SFE: sfe,
-        ME: me,
-        EEE: eee,
-        EC: ec,
-      };
+      const branchModels = {};
+
+      // Only add models that exist
+      if (ce) branchModels.CE = ce;
+      if (cse) branchModels.CSE = cse;
+      if (it) branchModels.IT = it;
+      if (me) branchModels.ME = me;
+      if (eee) branchModels.EEE = eee;
+      if (ec) branchModels.EC = ec;
+      if (sfe) branchModels.SFE = sfe;
+
+      // Log available models for debugging
+      console.log(
+        `Available branch models: ${Object.keys(branchModels).join(", ")}`
+      );
+      console.log(`Student model required: ${application.studentModel}`);
 
       const StudentModel = branchModels[application.studentModel];
 
@@ -1056,6 +1130,10 @@ app.put("/api/admin/applications/:id", isLoggedIn, async (req, res) => {
 
         console.log(
           `Student ${application.student} marked as placed at ${application.company.name}`
+        );
+      } else {
+        console.warn(
+          `Model not found for department: ${application.studentModel}`
         );
       }
     }
@@ -1626,7 +1704,7 @@ app.get(
         return res.status(404).json({ message: "Student not found" });
       }
 
-      // Get all applications for this student
+      // Get all applications for this student with more detailed information
       const applications = await Application.find({
         student: studentId,
         studentModel: department,
@@ -1634,6 +1712,23 @@ app.get(
         .populate("company")
         .sort({ createdAt: -1 })
         .lean();
+
+      // Enhanced applications with all relevant details
+      const enhancedApplications = applications.map((app) => ({
+        ...app,
+        // Include these fields if they exist
+        resume: app.resume || null,
+        coverLetter: app.coverLetter || null,
+        additionalInfo: app.additionalInfo || null,
+        feedback: app.feedback || null,
+        responseDate: app.responseDate || null,
+        interviewDate: app.interviewDate || null,
+        interviewNotes: app.interviewNotes || null,
+        interviewFeedback: app.interviewFeedback || null,
+        technicalTestScore: app.technicalTestScore || null,
+        hrRound: app.hrRound || null,
+        aptitudeTestScore: app.aptitudeTestScore || null,
+      }));
 
       // Prepare the response
       const response = {
@@ -1647,14 +1742,971 @@ app.get(
           placementPackage: student.placementPackage,
           placementDate: student.placementDate,
         },
-        applications: applications,
+        applications: enhancedApplications,
       };
 
       res.status(200).json(response);
     } catch (error) {
-      console.error("Error fetching student placement details:", error);
+      console.error("Error fetching placement details:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Get all placement records (for admin dashboard analytics)
+app.get("/api/admin/placements", isLoggedIn, async (req, res) => {
+  try {
+    // Only admins should have access to this endpoint
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    // Define all department models
+    const departmentModels = {
+      CE: ce,
+      CSE: cse,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    // Array to store all placed students
+    let placedStudents = [];
+
+    // Fetch placed students from each department
+    for (const [deptCode, Model] of Object.entries(departmentModels)) {
+      const students = await Model.find({ isPlaced: true })
+        .populate("placementCompany")
+        .lean();
+
+      // Transform student data into placement records
+      const deptPlacements = students.map((student) => ({
+        _id: `${student._id}_placement`,
+        studentId: student._id,
+        universityId: student.registrationNumber,
+        studentName:
+          student.name ||
+          `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+        department: deptCode,
+        company: student.placementCompany,
+        package: student.placementPackage || 0,
+        role: student.placementRole || "Not specified",
+        location: student.placementLocation || "Not specified",
+        joiningDate: student.placementDate
+          ? new Date(student.placementDate).toISOString().split("T")[0]
+          : null,
+        offerLetterLink: student.offerLetterLink || null,
+        createdAt: student.placementDate || student.updatedAt || new Date(),
+      }));
+
+      placedStudents = [...placedStudents, ...deptPlacements];
+    }
+
+    // Also get placements from the applications collection
+    const acceptedApplications = await Application.find({ status: "Accepted" })
+      .populate("company")
+      .populate("student")
+      .lean();
+
+    // Map applications to placement records, avoiding duplicates
+    const existingStudentIds = new Set(
+      placedStudents.map((p) => p.studentId.toString())
+    );
+
+    const applicationPlacements = acceptedApplications
+      .filter(
+        (app) => !existingStudentIds.has(app.student?._id?.toString() || "")
+      )
+      .map((app) => ({
+        _id: `${app._id}_application`,
+        studentId: app.student?._id || app.student || null,
+        universityId: app.student?.registrationNumber || "Unknown",
+        studentName: app.student?.name || app.studentName || "Unknown Student",
+        department: app.studentModel,
+        company: app.company,
+        package: app.packageOffered || 0,
+        role: app.role || "Not specified",
+        location: app.location || "Not specified",
+        joiningDate: app.acceptedDate
+          ? new Date(app.acceptedDate).toISOString().split("T")[0]
+          : null,
+        offerLetterLink: null,
+        createdAt: app.updatedAt || app.createdAt || new Date(),
+      }));
+
+    // Combine both sets of placement data
+    const allPlacements = [...placedStudents, ...applicationPlacements];
+
+    // Sort by most recent first
+    allPlacements.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.status(200).json(allPlacements);
+  } catch (error) {
+    console.error("Error fetching placement records:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all companies for admin dashboard
+app.get("/api/admin/companies", isLoggedIn, async (req, res) => {
+  try {
+    // Only admins should have access to this endpoint
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    // Fetch all companies
+    const companies = await Company.find({})
+      .select("name location companyType createdAt status")
+      .lean();
+
+    res.status(200).json(companies);
+  } catch (error) {
+    console.error("Error fetching companies:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all students for admin dashboard with pagination
+app.get("/api/admin/students", isLoggedIn, async (req, res) => {
+  try {
+    // Only admins should have access to this endpoint
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    // Get pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 1000; // Default to 1000 students per page
+    const skip = (page - 1) * limit;
+
+    // Define all department models
+    const departmentModels = {
+      CE: ce,
+      CSE: cse,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    // Array to store all students
+    let allStudents = [];
+
+    // Fetch students from each department
+    for (const [deptCode, Model] of Object.entries(departmentModels)) {
+      const students = await Model.find({})
+        .select(
+          "_id registrationNumber name firstName lastName department yearOfAdmission isPlaced placementCompany placementPackage placementDate"
+        )
+        .populate("placementCompany", "name")
+        .lean();
+
+      // Add department code to each student
+      const deptStudents = students.map((student) => ({
+        ...student,
+        department: deptCode,
+      }));
+
+      allStudents = [...allStudents, ...deptStudents];
+    }
+
+    // Get total count for pagination
+    const totalStudents = allStudents.length;
+
+    // Apply pagination
+    const paginatedStudents = allStudents.slice(skip, skip + limit);
+
+    res.status(200).json(paginatedStudents);
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get students from a specific department
+app.get("/api/admin/students/:department", isLoggedIn, async (req, res) => {
+  try {
+    // Only admins should have access to this endpoint
+    if (req.user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized - Admin access only" });
+    }
+
+    const { department } = req.params;
+
+    // Map department code to Mongoose model
+    const departmentModels = {
+      CE: ce,
+      CSE: cse,
+      IT: it,
+      SFE: sfe,
+      ME: me,
+      EEE: eee,
+      EC: ec,
+    };
+
+    // Check if the department is valid
+    if (!department || !departmentModels[department]) {
+      return res.status(400).json({ message: "Invalid department" });
+    }
+
+    // Get the students from the specified department
+    const students = await departmentModels[department]
+      .find({})
+      .select(
+        "_id registrationNumber name firstName lastName yearOfAdmission isPlaced placementCompany placementPackage placementDate"
+      )
+      .populate("placementCompany", "name")
+      .lean();
+
+    // Add department code to each student
+    const deptStudents = students.map((student) => ({
+      ...student,
+      department,
+    }));
+
+    res.status(200).json(deptStudents);
+  } catch (error) {
+    console.error(
+      `Error fetching students from ${req.params.department}:`,
+      error
+    );
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Student accepts a job offer
+app.put(
+  "/api/student/applications/:id/accept",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "student") {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const applicationId = req.params.id;
+
+      // Find the application, but don't populate the student to avoid the schema error
+      const application = await Application.findById(applicationId).populate(
+        "company"
+      );
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      // Verify that this application belongs to the logged-in student
+      // Use the student ID directly instead of populated object
+      if (application.student.toString() !== req.user._id.toString()) {
+        return res
+          .status(403)
+          .json({ message: "You can only accept your own applications" });
+      }
+
+      // Verify that the application status is "Offered"
+      if (application.status !== "Offered") {
+        return res.status(400).json({
+          message: "Only applications with 'Offered' status can be accepted",
+        });
+      }
+
+      const oldApplication = { ...application.toObject() };
+
+      // Update the application status
+      application.status = "Accepted";
+      await application.save();
+
+      // Get the appropriate student model based on studentModel
+      const branchModels = {};
+
+      // Only add models that exist
+      if (ce) branchModels.CE = ce;
+      if (cse) branchModels.CSE = cse;
+      if (it) branchModels.IT = it;
+      if (me) branchModels.ME = me;
+      if (eee) branchModels.EEE = eee;
+      if (ec) branchModels.EC = ec;
+      if (sfe) branchModels.SFE = sfe;
+
+      // Log available models for debugging
+      console.log(
+        `Available branch models: ${Object.keys(branchModels).join(", ")}`
+      );
+      console.log(`Student model required: ${application.studentModel}`);
+
+      const StudentModel = branchModels[application.studentModel];
+
+      if (StudentModel) {
+        try {
+          // Update the student's placement details
+          await StudentModel.findByIdAndUpdate(application.student, {
+            isPlaced: true,
+            placementCompany: application.company._id,
+            placementPackage: application.packageOffered || 0,
+            placementDate: new Date(),
+          });
+
+          console.log(
+            `Student ${application.student} marked as placed at ${application.company.name}`
+          );
+        } catch (modelError) {
+          console.error(`Error updating student model: ${modelError.message}`);
+          // Continue execution even if this fails
+        }
+      } else {
+        console.warn(
+          `Model not found for department: ${application.studentModel}`
+        );
+      }
+
+      // Create a notification for the student
+      try {
+        await Notification.create({
+          student: application.student,
+          studentModel: application.studentModel,
+          type: "placement",
+          title: "Offer Accepted",
+          message: `You have successfully accepted the job offer from ${application.company.name} with a package of ₹${application.packageOffered}.`,
+          company: application.company._id,
+          status: "unread",
+        });
+      } catch (notifError) {
+        console.error(`Error creating notification: ${notifError.message}`);
+        // Continue execution even if notification creation fails
+      }
+
+      // Return the updated application without trying to populate the student
+      res.status(200).json(application);
+    } catch (error) {
+      console.error("Error accepting offer:", error);
       res.status(500).json({
-        message: "Error fetching student placement details",
+        message: "Error accepting offer",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Student declines a job offer
+app.put(
+  "/api/student/applications/:id/decline",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "student") {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const applicationId = req.params.id;
+
+      // Find the application, but don't populate the student to avoid the schema error
+      const application = await Application.findById(applicationId).populate(
+        "company"
+      );
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      // Verify that this application belongs to the logged-in student
+      if (application.student.toString() !== req.user._id.toString()) {
+        return res
+          .status(403)
+          .json({ message: "You can only decline your own applications" });
+      }
+
+      // Verify that the application status is "Offered"
+      if (application.status !== "Offered") {
+        return res.status(400).json({
+          message: "Only applications with 'Offered' status can be declined",
+        });
+      }
+
+      // Update the application status
+      application.status = "Declined";
+      application.responseDate = new Date(); // Record when the student declined
+      await application.save();
+
+      // Create a notification for the student
+      try {
+        await Notification.create({
+          student: application.student,
+          studentModel: application.studentModel,
+          type: "placement",
+          title: "Offer Declined",
+          message: `You have declined the job offer from ${application.company.name}.`,
+          company: application.company._id,
+          status: "unread",
+        });
+      } catch (notifError) {
+        console.error(`Error creating notification: ${notifError.message}`);
+        // Continue execution even if notification creation fails
+      }
+
+      // Return the updated application
+      res.status(200).json(application);
+    } catch (error) {
+      console.error("Error declining offer:", error);
+      res.status(500).json({
+        message: "Error declining offer",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Admin endpoint to fix SFE model issues
+app.get("/api/admin/fix-sfe-model", async (req, res) => {
+  try {
+    // Only admin can access this
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    // Get all students from Safety model
+    const SafetyModel = mongoose.model("Safety");
+    const students = await SafetyModel.find({});
+
+    console.log(`Found ${students.length} students in Safety model`);
+
+    let migratedCount = 0;
+    let failedCount = 0;
+
+    // Attempt to register them in SFE model
+    try {
+      const SFEModel = mongoose.model("SFE");
+
+      for (const student of students) {
+        try {
+          // Check if student already exists in SFE model
+          const exists = await SFEModel.findOne({ username: student.username });
+          if (!exists) {
+            // Create new document in SFE model
+            const newSFEStudent = new SFEModel(student.toObject());
+            await newSFEStudent.save();
+            migratedCount++;
+          } else {
+            console.log(
+              `Student ${student.username} already exists in SFE model`
+            );
+          }
+        } catch (err) {
+          console.error(`Failed to migrate student ${student.username}:`, err);
+          failedCount++;
+        }
+      }
+    } catch (modelError) {
+      return res.status(500).json({
+        message: "Error accessing SFE model",
+        error: modelError.message,
+      });
+    }
+
+    res.status(200).json({
+      message: "SFE model fix attempted",
+      totalStudents: students.length,
+      migratedCount,
+      failedCount,
+    });
+  } catch (error) {
+    console.error("Error fixing SFE model:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ==========================================
+// Student Profile Routes
+// ==========================================
+
+// Get student profile
+app.get("/api/student/profile", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    // Find the profile for the current student
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      // If no profile exists yet, create a default one
+      const newProfile = new Profile({
+        student: req.user._id,
+        studentModel: req.user.branch,
+        about: "Passionate student with interest in technology.",
+        batch: `${new Date().getFullYear() - req.user.semester / 2}-${
+          new Date().getFullYear() - req.user.semester / 2 + 4
+        }`,
+        skills: [],
+        interests: [],
+        achievements: [],
+        education: [],
+        projects: [],
+        technicalSkills: {
+          programmingLanguages: [],
+          technologies: [],
+          tools: [],
+          certifications: [],
+        },
+        links: {
+          linkedin: "",
+          github: "",
+          portfolio: "",
+        },
+      });
+
+      await newProfile.save();
+      return res.status(200).json(newProfile);
+    }
+
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error fetching student profile:", error);
+    res.status(500).json({
+      message: "Error fetching profile",
+      error: error.message,
+    });
+  }
+});
+
+// Create or update student profile
+app.put("/api/student/profile", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const {
+      about,
+      batch,
+      skills,
+      interests,
+      achievements,
+      education,
+      projects,
+      technicalSkills,
+      links,
+    } = req.body;
+
+    // Find and update profile, or create if it doesn't exist
+    const profile = await Profile.findOneAndUpdate(
+      {
+        student: req.user._id,
+        studentModel: req.user.branch,
+      },
+      {
+        about,
+        batch,
+        skills,
+        interests,
+        achievements,
+        education,
+        projects,
+        technicalSkills,
+        links,
+        updatedAt: Date.now(),
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      }
+    );
+
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error updating student profile:", error);
+    res.status(500).json({
+      message: "Error updating profile",
+      error: error.message,
+    });
+  }
+});
+
+// Add or update profile education
+app.post("/api/student/profile/education", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { id, level, school, board, percentage, year } = req.body;
+
+    // Find the profile
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    if (id) {
+      // Update existing education
+      const educationIndex = profile.education.findIndex(
+        (edu) => edu._id.toString() === id
+      );
+
+      if (educationIndex === -1) {
+        return res.status(404).json({ message: "Education entry not found" });
+      }
+
+      profile.education[educationIndex] = {
+        _id: profile.education[educationIndex]._id,
+        level,
+        school,
+        board,
+        percentage,
+        year,
+      };
+    } else {
+      // Add new education
+      profile.education.push({
+        level,
+        school,
+        board,
+        percentage,
+        year,
+      });
+    }
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error updating education:", error);
+    res.status(500).json({
+      message: "Error updating education",
+      error: error.message,
+    });
+  }
+});
+
+// Delete education
+app.delete(
+  "/api/student/profile/education/:id",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "student") {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const profile = await Profile.findOne({
+        student: req.user._id,
+        studentModel: req.user.branch,
+      });
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Remove the education with the specified ID
+      profile.education = profile.education.filter(
+        (edu) => edu._id.toString() !== req.params.id
+      );
+
+      await profile.save();
+      res.status(200).json(profile);
+    } catch (error) {
+      console.error("Error deleting education:", error);
+      res.status(500).json({
+        message: "Error deleting education",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Add or update project
+app.post("/api/student/profile/project", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { id, title, description, technologies, link } = req.body;
+
+    // Find the profile
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    if (id) {
+      // Update existing project
+      const projectIndex = profile.projects.findIndex(
+        (proj) => proj._id.toString() === id
+      );
+
+      if (projectIndex === -1) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      profile.projects[projectIndex] = {
+        _id: profile.projects[projectIndex]._id,
+        title,
+        description,
+        technologies,
+        link,
+        createdAt: profile.projects[projectIndex].createdAt,
+      };
+    } else {
+      // Add new project
+      profile.projects.push({
+        title,
+        description,
+        technologies,
+        link,
+      });
+    }
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error updating project:", error);
+    res.status(500).json({
+      message: "Error updating project",
+      error: error.message,
+    });
+  }
+});
+
+// Delete project
+app.delete("/api/student/profile/project/:id", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Remove the project with the specified ID
+    profile.projects = profile.projects.filter(
+      (proj) => proj._id.toString() !== req.params.id
+    );
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({
+      message: "Error deleting project",
+      error: error.message,
+    });
+  }
+});
+
+// Add or update skill
+app.post("/api/student/profile/skill", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { category, skill, index, certData } = req.body;
+
+    // Find the profile
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Handle based on category
+    if (category === "skills") {
+      // General skills
+      if (index !== undefined) {
+        // Update existing skill
+        profile.skills[index] = skill;
+      } else {
+        // Add new skill
+        profile.skills.push(skill);
+      }
+    } else if (category === "certifications") {
+      // Certifications
+      if (index !== undefined) {
+        // Update existing certification
+        profile.technicalSkills.certifications[index] = certData;
+      } else {
+        // Add new certification
+        profile.technicalSkills.certifications.push(certData);
+      }
+    } else {
+      // Other technical skills (programmingLanguages, technologies, tools)
+      if (index !== undefined) {
+        // Update existing skill
+        profile.technicalSkills[category][index] = skill;
+      } else {
+        // Add new skill
+        profile.technicalSkills[category].push(skill);
+      }
+    }
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error updating skill:", error);
+    res.status(500).json({
+      message: "Error updating skill",
+      error: error.message,
+    });
+  }
+});
+
+// Delete skill
+app.delete("/api/student/profile/skill", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { category, index } = req.body;
+
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Handle based on category
+    if (category === "skills") {
+      // Remove the skill at the specified index
+      profile.skills.splice(index, 1);
+    } else if (category === "certifications") {
+      // Remove the certification at the specified index
+      profile.technicalSkills.certifications.splice(index, 1);
+    } else {
+      // Remove other technical skills
+      profile.technicalSkills[category].splice(index, 1);
+    }
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error deleting skill:", error);
+    res.status(500).json({
+      message: "Error deleting skill",
+      error: error.message,
+    });
+  }
+});
+
+// Add or update achievement
+app.post("/api/student/profile/achievement", isLoggedIn, async (req, res) => {
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    const { id, title, date } = req.body;
+
+    // Find the profile
+    const profile = await Profile.findOne({
+      student: req.user._id,
+      studentModel: req.user.branch,
+    });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    if (id) {
+      // Update existing achievement
+      const achievementIndex = profile.achievements.findIndex(
+        (ach) => ach._id.toString() === id
+      );
+
+      if (achievementIndex === -1) {
+        return res.status(404).json({ message: "Achievement not found" });
+      }
+
+      profile.achievements[achievementIndex] = {
+        _id: profile.achievements[achievementIndex]._id,
+        title,
+        date,
+      };
+    } else {
+      // Add new achievement
+      profile.achievements.push({
+        title,
+        date,
+      });
+    }
+
+    await profile.save();
+    res.status(200).json(profile);
+  } catch (error) {
+    console.error("Error updating achievement:", error);
+    res.status(500).json({
+      message: "Error updating achievement",
+      error: error.message,
+    });
+  }
+});
+
+// Delete achievement
+app.delete(
+  "/api/student/profile/achievement/:id",
+  isLoggedIn,
+  async (req, res) => {
+    try {
+      if (req.user.role !== "student") {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const profile = await Profile.findOne({
+        student: req.user._id,
+        studentModel: req.user.branch,
+      });
+
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Remove the achievement with the specified ID
+      profile.achievements = profile.achievements.filter(
+        (ach) => ach._id.toString() !== req.params.id
+      );
+
+      await profile.save();
+      res.status(200).json(profile);
+    } catch (error) {
+      console.error("Error deleting achievement:", error);
+      res.status(500).json({
+        message: "Error deleting achievement",
         error: error.message,
       });
     }

@@ -24,14 +24,761 @@ import {
   XCircle,
   Clock,
   Info,
+  MessageSquare,
+  DollarSign,
+  Briefcase,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import axios from "axios"; // Make sure to install axios
 
+// Status Badge Component
+const StatusBadge = ({ status }) => {
+  const statusColors = {
+    Applied: "bg-blue-100 text-blue-800",
+    "Under Review": "bg-yellow-100 text-yellow-800",
+    "Interview Scheduled": "bg-purple-100 text-purple-800",
+    Interviewed: "bg-indigo-100 text-indigo-800",
+    Offered: "bg-green-100 text-green-800",
+    Rejected: "bg-red-100 text-red-800",
+    Accepted: "bg-emerald-100 text-emerald-800",
+    Declined: "bg-gray-100 text-gray-800",
+  };
+
+  const statusIcons = {
+    Applied: <FileText className="h-4 w-4 mr-1" />,
+    "Under Review": <Search className="h-4 w-4 mr-1" />,
+    "Interview Scheduled": <Calendar className="h-4 w-4 mr-1" />,
+    Interviewed: <User className="h-4 w-4 mr-1" />,
+    Offered: <span className="mr-1">₹</span>,
+    Rejected: <XCircle className="h-4 w-4 mr-1" />,
+    Accepted: <CheckCircle className="h-4 w-4 mr-1" />,
+    Declined: <AlertTriangle className="h-4 w-4 mr-1" />,
+  };
+
+  return (
+    <span
+      className={`flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        statusColors[status] || "bg-gray-100 text-gray-800"
+      }`}
+    >
+      {statusIcons[status]}
+      {status}
+    </span>
+  );
+};
+
+// Application Modal Component
+const ApplicationModal = ({ application, isOpen, onClose, onUpdateStatus }) => {
+  const [status, setStatus] = useState(application?.status || "Applied");
+  const [feedback, setFeedback] = useState(application?.feedback || "");
+  const [packageOffered, setPackageOffered] = useState(
+    application?.packageOffered || ""
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (application) {
+      setStatus(application.status || "Applied");
+      setFeedback(application.feedback || "");
+      setPackageOffered(application.packageOffered || "");
+    }
+  }, [application]);
+
+  if (!isOpen || !application) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const updateData = { status, feedback };
+
+      // Only include package if status is Accepted or Offered
+      if (status === "Accepted" || status === "Offered") {
+        updateData.packageOffered = packageOffered;
+      }
+
+      const response = await axios.put(
+        `http://localhost:6400/api/admin/applications/${application._id}`,
+        updateData,
+        { withCredentials: true }
+      );
+
+      onUpdateStatus(response.data);
+      onClose();
+    } catch (err) {
+      console.error("Error updating application:", err);
+      setError(err.response?.data?.message || "Failed to update application");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusOptions = [
+    "Applied",
+    "Under Review",
+    "Interview Scheduled",
+    "Interviewed",
+    "Offered",
+    "Accepted",
+    "Rejected",
+    "Declined",
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg w-full max-w-2xl p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Update Application Status</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Student
+              </label>
+              <div className="p-3 border rounded-md bg-gray-50">
+                <div className="font-medium">
+                  {application.student?.name || "Unknown"}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {application.studentModel || "N/A"}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {(status === "Accepted" || status === "Offered") && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Package Offered
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g., ₹10 LPA"
+                  value={packageOffered}
+                  onChange={(e) => setPackageOffered(e.target.value)}
+                  className="pl-10 w-full p-2 border border-gray-300 rounded-md"
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <span className="text-gray-500 font-medium">₹</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Feedback
+            </label>
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md min-h-[120px]"
+              placeholder="Provide feedback for the student..."
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 border text-gray-700 rounded-md hover:bg-gray-50"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Updating..." : "Update"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Applications List Modal Component
+const ApplicationsListModal = ({ company, isOpen, onClose }) => {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Fetch applications when the modal opens
+  useEffect(() => {
+    console.log(
+      "ApplicationsListModal mounted, company:",
+      company?._id,
+      "isOpen:",
+      isOpen
+    );
+
+    const fetchData = async () => {
+      if (!company?._id) {
+        console.log("No company ID available, skipping fetch");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log("Fetching applications for company:", company?._id);
+        const response = await axios.get(
+          `http://localhost:6400/api/admin/applications/company/${company._id}`,
+          { withCredentials: true }
+        );
+        console.log(
+          "Applications fetched:",
+          response.data.length,
+          "applications"
+        );
+        console.log("First application:", response.data[0]);
+        setApplications(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+        setError("Failed to load applications");
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && company?._id) {
+      console.log("Modal is open and company ID exists, fetching data");
+      fetchData();
+    }
+  }, [company, isOpen]);
+
+  // Don't render anything if the modal is not open
+  if (!isOpen) {
+    console.log("ApplicationsListModal not rendering because isOpen is false");
+    return null;
+  }
+
+  console.log(
+    "ApplicationsListModal rendering with isOpen=true, applications count:",
+    applications.length
+  );
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const handleUpdateApplication = (updatedApp) => {
+    setApplications((apps) =>
+      apps.map((app) => (app._id === updatedApp._id ? updatedApp : app))
+    );
+  };
+
+  const openUpdateModal = (application) => {
+    console.log("Opening update modal for application:", application._id);
+    setSelectedApplication(application);
+    setApplicationModalOpen(true);
+  };
+
+  const closeUpdateModal = () => {
+    setApplicationModalOpen(false);
+    setSelectedApplication(null);
+  };
+
+  // Filter applications based on search term
+  const filteredApplications = applications.filter((app) => {
+    const studentName = app.student?.name?.toLowerCase() || "";
+    const regNumber = app.student?.registrationNumber?.toLowerCase() || "";
+    const searchLower = searchTerm.toLowerCase();
+
+    return studentName.includes(searchLower) || regNumber.includes(searchLower);
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center">
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      ></div>
+
+      <div className="relative bg-white rounded-lg w-[85%] h-[80vh] max-h-[85vh] overflow-hidden z-50 flex flex-col">
+        <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-10 shadow-sm">
+          <h2 className="text-xl font-bold flex items-center">
+            <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+            {company.name} - Applications
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Search bar */}
+        <div className="p-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search by student name or registration number..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 p-6 overflow-auto">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
+              <p className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                {error}
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="mt-4 text-gray-500">Loading applications...</p>
+            </div>
+          ) : filteredApplications.length === 0 ? (
+            <div className="text-center p-8 bg-gray-50 rounded-lg">
+              <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">
+                {searchTerm
+                  ? "No matching applications found"
+                  : "No applications yet"}
+              </h3>
+              <p className="mt-2 text-gray-500">
+                {searchTerm
+                  ? "Try a different search term"
+                  : "No students have applied to this company yet."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto border-collapse">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Department
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Applied Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Package
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Feedback
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredApplications.map((application) => (
+                    <tr key={application._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            {application.student?.name?.charAt(0) || "U"}
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {application.student?.name || "Unknown"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {application.student?.registrationNumber || "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.studentModel || "N/A"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(application.appliedDate)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <StatusBadge status={application.status || "Applied"} />
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.packageOffered || "-"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        <div className="max-w-[250px] truncate">
+                          {application.feedback || "No feedback yet"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => openUpdateModal(application)}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-md font-medium"
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Update
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Application Update Modal */}
+      {applicationModalOpen && selectedApplication && (
+        <ApplicationModal
+          application={selectedApplication}
+          isOpen={applicationModalOpen}
+          onClose={closeUpdateModal}
+          onUpdateStatus={handleUpdateApplication}
+        />
+      )}
+    </div>
+  );
+};
+
+// Offers Status Modal Component
+const OffersStatusModal = ({ company, isOpen, onClose }) => {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all"); // all, accepted, pending, declined
+
+  // Fetch applications when the modal opens
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!company?._id) return;
+
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `http://localhost:6400/api/admin/applications/company/${company._id}`,
+          { withCredentials: true }
+        );
+        setApplications(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+        setError("Failed to load applications");
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && company?._id) {
+      fetchData();
+    }
+  }, [company, isOpen]);
+
+  // Don't render anything if the modal is not open
+  if (!isOpen) return null;
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Filter applications based on search term and filter type
+  const filteredApplications = applications.filter((app) => {
+    // First filter for offered status
+    const isOffered =
+      app.status === "Offered" ||
+      app.status === "Accepted" ||
+      app.status === "Declined";
+    if (!isOffered) return false;
+
+    // Then apply the selected filter
+    if (filter === "accepted" && app.status !== "Accepted") return false;
+    if (filter === "pending" && app.status !== "Offered") return false;
+    if (filter === "declined" && app.status !== "Declined") return false;
+
+    // Finally filter by search term
+    const studentName = app.student?.name?.toLowerCase() || "";
+    const regNumber = app.student?.registrationNumber?.toLowerCase() || "";
+    const searchLower = searchTerm.toLowerCase();
+
+    return studentName.includes(searchLower) || regNumber.includes(searchLower);
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center">
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      ></div>
+
+      <div className="relative bg-white rounded-lg w-[85%] h-[80vh] max-h-[85vh] overflow-hidden z-50 flex flex-col">
+        <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center z-10 shadow-sm">
+          <h2 className="text-xl font-bold flex items-center">
+            <Briefcase className="h-5 w-5 mr-2 text-blue-600" />
+            {company.name} - Offers & Acceptance Status
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Search and Filter bar */}
+        <div className="p-4 border-b">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Search by student name or registration number..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setFilter("all")}
+                className={`px-3 py-2 rounded-md ${
+                  filter === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                All Offers
+              </button>
+              <button
+                onClick={() => setFilter("accepted")}
+                className={`px-3 py-2 rounded-md ${
+                  filter === "accepted"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <ThumbsUp className="h-4 w-4 inline mr-1" />
+                Accepted
+              </button>
+              <button
+                onClick={() => setFilter("pending")}
+                className={`px-3 py-2 rounded-md ${
+                  filter === "pending"
+                    ? "bg-yellow-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <Clock className="h-4 w-4 inline mr-1" />
+                Pending
+              </button>
+              <button
+                onClick={() => setFilter("declined")}
+                className={`px-3 py-2 rounded-md ${
+                  filter === "declined"
+                    ? "bg-red-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <ThumbsDown className="h-4 w-4 inline mr-1" />
+                Declined
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 p-6 overflow-auto">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
+              <p className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                {error}
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="mt-4 text-gray-500">Loading offers...</p>
+            </div>
+          ) : filteredApplications.length === 0 ? (
+            <div className="text-center p-8 bg-gray-50 rounded-lg">
+              <Briefcase className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900">
+                {filter !== "all"
+                  ? `No ${filter} offers found`
+                  : "No offers made yet"}
+              </h3>
+              <p className="mt-2 text-gray-500">
+                {searchTerm
+                  ? "Try a different search term"
+                  : filter !== "all"
+                  ? `No students have ${filter} offers from this company yet.`
+                  : "No students have been offered positions by this company yet."}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto border-collapse">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Department
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Offer Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Package
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Response Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Feedback
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredApplications.map((application) => (
+                    <tr key={application._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            {application.student?.name?.charAt(0) || "U"}
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {application.student?.name || "Unknown"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {application.student?.registrationNumber || "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.studentModel || "N/A"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(
+                          application.updatedAt || application.appliedDate
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {application.status === "Accepted" ? (
+                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Accepted
+                          </span>
+                        ) : application.status === "Declined" ? (
+                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Declined
+                          </span>
+                        ) : (
+                          <span className="flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <Clock className="h-4 w-4 mr-1" />
+                            Pending Response
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {application.packageOffered || "-"}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.responseDate
+                          ? formatDate(application.responseDate)
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500">
+                        <div className="max-w-[250px] truncate">
+                          {application.feedback || "No feedback available"}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Company Card Component with Actions
 const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
   const [showActions, setShowActions] = useState(false);
+  const [applicationsModalOpen, setApplicationsModalOpen] = useState(false);
+  const [offersStatusModalOpen, setOffersStatusModalOpen] = useState(false);
 
   // Format date to display in a readable format
   const formatDate = (dateString) => {
@@ -47,6 +794,40 @@ const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
   const openApplicationsInNewTab = () => {
     window.open(`/admin/applications/view/${company._id}`, "_blank");
   };
+
+  // Function to handle opening the applications modal
+  const handleOpenApplicationsModal = (e) => {
+    e.stopPropagation();
+    console.log("Opening applications modal for company:", company.name);
+    setApplicationsModalOpen(true);
+  };
+
+  // Function to handle closing the applications modal
+  const handleCloseApplicationsModal = () => {
+    console.log("Closing applications modal for company:", company.name);
+    setApplicationsModalOpen(false);
+  };
+
+  // Function to handle opening the offers status modal
+  const handleOpenOffersStatusModal = (e) => {
+    e.stopPropagation();
+    console.log("Opening offers status modal for company:", company.name);
+    setOffersStatusModalOpen(true);
+  };
+
+  // Function to handle closing the offers status modal
+  const handleCloseOffersStatusModal = () => {
+    console.log("Closing offers status modal for company:", company.name);
+    setOffersStatusModalOpen(false);
+  };
+
+  // Debug log modal state
+  useEffect(() => {
+    console.log(
+      "Applications modal state for " + company.name + ":",
+      applicationsModalOpen
+    );
+  }, [applicationsModalOpen, company.name]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200 relative">
@@ -82,12 +863,38 @@ const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  openApplicationsInNewTab();
+                  console.log(
+                    "Manage Applications clicked from menu for company:",
+                    company.name
+                  );
+                  setApplicationsModalOpen(true);
                   setShowActions(false);
                 }}
                 className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
                 <Users className="h-4 w-4" />
+                <span>Manage Applications</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOffersStatusModalOpen(true);
+                  setShowActions(false);
+                }}
+                className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <Briefcase className="h-4 w-4" />
+                <span>View Offers Status</span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openApplicationsInNewTab();
+                  setShowActions(false);
+                }}
+                className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <FileText className="h-4 w-4" />
                 <span>View Applications</span>
               </button>
               <button
@@ -129,19 +936,37 @@ const CompanyCard = ({ company, onViewDetails, onEdit, onDelete }) => {
       </div>
 
       <div className="mt-4 pt-3 border-t flex justify-between items-center">
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openApplicationsInNewTab();
-            }}
+            onClick={handleOpenApplicationsModal}
             className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
           >
             <Users className="h-4 w-4 mr-2" />
-            View Applications
+            Manage Applications
+          </button>
+          <button
+            onClick={handleOpenOffersStatusModal}
+            className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+          >
+            <Briefcase className="h-4 w-4 mr-2" />
+            Offers Status
           </button>
         </div>
       </div>
+
+      {/* Applications List Modal */}
+      <ApplicationsListModal
+        company={company}
+        isOpen={applicationsModalOpen}
+        onClose={handleCloseApplicationsModal}
+      />
+
+      {/* Offers Status Modal */}
+      <OffersStatusModal
+        company={company}
+        isOpen={offersStatusModalOpen}
+        onClose={handleCloseOffersStatusModal}
+      />
     </div>
   );
 };
@@ -1021,6 +1846,7 @@ const ManageCompany = () => {
 
   const handleAddCompany = async (newCompany) => {
     try {
+      console.log("Adding new company:", newCompany);
       const response = await axios.post(
         "http://localhost:6400/api/companies",
         newCompany
@@ -1033,12 +1859,14 @@ const ManageCompany = () => {
   };
 
   const handleEditCompany = (company) => {
+    console.log("Editing company:", company);
     setEditingCompany(company);
     setIsEditModalOpen(true);
   };
 
   const handleSaveEdit = async (updatedCompany) => {
     try {
+      console.log("Saving company edits:", updatedCompany);
       const response = await axios.put(
         `http://localhost:6400/api/companies/${updatedCompany._id}`,
         updatedCompany
@@ -1055,12 +1883,14 @@ const ManageCompany = () => {
   };
 
   const handleDeleteCompany = (companyToDelete) => {
+    console.log("Opening delete modal for company:", companyToDelete.name);
     setCompanyToDelete(companyToDelete);
     setDeleteModalOpen(true);
   };
 
   const confirmDelete = async () => {
     try {
+      console.log("Confirming delete for company:", companyToDelete.name);
       await axios.delete(
         `http://localhost:6400/api/companies/${companyToDelete._id}`
       );
@@ -1076,6 +1906,7 @@ const ManageCompany = () => {
   };
 
   const handleViewDetails = (company) => {
+    console.log("Viewing details for company:", company.name);
     setSelectedCompany(company);
   };
 

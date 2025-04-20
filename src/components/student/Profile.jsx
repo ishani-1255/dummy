@@ -67,8 +67,7 @@ import Sidebar from "./Sidebar";
 import axios from "axios";
 
 const Profile = () => {
-  // Existing states from the original component...
-  const { currentUser } = useUser();
+  const { currentUser, updateUserContext } = useUser();
   const [studentInfo, setStudentInfo] = useState({
     name: currentUser?.name || "Student User",
     rollNo: currentUser?.registrationNumber || "regNo",
@@ -101,63 +100,21 @@ const Profile = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedEducation, setSelectedEducation] = useState(null);
 
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: "AI Chat Application",
-      description: "Built a real-time chat application with AI capabilities",
-      technologies: ["React", "Node.js", "OpenAI API"],
-      link: "https://github.com/example/ai-chat",
-    },
-    {
-      id: 2,
-      title: "Student Management System",
-      description: "Developed a full-stack student management system",
-      technologies: ["React", "Express", "MongoDB"],
-      link: "https://github.com/example/sms",
-    },
-  ]);
-
-  const [education, setEducation] = useState({
-    ssc: {
-      school: "City High School",
-      board: "State Board",
-      percentage: 95,
-      year: 2019,
-    },
-    hsc: {
-      school: "City Junior College",
-      board: "State Board",
-      percentage: 92,
-      year: 2021,
-    },
-    graduation: {
-      school: "University Institute of Technology",
-      board: "Technical University",
-      percentage: 89,
-      year: 2025,
-    },
-  });
-
+  const [projects, setProjects] = useState([]);
+  const [education, setEducation] = useState({});
   const [technicalSkills, setTechnicalSkills] = useState({
-    programmingLanguages: ["Python", "JavaScript", "Java", "C++"],
-    technologies: ["React", "Node.js", "Express", "MongoDB"],
-    tools: ["Git", "Docker", "AWS", "VS Code"],
-    certifications: [
-      {
-        name: "AWS Solutions Architect",
-        issuer: "Amazon Web Services",
-        date: "2023",
-      },
-      {
-        name: "Full Stack Development",
-        issuer: "Meta",
-        date: "2023",
-      },
-    ],
+    programmingLanguages: [],
+    technologies: [],
+    tools: [],
+    certifications: [],
   });
 
-  // New states for modals
+  // New states for profile data
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Modal states
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
@@ -172,16 +129,104 @@ const Profile = () => {
   const [selectedAchievement, setSelectedAchievement] = useState(null);
   const [newInterest, setNewInterest] = useState("");
 
+  // Form states
+  const [newProject, setNewProject] = useState({
+    title: "",
+    description: "",
+    technologies: "",
+    link: "",
+  });
+  const [newEducation, setNewEducation] = useState({
+    level: "",
+    school: "",
+    board: "",
+    percentage: "",
+    year: "",
+  });
+  const [newSkill, setNewSkill] = useState({
+    category: "programmingLanguages",
+    skill: "",
+  });
+  const [newCertification, setNewCertification] = useState({
+    name: "",
+    issuer: "",
+    date: "",
+  });
+  const [newAchievement, setNewAchievement] = useState({
+    title: "",
+    date: "",
+  });
+
   // States for mail and notifications
   const [mailboxOpen, setMailboxOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Replace static notifications with dynamic state
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          "http://localhost:6400/api/student/profile",
+          {
+            withCredentials: true,
+          }
+        );
+
+        if (response.data) {
+          console.log("Profile data received:", response.data);
+          setProfileData(response.data);
+
+          // Update state with profile data
+          setStudentInfo((prevInfo) => ({
+            ...prevInfo,
+            about: response.data.about || prevInfo.about,
+            batch: response.data.batch || prevInfo.batch,
+            skills: response.data.skills || prevInfo.skills,
+            interests: response.data.interests || prevInfo.interests,
+            achievements: response.data.achievements || prevInfo.achievements,
+            links: response.data.links || prevInfo.links,
+            profileImage: response.data.profileImage || prevInfo.profileImage,
+          }));
+
+          // Set projects from profile data
+          setProjects(response.data.projects || []);
+
+          // Create education object from array
+          if (response.data.education && response.data.education.length > 0) {
+            const eduObj = {};
+            response.data.education.forEach((edu) => {
+              eduObj[edu.level] = {
+                school: edu.school,
+                board: edu.board,
+                percentage: edu.percentage,
+                year: edu.year,
+                _id: edu._id,
+              };
+            });
+            setEducation(eduObj);
+          }
+
+          // Set technical skills
+          if (response.data.technicalSkills) {
+            setTechnicalSkills(response.data.technicalSkills);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        setError("Failed to load profile data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   // Fetch notifications from backend
   useEffect(() => {
@@ -317,51 +362,264 @@ const Profile = () => {
     return matchesSearch && matchesTab;
   });
 
+  // Function to handle skill addition
+  const handleAddSkill = async (e) => {
+    e.preventDefault();
+
+    try {
+      let requestData = {};
+
+      if (newSkill.category === "certifications") {
+        requestData = {
+          category: "certifications",
+          certData: newCertification,
+        };
+      } else {
+        requestData = {
+          category: newSkill.category,
+          skill: newSkill.skill,
+        };
+      }
+
+      const response = await axios.post(
+        "http://localhost:6400/api/student/profile/skill",
+        requestData,
+        { withCredentials: true }
+      );
+
+      if (response.data && response.data.technicalSkills) {
+        // Update the technical skills state
+        setTechnicalSkills(response.data.technicalSkills);
+
+        // If adding a general skill, update skills array too
+        if (newSkill.category === "skills") {
+          setStudentInfo((prevInfo) => ({
+            ...prevInfo,
+            skills: response.data.skills || prevInfo.skills,
+          }));
+        }
+
+        // Reset form and close modal
+        setNewSkill({
+          category: "programmingLanguages",
+          skill: "",
+        });
+        setNewCertification({
+          name: "",
+          issuer: "",
+          date: "",
+        });
+        setIsSkillModalOpen(false);
+        console.log("Skill added successfully");
+      }
+    } catch (error) {
+      console.error("Error adding skill:", error);
+      alert("Failed to add skill");
+    }
+  };
+
+  // Function to handle skill/certification deletion
+  const handleDeleteSkill = async (category, index) => {
+    try {
+      const response = await axios.delete(
+        "http://localhost:6400/api/student/profile/skill",
+        {
+          data: { category, index },
+          withCredentials: true,
+        }
+      );
+
+      if (response.data) {
+        if (category === "skills") {
+          // Update the skills in studentInfo
+          setStudentInfo((prevInfo) => ({
+            ...prevInfo,
+            skills: response.data.skills,
+          }));
+        } else {
+          // Update technical skills
+          setTechnicalSkills(response.data.technicalSkills);
+        }
+        console.log(`${category} skill deleted successfully`);
+      }
+    } catch (error) {
+      console.error(`Error deleting ${category} skill:`, error);
+      alert(`Failed to delete ${category} skill`);
+    }
+  };
+
+  // Function to handle certification update
+  const handleUpdateCertification = async (e) => {
+    e.preventDefault();
+
+    if (!selectedCertification) return;
+
+    try {
+      const response = await axios.post(
+        "http://localhost:6400/api/student/profile/skill",
+        {
+          category: "certifications",
+          index: selectedCertification.index,
+          certData: {
+            name: selectedCertification.name,
+            issuer: selectedCertification.issuer,
+            date: selectedCertification.date,
+          },
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data && response.data.technicalSkills) {
+        // Update the technical skills state
+        setTechnicalSkills(response.data.technicalSkills);
+
+        // Reset state and close modal
+        setSelectedCertification(null);
+        setIsEditCertificationModalOpen(false);
+        console.log("Certification updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating certification:", error);
+      alert("Failed to update certification");
+    }
+  };
+
   // Function to handle interest deletion
-  const handleDeleteInterest = (index) => {
-    const updatedInterests = [...studentInfo.interests];
-    updatedInterests.splice(index, 1);
-    setStudentInfo({ ...studentInfo, interests: updatedInterests });
+  const handleDeleteInterest = async (index) => {
+    try {
+      // Create a copy of interests array with the item removed
+      const updatedInterests = [...studentInfo.interests];
+      updatedInterests.splice(index, 1);
+
+      const response = await axios.put(
+        "http://localhost:6400/api/student/profile",
+        { interests: updatedInterests },
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setStudentInfo((prevInfo) => ({
+          ...prevInfo,
+          interests: response.data.interests,
+        }));
+        console.log("Interest deleted successfully");
+      }
+    } catch (error) {
+      console.error("Error deleting interest:", error);
+      alert("Failed to delete interest");
+    }
   };
 
   // Function to handle adding a new interest
-  const handleAddInterest = () => {
-    if (newInterest.trim()) {
-      setStudentInfo({
-        ...studentInfo,
-        interests: [...studentInfo.interests, newInterest.trim()],
-      });
-      setNewInterest("");
-      setIsInterestModalOpen(false);
+  const handleAddInterest = async () => {
+    if (!newInterest.trim()) return;
+
+    try {
+      const updatedInterests = [...studentInfo.interests, newInterest.trim()];
+
+      const response = await axios.put(
+        "http://localhost:6400/api/student/profile",
+        { interests: updatedInterests },
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setStudentInfo((prevInfo) => ({
+          ...prevInfo,
+          interests: response.data.interests,
+        }));
+        setNewInterest("");
+        setIsInterestModalOpen(false);
+        console.log("Interest added successfully");
+      }
+    } catch (error) {
+      console.error("Error adding interest:", error);
+      alert("Failed to add interest");
     }
-  };
-
-  // Function to handle project deletion
-  const handleDeleteProject = (projectId) => {
-    setProjects(projects.filter((p) => p.id !== projectId));
-  };
-
-  // Function to handle achievement deletion
-  const handleDeleteAchievement = (index) => {
-    const updatedAchievements = [...studentInfo.achievements];
-    updatedAchievements.splice(index, 1);
-    setStudentInfo({ ...studentInfo, achievements: updatedAchievements });
   };
 
   // Function to handle achievement addition/edit
-  const handleSaveAchievement = (achievement, isEdit = false, index = null) => {
-    if (isEdit && index !== null) {
-      const updatedAchievements = [...studentInfo.achievements];
-      updatedAchievements[index] = achievement;
-      setStudentInfo({ ...studentInfo, achievements: updatedAchievements });
-    } else {
-      setStudentInfo({
-        ...studentInfo,
-        achievements: [...studentInfo.achievements, achievement],
-      });
+  const handleSaveAchievement = async (e) => {
+    e.preventDefault();
+
+    try {
+      const achievementData = {
+        title: newAchievement.title,
+        date: newAchievement.date,
+      };
+
+      // If editing, include the ID
+      if (selectedAchievement && selectedAchievement._id) {
+        achievementData.id = selectedAchievement._id;
+      }
+
+      const response = await axios.post(
+        "http://localhost:6400/api/student/profile/achievement",
+        achievementData,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Update achievements in studentInfo
+        setStudentInfo((prevInfo) => ({
+          ...prevInfo,
+          achievements: response.data.achievements,
+        }));
+
+        // Reset form and close modal
+        setNewAchievement({
+          title: "",
+          date: "",
+        });
+        setSelectedAchievement(null);
+        setIsAchievementModalOpen(false);
+        console.log("Achievement saved successfully");
+      }
+    } catch (error) {
+      console.error("Error saving achievement:", error);
+      alert("Failed to save achievement");
     }
-    setSelectedAchievement(null);
-    setIsAchievementModalOpen(false);
+  };
+
+  // Function to handle achievement deletion
+  const handleDeleteAchievement = async (achievementId) => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:6400/api/student/profile/achievement/${achievementId}`,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Update achievements in studentInfo
+        setStudentInfo((prevInfo) => ({
+          ...prevInfo,
+          achievements: response.data.achievements,
+        }));
+        console.log("Achievement deleted successfully");
+      }
+    } catch (error) {
+      console.error("Error deleting achievement:", error);
+      alert("Failed to delete achievement");
+    }
+  };
+
+  // Function to handle about section updates
+  const handleUpdateAbout = async () => {
+    try {
+      const response = await axios.put(
+        "http://localhost:6400/api/student/profile",
+        { about: studentInfo.about },
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setIsEditMode(false);
+        console.log("About section updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating about section:", error);
+      alert("Failed to update about section");
+    }
   };
 
   // Stats data
@@ -407,6 +665,574 @@ const Profile = () => {
     }
   };
 
+  // Function to handle education addition/update
+  const handleSaveEducation = async (e) => {
+    e.preventDefault();
+
+    try {
+      // Parse percentage and year as numbers explicitly
+      const percentage = parseFloat(newEducation.percentage);
+      const year = parseInt(newEducation.year);
+
+      // Validate inputs
+      if (isNaN(percentage) || isNaN(year)) {
+        alert("Please enter valid numbers for percentage and year");
+        return;
+      }
+
+      const educationData = {
+        level: newEducation.level,
+        school: newEducation.school,
+        board: newEducation.board,
+        percentage: percentage,
+        year: year,
+      };
+
+      // If editing, include the ID
+      if (selectedEducation && selectedEducation._id) {
+        educationData.id = selectedEducation._id;
+      }
+
+      console.log("Sending education data:", educationData);
+
+      const response = await axios.post(
+        "http://localhost:6400/api/student/profile/education",
+        educationData,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Update local state from the response
+        const eduObj = { ...education };
+
+        // Create or update the education entry in our state object
+        if (response.data.education && response.data.education.length > 0) {
+          // Find the education entry we just added/updated
+          const updatedEdu = response.data.education.find((edu) =>
+            selectedEducation && selectedEducation._id
+              ? edu._id === selectedEducation._id
+              : edu.level === newEducation.level
+          );
+
+          if (updatedEdu) {
+            eduObj[updatedEdu.level] = {
+              school: updatedEdu.school,
+              board: updatedEdu.board,
+              percentage: updatedEdu.percentage,
+              year: updatedEdu.year,
+              _id: updatedEdu._id,
+            };
+          }
+        }
+
+        setEducation(eduObj);
+
+        // Reset form and close modal
+        setNewEducation({
+          level: "",
+          school: "",
+          board: "",
+          percentage: "",
+          year: "",
+        });
+        setSelectedEducation(null);
+        setIsEducationModalOpen(false);
+        console.log("Education saved successfully");
+      }
+    } catch (error) {
+      console.error("Error saving education:", error);
+      let errorMessage = "Failed to save education details";
+
+      if (error.response && error.response.data) {
+        if (error.response.data.message) {
+          errorMessage += ": " + error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage += ": " + error.response.data.error;
+        }
+      }
+
+      alert(errorMessage);
+    }
+  };
+
+  // Function to handle education deletion
+  const handleDeleteEducation = async (educationId) => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:6400/api/student/profile/education/${educationId}`,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Update local state by recreating the education object from the response
+        const eduObj = {};
+        if (response.data.education) {
+          response.data.education.forEach((edu) => {
+            eduObj[edu.level] = {
+              school: edu.school,
+              board: edu.board,
+              percentage: edu.percentage,
+              year: edu.year,
+              _id: edu._id,
+            };
+          });
+        }
+
+        setEducation(eduObj);
+        console.log("Education deleted successfully");
+      }
+    } catch (error) {
+      console.error("Error deleting education:", error);
+      alert("Failed to delete education");
+    }
+  };
+
+  // Function to handle project addition
+  const handleAddProject = async (e) => {
+    e.preventDefault();
+
+    try {
+      const projectData = {
+        title: newProject.title,
+        description: newProject.description,
+        technologies: newProject.technologies
+          .split(",")
+          .map((tech) => tech.trim()),
+        link: newProject.link,
+      };
+
+      const response = await axios.post(
+        "http://localhost:6400/api/student/profile/project",
+        projectData,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setProjects((prevProjects) => [...prevProjects, response.data]);
+        setNewProject({
+          title: "",
+          description: "",
+          technologies: "",
+          link: "",
+        });
+        setIsProjectModalOpen(false);
+        console.log("Project added successfully");
+      }
+    } catch (error) {
+      console.error("Error adding project:", error);
+      alert("Failed to add project");
+    }
+  };
+
+  // Function to handle project update
+  const handleUpdateProject = async (e) => {
+    e.preventDefault();
+
+    try {
+      const projectData = {
+        title: selectedProject.title,
+        description: selectedProject.description,
+        technologies: selectedProject.technologies
+          .split(",")
+          .map((tech) => tech.trim()),
+        link: selectedProject.link,
+      };
+
+      const response = await axios.put(
+        `http://localhost:6400/api/student/profile/project/${selectedProject._id}`,
+        projectData,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        setProjects((prevProjects) =>
+          prevProjects.map((project) =>
+            project._id === selectedProject._id ? response.data : project
+          )
+        );
+        setSelectedProject(null);
+        setIsEditProjectModalOpen(false);
+        console.log("Project updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating project:", error);
+      alert("Failed to update project");
+    }
+  };
+
+  // Function to handle project deletion
+  const handleDeleteProject = async (projectId) => {
+    try {
+      const response = await axios.delete(
+        `http://localhost:6400/api/student/profile/project/${projectId}`,
+        { withCredentials: true }
+      );
+
+      if (response.data) {
+        // Update local state by filtering out the deleted project
+        setProjects(projects.filter((project) => project._id !== projectId));
+        console.log("Project deleted successfully");
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project");
+    }
+  };
+
+  // Check available branches for troubleshooting
+  const checkAvailableBranches = async () => {
+    try {
+      const response = await axios.get("http://localhost:6400/api/branches", {
+        withCredentials: true,
+      });
+
+      console.log("Available branches:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching branches:", error);
+      return null;
+    }
+  };
+
+  // Find student in branch database
+  const findStudentRecord = async (studentData) => {
+    try {
+      console.log("Searching for student record:", studentData);
+
+      const response = await axios.post(
+        "http://localhost:6400/api/student/find",
+        studentData,
+        { withCredentials: true }
+      );
+
+      console.log("Student record search result:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error searching for student record:", error);
+      return null;
+    }
+  };
+
+  // Helper function to try all possible branch endpoints
+  const tryAllBranchEndpoints = async (data) => {
+    const branches = ["cse", "ece", "it", "eee", "mech", "civil"]; // Common engineering branches
+    const branchName = data.branch?.toLowerCase() || "";
+    let lastError = null;
+
+    console.log(
+      "Attempting branch-specific updates with data:",
+      JSON.stringify(data)
+    );
+
+    // First try specific branch if we know it
+    if (branchName && branches.includes(branchName)) {
+      try {
+        console.log(`Trying ${branchName} specific endpoint...`);
+        const response = await axios.put(
+          `http://localhost:6400/api/student/${branchName}/update`,
+          data,
+          {
+            withCredentials: true,
+            timeout: 30000,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log(`Success with ${branchName} branch:`, response.data);
+        return response;
+      } catch (err) {
+        console.log(`${branchName} specific endpoint failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    // Try each branch endpoint in series
+    const branchesToTry = branches.filter((branch) => branch !== branchName);
+
+    console.log(
+      `Attempting to find student in ${branchesToTry.length} branch databases...`
+    );
+
+    // Try endpoints one by one
+    for (const branch of branchesToTry) {
+      try {
+        console.log(`Trying ${branch} branch endpoint...`);
+        const response = await axios.put(
+          `http://localhost:6400/api/student/${branch}/update`,
+          data,
+          {
+            withCredentials: true,
+            timeout: 30000,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log(`Found student in ${branch} branch database!`);
+        return response;
+      } catch (err) {
+        console.log(`${branch} branch endpoint failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    // If we've gone through all branches and none worked, throw the most recent error
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error("Could not find student record in any branch database");
+  };
+
+  // Direct branch database update function
+  const directBranchUpdate = async (branchCode, studentData) => {
+    try {
+      console.log(
+        `BRANCH UPDATE: Attempting update in ${branchCode} database with:`,
+        studentData
+      );
+
+      const response = await axios.put(
+        `http://localhost:6400/api/student/${branchCode}/update`,
+        studentData,
+        {
+          withCredentials: true,
+          timeout: 30000,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log(
+        `BRANCH SUCCESS: Updated in ${branchCode} database:`,
+        response.data
+      );
+      return { success: true, response };
+    } catch (error) {
+      console.error(
+        `BRANCH ERROR: Failed in ${branchCode} database:`,
+        error.message
+      );
+      return { success: false, error };
+    }
+  };
+
+  // Function to update contact information
+  const handleUpdateContact = async () => {
+    try {
+      setUpdatingContact(true);
+
+      // Validation
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(contactInfo.email)) {
+        alert("Please enter a valid email address");
+        setUpdatingContact(false);
+        return;
+      }
+
+      const phoneRegex = /^\d{10,15}$/;
+      if (!phoneRegex.test(contactInfo.phone)) {
+        alert("Please enter a valid phone number (10-15 digits, numbers only)");
+        setUpdatingContact(false);
+        return;
+      }
+
+      // Get student identifiers
+      const userId = currentUser?._id;
+      const registrationNumber =
+        currentUser?.registrationNumber || studentInfo.rollNo;
+      const branch = currentUser?.branch || studentInfo.department;
+      const name = currentUser?.name || studentInfo.name;
+
+      if (!registrationNumber) {
+        alert("Cannot identify student record without registration number.");
+        setUpdatingContact(false);
+        return;
+      }
+
+      // Prepare update data
+      const updateData = {
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        registrationNumber: registrationNumber,
+        name: name,
+        userId: userId,
+      };
+
+      console.log("UPDATE ATTEMPT - Student details:", {
+        branch: branch || "Unknown branch",
+        regNo: registrationNumber,
+        name: name,
+        userId: userId,
+        requestData: updateData,
+      });
+
+      let updateSuccess = false;
+      let updateResponse = null;
+
+      // 1. Try specific branch if we know it
+      if (branch) {
+        const branchCode = branch.toLowerCase().replace(/\s+/g, "");
+        console.log(`Trying known branch: ${branchCode}`);
+
+        const result = await directBranchUpdate(branchCode, updateData);
+        if (result.success) {
+          updateSuccess = true;
+          updateResponse = result.response;
+        }
+      }
+
+      // 2. If that failed, try all common branches
+      if (!updateSuccess) {
+        const branches = ["cse", "it", "ece", "eee", "mech", "civil"];
+
+        for (const branchCode of branches) {
+          // Skip if this is the branch we already tried
+          if (
+            branch &&
+            branchCode === branch.toLowerCase().replace(/\s+/g, "")
+          ) {
+            continue;
+          }
+
+          console.log(`Trying branch: ${branchCode}`);
+          const result = await directBranchUpdate(branchCode, updateData);
+
+          if (result.success) {
+            updateSuccess = true;
+            updateResponse = result.response;
+            break;
+          }
+        }
+      }
+
+      // 3. If still not successful, try the generic endpoints
+      if (!updateSuccess) {
+        // Try the general profile update endpoint
+        try {
+          console.log("Trying generic profile update endpoint");
+          const response = await axios.put(
+            "http://localhost:6400/api/student/profile",
+            updateData,
+            {
+              withCredentials: true,
+              timeout: 30000,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("Profile update succeeded:", response.data);
+          updateSuccess = true;
+          updateResponse = response;
+        } catch (error) {
+          console.error("Generic profile update failed:", error.message);
+        }
+      }
+
+      // 4. Final try with the contact-specific endpoint
+      if (!updateSuccess) {
+        try {
+          console.log("Trying contact-specific endpoint");
+          const response = await axios.put(
+            "http://localhost:6400/api/student/update-contact",
+            updateData,
+            {
+              withCredentials: true,
+              timeout: 30000,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("Contact endpoint update succeeded:", response.data);
+          updateSuccess = true;
+          updateResponse = response;
+        } catch (error) {
+          console.error("Contact endpoint update failed:", error.message);
+        }
+      }
+
+      // Handle the final result
+      if (updateSuccess && updateResponse) {
+        handleUpdateSuccess(updateResponse);
+      } else {
+        alert(
+          "Failed to update contact information. The system couldn't locate your record in any branch database. Please contact an administrator."
+        );
+      }
+    } catch (error) {
+      console.error("Update contact error:", error);
+      alert("An unexpected error occurred. Please try again later.");
+    } finally {
+      setUpdatingContact(false);
+    }
+  };
+
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [updatingContact, setUpdatingContact] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    email: currentUser?.email || "",
+    phone: currentUser?.phone || "",
+  });
+
+  // Reinitialize contactInfo when opening the contact modal
+  useEffect(() => {
+    if (isContactModalOpen) {
+      setContactInfo({
+        email: currentUser?.email || studentInfo.email || "",
+        phone: currentUser?.phone || studentInfo.phone || "",
+      });
+    }
+  }, [isContactModalOpen, currentUser, studentInfo]);
+
+  // Helper function to handle successful update
+  const handleUpdateSuccess = (response) => {
+    if (response && response.data) {
+      console.log("Update success - Response data:", response.data);
+
+      // Extract the updated email and phone from the response
+      const updatedEmail = response.data.email || contactInfo.email;
+      const updatedPhone = response.data.phone || contactInfo.phone;
+
+      console.log("Updating local state with:", {
+        email: updatedEmail,
+        phone: updatedPhone,
+      });
+
+      // Update both the local state and user context
+      setStudentInfo((prevInfo) => ({
+        ...prevInfo,
+        email: updatedEmail,
+        phone: updatedPhone,
+      }));
+
+      if (typeof updateUserContext === "function") {
+        updateUserContext({
+          ...currentUser,
+          email: updatedEmail,
+          phone: updatedPhone,
+        });
+      }
+
+      setIsContactModalOpen(false);
+
+      // Show success message
+      alert(
+        "Contact information updated successfully! Changes will be visible when you reload the page."
+      );
+
+      // Force a page refresh to ensure updated data is displayed
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="flex">
       <Sidebar />
@@ -447,21 +1273,22 @@ const Profile = () => {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {stats.map((stat, index) => (
-                <Card key={index}>
-                  <CardContent className="p-4 flex pt-4 items-center space-x-4">
-                    <div className={`p-3 rounded-lg ${stat.color}`}>
-                      <stat.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        {stat.title}
-                      </p>
-                      <h3 className="text-xl font-bold">{stat.value}</h3>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {stats &&
+                stats.map((stat, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-4 flex pt-4 items-center space-x-4">
+                      <div className={`p-3 rounded-lg ${stat.color}`}>
+                        <stat.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">
+                          {stat.title}
+                        </p>
+                        <h3 className="text-xl font-bold">{stat.value}</h3>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           </div>
 
@@ -494,17 +1321,21 @@ const Profile = () => {
                       {studentInfo.rollNo}
                     </Badge>
                     <div className="mt-4 w-full space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Mail className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="text-sm">{studentInfo.email}</span>
                         </div>
-                        <span className="text-sm">{studentInfo.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Phone className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Phone className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <span className="text-sm">{studentInfo.phone}</span>
                         </div>
-                        <span className="text-sm">{studentInfo.phone}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -514,33 +1345,43 @@ const Profile = () => {
                           {studentInfo.department}
                         </span>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => setIsContactModalOpen(true)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Contact Info
+                      </Button>
                     </div>
                     <div className="mt-6 flex gap-2">
-                      {Object.entries(studentInfo.links).map(
-                        ([platform, url]) => (
-                          <TooltipProvider key={platform}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <a
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                                >
-                                  {platform === "linkedin" ? (
-                                    <Linkedin className="h-5 w-5 text-blue-600" />
-                                  ) : platform === "github" ? (
-                                    <Github className="h-5 w-5 text-gray-700" />
-                                  ) : (
-                                    <Globe className="h-5 w-5 text-blue-600" />
-                                  )}
-                                </a>
-                              </TooltipTrigger>
-                              <TooltipContent>{url}</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )
-                      )}
+                      {studentInfo.links &&
+                        Object.entries(studentInfo.links).map(
+                          ([platform, url]) => (
+                            <TooltipProvider key={platform}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                  >
+                                    {platform === "linkedin" ? (
+                                      <Linkedin className="h-5 w-5 text-blue-600" />
+                                    ) : platform === "github" ? (
+                                      <Github className="h-5 w-5 text-gray-700" />
+                                    ) : (
+                                      <Globe className="h-5 w-5 text-blue-600" />
+                                    )}
+                                  </a>
+                                </TooltipTrigger>
+                                <TooltipContent>{url}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )
+                        )}
                     </div>
                   </div>
                 </CardContent>
@@ -557,106 +1398,273 @@ const Profile = () => {
                   <TabsTrigger value="projects">Projects</TabsTrigger>
                 </TabsList>
 
+                {/* Profile Tab */}
                 <TabsContent value="profile">
-                  <div className="space-y-6">
-                    {/* About Section */}
-                    <Card>
-                      <CardHeader1 className="flex flex-row items-center justify-between">
-                        <CardTitle>About Me</CardTitle>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsEditMode(!isEditMode)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </CardHeader1>
-                      <CardContent>
+                  <Card>
+                    <CardHeader1 className="flex flex-row items-center justify-between">
+                      <CardTitle>Personal Information</CardTitle>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditMode(!isEditMode)}
+                      >
+                        {isEditMode ? "Cancel" : "Edit"}
+                        {!isEditMode && <Edit className="h-4 w-4 ml-2" />}
+                      </Button>
+                    </CardHeader1>
+                    <CardContent className="space-y-6">
+                      {/* About Me Section */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">About Me</h3>
                         {isEditMode ? (
-                          <Textarea
-                            value={studentInfo.about}
-                            onChange={(e) =>
-                              setStudentInfo({
-                                ...studentInfo,
-                                about: e.target.value,
-                              })
-                            }
-                            className="w-full"
-                            rows={4}
-                          />
+                          <div className="space-y-4">
+                            <Textarea
+                              value={studentInfo.about}
+                              onChange={(e) =>
+                                setStudentInfo({
+                                  ...studentInfo,
+                                  about: e.target.value,
+                                })
+                              }
+                              placeholder="Write something about yourself..."
+                              className="min-h-[120px]"
+                            />
+                            <Button onClick={handleUpdateAbout}>
+                              Save About
+                            </Button>
+                          </div>
                         ) : (
-                          <p className="text-gray-600">{studentInfo.about}</p>
+                          <p className="text-gray-600">
+                            {studentInfo.about ||
+                              "No information provided. Click Edit to add details."}
+                          </p>
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
 
-                    {/* Interests Section */}
-                    <Card>
-                      <CardHeader1 className="flex flex-row items-center justify-between">
-                        <CardTitle>Interests</CardTitle>
-                        <Button
-                          variant="outline"
-                          onClick={() => setIsInterestModalOpen(true)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Interest
-                        </Button>
-                      </CardHeader1>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                          {studentInfo.interests.map((interest, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="text-blue-600 bg-blue-100 flex items-center gap-2"
-                            >
-                              {interest}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 p-0"
-                                onClick={() => handleDeleteInterest(index)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </Badge>
-                          ))}
+                      {/* Interests Section */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-lg font-medium">Interests</h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsInterestModalOpen(true)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add
+                          </Button>
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Achievements Section */}
-                    <Card>
-                      <CardHeader1 className="flex flex-row items-center justify-between">
-                        <CardTitle>Achievements</CardTitle>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedAchievement(null);
-                            setIsAchievementModalOpen(true);
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Achievement
-                        </Button>
-                      </CardHeader1>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {studentInfo.achievements.map(
-                            (achievement, index) => (
-                              <div
+                        <div className="flex flex-wrap gap-2">
+                          {studentInfo.interests &&
+                          studentInfo.interests.length > 0 ? (
+                            studentInfo.interests.map((interest, index) => (
+                              <Badge
                                 key={index}
-                                className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg"
+                                variant="secondary"
+                                className="flex items-center gap-1 py-1.5"
                               >
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                  <Award className="h-5 w-5 text-blue-600" />
+                                {interest}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                  onClick={() => handleDeleteInterest(index)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-gray-500 text-sm">
+                              No interests added yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Achievements Section */}
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h3 className="text-lg font-medium">Achievements</h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setNewAchievement({ title: "", date: "" });
+                              setSelectedAchievement(null);
+                              setIsAchievementModalOpen(true);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add
+                          </Button>
+                        </div>
+                        {studentInfo.achievements &&
+                        studentInfo.achievements.length > 0 ? (
+                          <div className="space-y-3">
+                            {studentInfo.achievements.map(
+                              (achievement, index) => (
+                                <div
+                                  key={index}
+                                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                                >
+                                  <div>
+                                    <h4 className="font-medium">
+                                      {achievement.title}
+                                    </h4>
+                                    <p className="text-gray-500 text-sm">
+                                      {achievement.date}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        setSelectedAchievement(achievement);
+                                        setNewAchievement({
+                                          title: achievement.title,
+                                          date: achievement.date,
+                                        });
+                                        setIsAchievementModalOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4 text-blue-600" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        handleDeleteAchievement(achievement._id)
+                                      }
+                                    >
+                                      <Trash2 className="h-4 w-4 text-red-600" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <h4 className="font-medium">
-                                    {achievement.title}
-                                  </h4>
-                                  <p className="text-sm text-gray-500">
-                                    {achievement.date}
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">
+                            No achievements added yet.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* External Links Section */}
+                      {isEditMode && (
+                        <div>
+                          <h3 className="text-lg font-medium mb-2">
+                            External Links
+                          </h3>
+                          <div className="grid gap-3">
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                              <span className="text-sm">LinkedIn:</span>
+                              <Input
+                                className="col-span-2"
+                                value={studentInfo.links.linkedin}
+                                onChange={(e) =>
+                                  setStudentInfo({
+                                    ...studentInfo,
+                                    links: {
+                                      ...studentInfo.links,
+                                      linkedin: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="linkedin.com/in/username"
+                              />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                              <span className="text-sm">GitHub:</span>
+                              <Input
+                                className="col-span-2"
+                                value={studentInfo.links.github}
+                                onChange={(e) =>
+                                  setStudentInfo({
+                                    ...studentInfo,
+                                    links: {
+                                      ...studentInfo.links,
+                                      github: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="github.com/username"
+                              />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 items-center">
+                              <span className="text-sm">Portfolio:</span>
+                              <Input
+                                className="col-span-2"
+                                value={studentInfo.links.portfolio}
+                                onChange={(e) =>
+                                  setStudentInfo({
+                                    ...studentInfo,
+                                    links: {
+                                      ...studentInfo.links,
+                                      portfolio: e.target.value,
+                                    },
+                                  })
+                                }
+                                placeholder="yourportfolio.com"
+                              />
+                            </div>
+                            <Button
+                              onClick={() => {
+                                handleUpdateAbout();
+                              }}
+                              className="mt-2 justify-self-end"
+                            >
+                              Save Links
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Education Tab */}
+                <TabsContent value="education">
+                  <Card>
+                    <CardHeader1 className="flex flex-row items-center justify-between">
+                      <CardTitle>Education</CardTitle>
+                      <Button
+                        onClick={() => {
+                          setNewEducation({
+                            level: "",
+                            school: "",
+                            board: "",
+                            percentage: "",
+                            year: "",
+                          });
+                          setSelectedEducation(null);
+                          setIsEducationModalOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Education
+                      </Button>
+                    </CardHeader1>
+                    <CardContent>
+                      {loading ? (
+                        <div className="flex justify-center py-8">
+                          <p>Loading education data...</p>
+                        </div>
+                      ) : education && Object.keys(education).length > 0 ? (
+                        <div className="space-y-6">
+                          {Object.entries(education).map(([level, details]) => (
+                            <div
+                              key={level}
+                              className="border rounded-lg bg-white overflow-hidden"
+                            >
+                              <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
+                                <div>
+                                  <h3 className="text-lg font-medium">
+                                    {level}
+                                  </h3>
+                                  <p className="text-gray-600 text-sm">
+                                    {details.year}
                                   </p>
                                 </div>
                                 <div className="flex gap-2">
@@ -664,11 +1672,22 @@ const Profile = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => {
-                                      setSelectedAchievement({
-                                        ...achievement,
-                                        index,
+                                      setSelectedEducation({
+                                        _id: details._id,
+                                        level: level,
+                                        school: details.school,
+                                        board: details.board,
+                                        percentage: details.percentage,
+                                        year: details.year,
                                       });
-                                      setIsAchievementModalOpen(true);
+                                      setNewEducation({
+                                        level: level,
+                                        school: details.school,
+                                        board: details.board,
+                                        percentage: details.percentage,
+                                        year: details.year,
+                                      });
+                                      setIsEducationModalOpen(true);
                                     }}
                                   >
                                     <Edit className="h-4 w-4 text-blue-600" />
@@ -677,266 +1696,448 @@ const Profile = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() =>
-                                      handleDeleteAchievement(index)
+                                      handleDeleteEducation(details._id)
                                     }
                                   >
                                     <Trash2 className="h-4 w-4 text-red-600" />
                                   </Button>
                                 </div>
                               </div>
-                            )
-                          )}
+                              <div className="p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-sm text-gray-500">
+                                      Institution
+                                    </p>
+                                    <p className="font-medium">
+                                      {details.school}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-500">
+                                      Board/University
+                                    </p>
+                                    <p className="font-medium">
+                                      {details.board}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-gray-500">
+                                      Percentage/CGPA
+                                    </p>
+                                    <p className="font-medium">
+                                      {details.percentage}%
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="education">
-                  <Card>
-                    <CardHeader1 className="flex flex-row items-center justify-between">
-                      <CardTitle>Educational Background</CardTitle>
-                      <Button onClick={() => setIsEducationModalOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Education
-                      </Button>
-                    </CardHeader1>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Level</TableHead>
-                            <TableHead>Institution</TableHead>
-                            <TableHead>Board/University</TableHead>
-                            <TableHead>Score</TableHead>
-                            <TableHead>Year</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.entries(education).map(([level, details]) => {
-                            if (level !== "backlogs") {
-                              return (
-                                <TableRow key={level}>
-                                  <TableCell className="font-medium">
-                                    {level.toUpperCase()}
-                                  </TableCell>
-                                  <TableCell>{details.school}</TableCell>
-                                  <TableCell>{details.board}</TableCell>
-                                  <TableCell>{details.percentage}%</TableCell>
-                                  <TableCell>{details.year}</TableCell>
-                                  <TableCell>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          setSelectedEducation({
-                                            level,
-                                            ...details,
-                                          });
-                                          setIsEducationModalOpen(true);
-                                        }}
-                                      >
-                                        <Edit className="h-4 w-4 text-blue-600" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          // Handle delete
-                                          const newEducation = { ...education };
-                                          delete newEducation[level];
-                                          setEducation(newEducation);
-                                        }}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-red-600" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
-                            return null;
-                          })}
-                        </TableBody>
-                      </Table>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-gray-500">
+                            No education details added yet.
+                          </p>
+                          <Button
+                            className="mt-4"
+                            onClick={() => {
+                              setNewEducation({
+                                level: "",
+                                school: "",
+                                board: "",
+                                percentage: "",
+                                year: "",
+                              });
+                              setIsEducationModalOpen(true);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Education Details
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
 
+                {/* Skills Tab */}
                 <TabsContent value="skills">
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader1 className="flex flex-row items-center justify-between">
-                        <CardTitle>Technical Skills</CardTitle>
-                        <Button onClick={() => setIsSkillModalOpen(true)}>
-                          <Plus className="h-4 w-4 mr-2" /> Add Skill
-                        </Button>
-                      </CardHeader1>
-                      <CardContent>
-                        <div className="space-y-6">
-                          {Object.entries(technicalSkills).map(
-                            ([category, skills]) => (
-                              <div key={category} className="space-y-2">
-                                <h3 className="text-lg font-semibold capitalize">
-                                  {category.replace(/([A-Z])/g, " $1").trim()}
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                  {Array.isArray(skills) &&
-                                  typeof skills[0] === "string" ? (
-                                    skills.map((skill, index) => (
-                                      <Badge
-                                        key={index}
-                                        className="px-3 py-1 flex items-center gap-2 bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  <Card>
+                    <CardHeader1 className="flex flex-row items-center justify-between">
+                      <CardTitle>Skills & Certifications</CardTitle>
+                      <Button
+                        onClick={() => {
+                          setNewSkill({
+                            category: "programmingLanguages",
+                            skill: "",
+                          });
+                          setNewCertification({
+                            name: "",
+                            issuer: "",
+                            date: "",
+                          });
+                          setIsSkillModalOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Skill
+                      </Button>
+                    </CardHeader1>
+                    <CardContent>
+                      {loading ? (
+                        <div className="flex justify-center py-8">
+                          <p>Loading skills data...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-8">
+                          {/* Programming Languages */}
+                          <div>
+                            <div className="flex justify-between items-center mb-3">
+                              <h3 className="text-lg font-medium">
+                                Programming Languages
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setNewSkill({
+                                    category: "programmingLanguages",
+                                    skill: "",
+                                  });
+                                  setIsSkillModalOpen(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {technicalSkills.programmingLanguages &&
+                              technicalSkills.programmingLanguages.length >
+                                0 ? (
+                                technicalSkills.programmingLanguages.map(
+                                  (lang, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="secondary"
+                                      className="flex items-center gap-1 py-1.5"
+                                    >
+                                      {lang}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={() =>
+                                          handleDeleteSkill(
+                                            "programmingLanguages",
+                                            index
+                                          )
+                                        }
                                       >
-                                        {skill}
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  )
+                                )
+                              ) : (
+                                <p className="text-gray-500 text-sm">
+                                  No programming languages added yet.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Technologies */}
+                          <div>
+                            <div className="flex justify-between items-center mb-3">
+                              <h3 className="text-lg font-medium">
+                                Technologies
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setNewSkill({
+                                    category: "technologies",
+                                    skill: "",
+                                  });
+                                  setIsSkillModalOpen(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {technicalSkills.technologies &&
+                              technicalSkills.technologies.length > 0 ? (
+                                technicalSkills.technologies.map(
+                                  (tech, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="secondary"
+                                      className="flex items-center gap-1 py-1.5"
+                                    >
+                                      {tech}
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={() =>
+                                          handleDeleteSkill(
+                                            "technologies",
+                                            index
+                                          )
+                                        }
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  )
+                                )
+                              ) : (
+                                <p className="text-gray-500 text-sm">
+                                  No technologies added yet.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Tools */}
+                          <div>
+                            <div className="flex justify-between items-center mb-3">
+                              <h3 className="text-lg font-medium">Tools</h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setNewSkill({
+                                    category: "tools",
+                                    skill: "",
+                                  });
+                                  setIsSkillModalOpen(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {technicalSkills.tools &&
+                              technicalSkills.tools.length > 0 ? (
+                                technicalSkills.tools.map((tool, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="secondary"
+                                    className="flex items-center gap-1 py-1.5"
+                                  >
+                                    {tool}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 p-0 hover:bg-transparent"
+                                      onClick={() =>
+                                        handleDeleteSkill("tools", index)
+                                      }
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </Badge>
+                                ))
+                              ) : (
+                                <p className="text-gray-500 text-sm">
+                                  No tools added yet.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Certifications */}
+                          <div>
+                            <div className="flex justify-between items-center mb-3">
+                              <h3 className="text-lg font-medium">
+                                Certifications
+                              </h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setNewSkill({
+                                    category: "certifications",
+                                    skill: "",
+                                  });
+                                  setNewCertification({
+                                    name: "",
+                                    issuer: "",
+                                    date: "",
+                                  });
+                                  setIsSkillModalOpen(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add
+                              </Button>
+                            </div>
+                            {technicalSkills.certifications &&
+                            technicalSkills.certifications.length > 0 ? (
+                              <div className="space-y-3">
+                                {technicalSkills.certifications.map(
+                                  (cert, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                                    >
+                                      <div>
+                                        <h4 className="font-medium">
+                                          {cert.name}
+                                        </h4>
+                                        <p className="text-gray-500 text-sm">
+                                          {cert.issuer} • {cert.date}
+                                        </p>
+                                      </div>
+                                      <div className="flex gap-2">
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-4 w-4 p-0"
                                           onClick={() => {
-                                            const newSkills = {
-                                              ...technicalSkills,
-                                            };
-                                            newSkills[category] = skills.filter(
-                                              (_, i) => i !== index
+                                            setSelectedCertification({
+                                              ...cert,
+                                              index,
+                                            });
+                                            setIsEditCertificationModalOpen(
+                                              true
                                             );
-                                            setTechnicalSkills(newSkills);
                                           }}
                                         >
-                                          <X className="h-3 w-3" />
+                                          <Edit className="h-4 w-4 text-blue-600" />
                                         </Button>
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    <div className="flex flex-col space-y-2 w-full">
-                                      {skills.map((cert, index) => (
-                                        <div
-                                          key={index}
-                                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            handleDeleteSkill(
+                                              "certifications",
+                                              index
+                                            )
+                                          }
                                         >
-                                          <div>
-                                            <p className="font-medium">
-                                              {cert.name}
-                                            </p>
-                                            <p className="text-sm text-gray-500">
-                                              {cert.issuer} - {cert.date}
-                                            </p>
-                                          </div>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => {
-                                                setSelectedCertification({
-                                                  ...cert,
-                                                  index,
-                                                });
-                                                setIsEditCertificationModalOpen(
-                                                  true
-                                                );
-                                              }}
-                                            >
-                                              <Edit className="h-4 w-4 text-blue-600" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              onClick={() => {
-                                                const newSkills = {
-                                                  ...technicalSkills,
-                                                };
-                                                newSkills[category] =
-                                                  skills.filter(
-                                                    (_, i) => i !== index
-                                                  );
-                                                setTechnicalSkills(newSkills);
-                                              }}
-                                            >
-                                              <Trash2 className="h-4 w-4 text-red-600" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      ))}
+                                          <Trash2 className="h-4 w-4 text-red-600" />
+                                        </Button>
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
+                                  )
+                                )}
                               </div>
-                            )
-                          )}
+                            ) : (
+                              <p className="text-gray-500 text-sm">
+                                No certifications added yet.
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
+                {/* Projects Tab */}
                 <TabsContent value="projects">
                   <Card>
                     <CardHeader1 className="flex flex-row items-center justify-between">
                       <CardTitle>Projects</CardTitle>
-                      <Button onClick={() => setIsProjectModalOpen(true)}>
+                      <Button
+                        onClick={() => {
+                          setNewProject({
+                            title: "",
+                            description: "",
+                            technologies: "",
+                            link: "",
+                          });
+                          setIsProjectModalOpen(true);
+                        }}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Project
                       </Button>
                     </CardHeader1>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {projects.map((project) => (
-                          <div
-                            key={project.id}
-                            className="p-4 border rounded-lg bg-white hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-semibold text-lg">
-                                {project.title}
-                              </h3>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedProject(project);
-                                    setIsEditProjectModalOpen(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4 text-blue-600" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() =>
-                                    handleDeleteProject(project.id)
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-600" />
-                                </Button>
+                      {loading ? (
+                        <div className="flex justify-center py-8">
+                          <p>Loading project data...</p>
+                        </div>
+                      ) : projects && projects.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {projects.map((project) => (
+                            <div
+                              key={project._id}
+                              className="p-4 border rounded-lg bg-white hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex justify-between items-start">
+                                <h3 className="font-semibold text-lg">
+                                  {project.title}
+                                </h3>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedProject(project);
+                                      setIsEditProjectModalOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleDeleteProject(project._id)
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </div>
                               </div>
+                              <p className="text-gray-600 mt-2">
+                                {project.description}
+                              </p>
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {project.technologies &&
+                                  project.technologies.map((tech, index) => (
+                                    <Badge key={index} variant="outline">
+                                      {tech}
+                                    </Badge>
+                                  ))}
+                              </div>
+                              {project.link && (
+                                <a
+                                  href={project.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-blue-600 mt-3 text-sm hover:underline"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  View Project
+                                </a>
+                              )}
                             </div>
-                            <p className="text-gray-600 mt-2">
-                              {project.description}
-                            </p>
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {project.technologies.map((tech, index) => (
-                                <Badge key={index} variant="outline">
-                                  {tech}
-                                </Badge>
-                              ))}
-                            </div>
-                            {project.link && (
-                              <a
-                                href={project.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-blue-600 mt-3 text-sm hover:underline"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                                View Project
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 col-span-2">
+                          <p className="text-gray-500">
+                            No projects added yet.
+                          </p>
+                          <Button
+                            className="mt-4"
+                            onClick={() => setIsProjectModalOpen(true)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Your First Project
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -946,39 +2147,82 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Add Project Modal */}
+      {/* Modals go here */}
+      {/* Project Modal */}
       <Dialog open={isProjectModalOpen} onOpenChange={setIsProjectModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add New Project</DialogTitle>
+            <DialogDescription>
+              Add details about your project here. Click save when you're done.
+            </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Title</label>
-              <Input placeholder="Enter project title" />
+          <form onSubmit={handleAddProject}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="title" className="text-sm font-medium">
+                  Project Title
+                </label>
+                <Input
+                  id="title"
+                  value={newProject.title}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, title: e.target.value })
+                  }
+                  placeholder="Enter project title"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="description" className="text-sm font-medium">
+                  Description
+                </label>
+                <Textarea
+                  id="description"
+                  value={newProject.description}
+                  onChange={(e) =>
+                    setNewProject({
+                      ...newProject,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Describe your project"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="technologies" className="text-sm font-medium">
+                  Technologies
+                </label>
+                <Input
+                  id="technologies"
+                  value={newProject.technologies}
+                  onChange={(e) =>
+                    setNewProject({
+                      ...newProject,
+                      technologies: e.target.value,
+                    })
+                  }
+                  placeholder="React, Node.js, MongoDB (comma separated)"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="link" className="text-sm font-medium">
+                  Project Link (optional)
+                </label>
+                <Input
+                  id="link"
+                  value={newProject.link}
+                  onChange={(e) =>
+                    setNewProject({ ...newProject, link: e.target.value })
+                  }
+                  placeholder="https://github.com/yourusername/project"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Textarea placeholder="Describe your project" rows={4} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Technologies Used</label>
-              <Input placeholder="React, Node.js, etc." />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Link</label>
-              <Input placeholder="https://github.com/..." />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsProjectModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                Add Project
-              </Button>
+            <div className="flex justify-end">
+              <Button type="submit">Save Project</Button>
             </div>
           </form>
         </DialogContent>
@@ -989,235 +2233,214 @@ const Profile = () => {
         open={isEditProjectModalOpen}
         onOpenChange={setIsEditProjectModalOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>
+              Make changes to your project details.
+            </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Title</label>
-              <Input
-                placeholder="Enter project title"
-                value={selectedProject?.title || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                placeholder="Describe your project"
-                rows={4}
-                value={selectedProject?.description || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Technologies Used</label>
-              <Input
-                placeholder="React, Node.js, etc."
-                value={selectedProject?.technologies.join(", ") || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Project Link</label>
-              <Input
-                placeholder="https://github.com/..."
-                value={selectedProject?.link || ""}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditProjectModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                Save Changes
-              </Button>
-            </div>
-          </form>
+          {selectedProject && (
+            <form onSubmit={handleUpdateProject}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label htmlFor="edit-title" className="text-sm font-medium">
+                    Project Title
+                  </label>
+                  <Input
+                    id="edit-title"
+                    value={selectedProject.title}
+                    onChange={(e) =>
+                      setSelectedProject({
+                        ...selectedProject,
+                        title: e.target.value,
+                      })
+                    }
+                    placeholder="Enter project title"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edit-description"
+                    className="text-sm font-medium"
+                  >
+                    Description
+                  </label>
+                  <Textarea
+                    id="edit-description"
+                    value={selectedProject.description}
+                    onChange={(e) =>
+                      setSelectedProject({
+                        ...selectedProject,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Describe your project"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edit-technologies"
+                    className="text-sm font-medium"
+                  >
+                    Technologies
+                  </label>
+                  <Input
+                    id="edit-technologies"
+                    value={
+                      Array.isArray(selectedProject.technologies)
+                        ? selectedProject.technologies.join(", ")
+                        : selectedProject.technologies
+                    }
+                    onChange={(e) =>
+                      setSelectedProject({
+                        ...selectedProject,
+                        technologies: e.target.value,
+                      })
+                    }
+                    placeholder="React, Node.js, MongoDB (comma separated)"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="edit-link" className="text-sm font-medium">
+                    Project Link (optional)
+                  </label>
+                  <Input
+                    id="edit-link"
+                    value={selectedProject.link}
+                    onChange={(e) =>
+                      setSelectedProject({
+                        ...selectedProject,
+                        link: e.target.value,
+                      })
+                    }
+                    placeholder="https://github.com/yourusername/project"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit">Update Project</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Add/Edit Skill Modal */}
+      {/* Skills Modal */}
       <Dialog open={isSkillModalOpen} onOpenChange={setIsSkillModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add New Skill</DialogTitle>
+            <DialogDescription>
+              Add a new skill or certification to your profile.
+            </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Skill Category</label>
-              <select className="w-full p-2 border rounded-md">
-                <option value="programmingLanguages">
-                  Programming Languages
-                </option>
-                <option value="technologies">Technologies</option>
-                <option value="tools">Tools</option>
-                <option value="certifications">Certifications</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Skill Name</label>
-              <Input placeholder="Enter skill name" />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsSkillModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                Add Skill
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add/Edit Education Modal */}
-      <Dialog
-        open={isEducationModalOpen}
-        onOpenChange={setIsEducationModalOpen}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedEducation ? "Edit Education" : "Add Education"}
-            </DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Education Level</label>
-              <select
-                className="w-full p-2 border rounded-md"
-                defaultValue={selectedEducation?.level || ""}
-              >
-                <option value="" disabled>
-                  Select level
-                </option>
-                <option value="ssc">SSC (10th)</option>
-                <option value="hsc">HSC (12th)</option>
-                <option value="graduation">Graduation</option>
-                <option value="postgraduation">Post Graduation</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Institution Name</label>
-              <Input
-                placeholder="Enter institution name"
-                defaultValue={selectedEducation?.school || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Board/University</label>
-              <Input
-                placeholder="Enter board/university"
-                defaultValue={selectedEducation?.board || ""}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Percentage/CGPA</label>
-                <Input
-                  type="number"
-                  placeholder="Enter percentage"
-                  defaultValue={selectedEducation?.percentage || ""}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Year of Completion
+          <form onSubmit={handleAddSkill}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="skill-category" className="text-sm font-medium">
+                  Category
                 </label>
-                <Input
-                  type="number"
-                  placeholder="Enter year"
-                  defaultValue={selectedEducation?.year || ""}
-                />
+                <select
+                  id="skill-category"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newSkill.category}
+                  onChange={(e) =>
+                    setNewSkill({ ...newSkill, category: e.target.value })
+                  }
+                  required
+                >
+                  <option value="programmingLanguages">
+                    Programming Languages
+                  </option>
+                  <option value="technologies">Technologies</option>
+                  <option value="tools">Tools</option>
+                  <option value="certifications">Certifications</option>
+                </select>
               </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEducationModalOpen(false);
-                  setSelectedEducation(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                {selectedEducation ? "Save Changes" : "Add Education"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
-      {/* Add/Edit Achievement Modal */}
-      <Dialog
-        open={isAchievementModalOpen}
-        onOpenChange={setIsAchievementModalOpen}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedAchievement ? "Edit Achievement" : "Add Achievement"}
-            </DialogTitle>
-          </DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.target);
-              const achievement = {
-                title: formData.get("title"),
-                date: formData.get("date"),
-              };
-
-              if (selectedAchievement) {
-                handleSaveAchievement(
-                  achievement,
-                  true,
-                  selectedAchievement.index
-                );
-              } else {
-                handleSaveAchievement(achievement);
-              }
-            }}
-          >
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Achievement Title</label>
-              <Input
-                name="title"
-                placeholder="Enter achievement title"
-                defaultValue={selectedAchievement?.title || ""}
-              />
+              {newSkill.category !== "certifications" ? (
+                <div className="grid gap-2">
+                  <label htmlFor="skill-name" className="text-sm font-medium">
+                    Skill
+                  </label>
+                  <Input
+                    id="skill-name"
+                    value={newSkill.skill}
+                    onChange={(e) =>
+                      setNewSkill({ ...newSkill, skill: e.target.value })
+                    }
+                    placeholder="Enter skill name"
+                    required
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <label htmlFor="cert-name" className="text-sm font-medium">
+                      Certification Name
+                    </label>
+                    <Input
+                      id="cert-name"
+                      value={newCertification.name}
+                      onChange={(e) =>
+                        setNewCertification({
+                          ...newCertification,
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder="AWS Certified Solutions Architect"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label
+                      htmlFor="cert-issuer"
+                      className="text-sm font-medium"
+                    >
+                      Issuing Organization
+                    </label>
+                    <Input
+                      id="cert-issuer"
+                      value={newCertification.issuer}
+                      onChange={(e) =>
+                        setNewCertification({
+                          ...newCertification,
+                          issuer: e.target.value,
+                        })
+                      }
+                      placeholder="Amazon Web Services"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="cert-date" className="text-sm font-medium">
+                      Date Acquired
+                    </label>
+                    <Input
+                      id="cert-date"
+                      type="month"
+                      value={newCertification.date}
+                      onChange={(e) =>
+                        setNewCertification({
+                          ...newCertification,
+                          date: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                </>
+              )}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Year/Date</label>
-              <Input
-                name="date"
-                placeholder="Enter year or date"
-                defaultValue={selectedAchievement?.date || ""}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  setIsAchievementModalOpen(false);
-                  setSelectedAchievement(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-blue-600 text-white hover:bg-blue-700"
-                type="submit"
-              >
-                {selectedAchievement ? "Save Changes" : "Add Achievement"}
+            <div className="flex justify-end">
+              <Button type="submit">
+                {newSkill.category === "certifications"
+                  ? "Add Certification"
+                  : "Add Skill"}
               </Button>
             </div>
           </form>
@@ -1229,365 +2452,538 @@ const Profile = () => {
         open={isEditCertificationModalOpen}
         onOpenChange={setIsEditCertificationModalOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Edit Certification</DialogTitle>
+            <DialogDescription>
+              Make changes to your certification details.
+            </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Certification Name</label>
-              <Input
-                placeholder="Enter certification name"
-                defaultValue={selectedCertification?.name || ""}
-              />
+          {selectedCertification && (
+            <form onSubmit={handleUpdateCertification}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edit-cert-name"
+                    className="text-sm font-medium"
+                  >
+                    Certification Name
+                  </label>
+                  <Input
+                    id="edit-cert-name"
+                    value={selectedCertification.name}
+                    onChange={(e) =>
+                      setSelectedCertification({
+                        ...selectedCertification,
+                        name: e.target.value,
+                      })
+                    }
+                    placeholder="AWS Certified Solutions Architect"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edit-cert-issuer"
+                    className="text-sm font-medium"
+                  >
+                    Issuing Organization
+                  </label>
+                  <Input
+                    id="edit-cert-issuer"
+                    value={selectedCertification.issuer}
+                    onChange={(e) =>
+                      setSelectedCertification({
+                        ...selectedCertification,
+                        issuer: e.target.value,
+                      })
+                    }
+                    placeholder="Amazon Web Services"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edit-cert-date"
+                    className="text-sm font-medium"
+                  >
+                    Date Acquired
+                  </label>
+                  <Input
+                    id="edit-cert-date"
+                    type="month"
+                    value={selectedCertification.date}
+                    onChange={(e) =>
+                      setSelectedCertification({
+                        ...selectedCertification,
+                        date: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit">Update Certification</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Education Modal */}
+      <Dialog
+        open={isEducationModalOpen}
+        onOpenChange={setIsEducationModalOpen}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedEducation ? "Edit Education" : "Add Education"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedEducation
+                ? "Update your education details."
+                : "Add your educational background."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveEducation}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="edu-level" className="text-sm font-medium">
+                  Education Level
+                </label>
+                <select
+                  id="edu-level"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={newEducation.level}
+                  onChange={(e) =>
+                    setNewEducation({ ...newEducation, level: e.target.value })
+                  }
+                  required
+                  disabled={!!selectedEducation}
+                >
+                  <option value="">Select a level</option>
+                  <option value="ssc">
+                    SSC (Secondary School Certificate)
+                  </option>
+                  <option value="hsc">
+                    HSC (Higher Secondary Certificate)
+                  </option>
+                  <option value="graduation">Graduation</option>
+                  <option value="postgraduation">Post Graduation</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edu-school" className="text-sm font-medium">
+                  Institution/School
+                </label>
+                <Input
+                  id="edu-school"
+                  value={newEducation.school}
+                  onChange={(e) =>
+                    setNewEducation({ ...newEducation, school: e.target.value })
+                  }
+                  placeholder="University name or school name"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edu-board" className="text-sm font-medium">
+                  Board/University
+                </label>
+                <Input
+                  id="edu-board"
+                  value={newEducation.board}
+                  onChange={(e) =>
+                    setNewEducation({ ...newEducation, board: e.target.value })
+                  }
+                  placeholder="Board or university name"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="edu-percentage"
+                    className="text-sm font-medium"
+                  >
+                    Percentage/CGPA
+                  </label>
+                  <Input
+                    id="edu-percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={newEducation.percentage}
+                    onChange={(e) =>
+                      setNewEducation({
+                        ...newEducation,
+                        percentage: e.target.value,
+                      })
+                    }
+                    placeholder="85.5"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="edu-year" className="text-sm font-medium">
+                    Year of Completion
+                  </label>
+                  <Input
+                    id="edu-year"
+                    type="number"
+                    min="1900"
+                    max="2100"
+                    value={newEducation.year}
+                    onChange={(e) =>
+                      setNewEducation({ ...newEducation, year: e.target.value })
+                    }
+                    placeholder="2023"
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Issuing Organization
-              </label>
-              <Input
-                placeholder="Enter issuer"
-                defaultValue={selectedCertification?.issuer || ""}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Date of Certification
-              </label>
-              <Input
-                placeholder="Month, Year"
-                defaultValue={selectedCertification?.date || ""}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEditCertificationModalOpen(false);
-                  setSelectedCertification(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                Save Changes
+            <div className="flex justify-end">
+              <Button type="submit">
+                {selectedEducation ? "Update" : "Save"} Education
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Change Photo Modal */}
-      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* Achievement Modal */}
+      <Dialog
+        open={isAchievementModalOpen}
+        onOpenChange={setIsAchievementModalOpen}
+      >
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Update Profile Photo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <img
-                src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
-                alt="Current Profile"
-                className="w-32 h-32 rounded-full mb-4"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Upload New Photo</label>
-              <Input type="file" accept="image/*" />
-            </div>
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Image should be a square JPG or PNG file, maximum 5MB.
-              </AlertDescription>
-            </Alert>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsPhotoModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                Update Photo
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Interest Modal */}
-      <Dialog open={isInterestModalOpen} onOpenChange={setIsInterestModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Interest</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Interest</label>
-              <Input
-                placeholder="Enter a new interest"
-                value={newInterest}
-                onChange={(e) => setNewInterest(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsInterestModalOpen(false);
-                  setNewInterest("");
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-blue-600 text-white hover:bg-blue-700"
-                onClick={handleAddInterest}
-              >
-                Add Interest
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Notifications Dialog */}
-      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Notifications</DialogTitle>
+            <DialogTitle>
+              {selectedAchievement ? "Edit Achievement" : "Add Achievement"}
+            </DialogTitle>
             <DialogDescription>
-              Stay updated with your placement activities
+              {selectedAchievement
+                ? "Update your achievement details."
+                : "Add a new achievement to your profile."}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="flex justify-between items-center mb-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="company">Companies</TabsTrigger>
-                <TabsTrigger value="interview">Interviews</TabsTrigger>
-                <TabsTrigger value="placement">Placements</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                Mark all as read
+          <form onSubmit={handleSaveAchievement}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label
+                  htmlFor="achievement-title"
+                  className="text-sm font-medium"
+                >
+                  Achievement Title
+                </label>
+                <Input
+                  id="achievement-title"
+                  value={newAchievement.title}
+                  onChange={(e) =>
+                    setNewAchievement({
+                      ...newAchievement,
+                      title: e.target.value,
+                    })
+                  }
+                  placeholder="First Prize - Hackathon 2023"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label
+                  htmlFor="achievement-date"
+                  className="text-sm font-medium"
+                >
+                  Date
+                </label>
+                <Input
+                  id="achievement-date"
+                  type="month"
+                  value={newAchievement.date}
+                  onChange={(e) =>
+                    setNewAchievement({
+                      ...newAchievement,
+                      date: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit">
+                {selectedAchievement ? "Update" : "Save"} Achievement
               </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interest Modal */}
+      <Dialog open={isInterestModalOpen} onOpenChange={setIsInterestModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Interest</DialogTitle>
+            <DialogDescription>
+              Add a new area of interest to your profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="interest" className="text-sm font-medium">
+                Interest
+              </label>
+              <Input
+                id="interest"
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                placeholder="e.g. Machine Learning, Blockchain, etc."
+                required
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleAddInterest}>Add Interest</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo Modal */}
+      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Update Profile Photo</DialogTitle>
+            <DialogDescription>Upload a new profile photo.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="profile-photo" className="text-sm font-medium">
+                Photo
+              </label>
+              <Input id="profile-photo" type="file" accept="image/*" />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button>Upload Photo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notifications Modal */}
+      <Dialog open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle>Notifications</DialogTitle>
+              <DialogDescription>
+                {unreadCount > 0
+                  ? `You have ${unreadCount} unread notification${
+                      unreadCount !== 1 ? "s" : ""
+                    }`
+                  : "No new notifications"}
+              </DialogDescription>
+            </div>
+            <div className="flex space-x-2">
+              {unreadCount > 0 && (
+                <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                  Mark all as read
+                </Button>
+              )}
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={clearAllNotifications}
               >
-                Clear All
+                Clear all
               </Button>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2 mb-4">
-            <Search className="h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search notifications..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-
-          <ScrollArea className="max-h-[50vh]">
-            <div className="space-y-3 pr-3">
+          </DialogHeader>
+          <div className="py-2">
+            <div className="flex items-center space-x-2 mb-4">
+              <Input
+                placeholder="Search notifications..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="flex-1"
+              >
+                <TabsList className="grid grid-cols-4 w-full">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="alert">Alerts</TabsTrigger>
+                  <TabsTrigger value="message">Messages</TabsTrigger>
+                  <TabsTrigger value="update">Updates</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            <ScrollArea className="h-[350px]">
               {notificationsLoading ? (
-                <div className="text-center py-8 text-gray-500">
-                  <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                <div className="flex justify-center py-8">
                   <p>Loading notifications...</p>
                 </div>
-              ) : filteredNotifications.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Bell className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                  <p>No notifications found</p>
+              ) : filteredNotifications && filteredNotifications.length > 0 ? (
+                <div className="space-y-3">
+                  {filteredNotifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      className={`p-3 rounded-lg flex items-start ${
+                        notification.status === "unread"
+                          ? "bg-blue-50"
+                          : "bg-gray-50"
+                      }`}
+                    >
+                      <div className={`p-2 rounded-full mr-3`}>
+                        {notification.type === "alert" ? (
+                          <Bell className="h-5 w-5 text-red-500" />
+                        ) : notification.type === "message" ? (
+                          <Mail className="h-5 w-5 text-blue-500" />
+                        ) : (
+                          <Info className="h-5 w-5 text-green-500" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <h4 className="font-medium text-sm">
+                            {notification.title}
+                          </h4>
+                          <div className="flex items-center space-x-1">
+                            <span className="text-xs text-gray-500">
+                              {new Date(
+                                notification.timestamp
+                              ).toLocaleDateString()}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                removeNotification(notification._id)
+                              }
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {notification.message}
+                        </p>
+                        {notification.status === "unread" && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="mt-1 p-0 h-auto text-xs"
+                            onClick={() => markAsRead(notification._id)}
+                          >
+                            Mark as read
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                filteredNotifications.map((notification) => (
-                  <div
-                    key={notification._id}
-                    className={`p-3 rounded-lg border ${
-                      notification.status === "unread"
-                        ? "bg-blue-50 border-blue-100"
-                        : "bg-white"
-                    }`}
-                    onClick={() =>
-                      notification.status === "unread" &&
-                      markAsRead(notification._id)
-                    }
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3">
-                        <div
-                          className={`p-2 rounded-full 
-                          ${
-                            notification.type === "interview"
-                              ? "bg-purple-100"
-                              : notification.type === "placement"
-                              ? "bg-green-100"
-                              : "bg-blue-100"
-                          }`}
-                        >
-                          {notification.type === "interview" ? (
-                            <Calendar className="h-4 w-4 text-purple-600" />
-                          ) : notification.type === "placement" ? (
-                            <Award className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Building className="h-4 w-4 text-blue-600" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {notification.title}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {notification.message}
-                          </p>
-                          {notification.company &&
-                            notification.type === "company" && (
-                              <a
-                                href="/all-companies"
-                                className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                Check job listings for more info
-                              </a>
-                            )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(notification.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeNotification(notification._id);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No notifications found</p>
+                </div>
               )}
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Mail Dialog */}
-      <Dialog open={mailboxOpen} onOpenChange={setMailboxOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+      {/* Contact Info Modal */}
+      <Dialog open={isContactModalOpen} onOpenChange={setIsContactModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl">Messages</DialogTitle>
+            <DialogTitle>Update Contact Information</DialogTitle>
             <DialogDescription>
-              Communicate with placement officers and companies
+              Update your email address and phone number.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue="inbox">
-              <TabsList>
-                <TabsTrigger value="inbox">Inbox</TabsTrigger>
-                <TabsTrigger value="sent">Sent</TabsTrigger>
-                <TabsTrigger value="drafts">Drafts</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Compose
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={contactInfo.email}
+                onChange={(e) =>
+                  setContactInfo({ ...contactInfo, email: e.target.value })
+                }
+                placeholder="your.email@example.com"
+                required
+                disabled={updatingContact}
+              />
+              <p className="text-xs text-gray-500">
+                This email will be used for all communications.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="phone" className="text-sm font-medium">
+                Phone Number
+              </label>
+              <Input
+                id="phone"
+                type="tel"
+                value={contactInfo.phone}
+                onChange={(e) => {
+                  // Only allow numbers in phone field
+                  const value = e.target.value.replace(/\D/g, "");
+                  setContactInfo({ ...contactInfo, phone: value });
+                }}
+                placeholder="1234567890"
+                required
+                disabled={updatingContact}
+                maxLength={15}
+              />
+              <p className="text-xs text-gray-500">
+                Enter a valid phone number (10-15 digits, numbers only).
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsContactModalOpen(false)}
+              disabled={updatingContact}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateContact}
+              disabled={updatingContact}
+              className={updatingContact ? "bg-blue-600" : ""}
+            >
+              {updatingContact ? (
+                <>
+                  <span className="mr-2 animate-spin">&#9696;</span>
+                  Updating...
+                </>
+              ) : (
+                "Update Contact Info"
+              )}
             </Button>
           </div>
-
-          <div className="flex items-center space-x-2 mb-4">
-            <Search className="h-4 w-4 text-gray-500" />
-            <Input placeholder="Search messages..." className="flex-1" />
-          </div>
-
-          <ScrollArea className="max-h-[50vh]">
-            <div className="space-y-1 pr-3">
-              {/* Sample messages */}
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Users className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Placement Office</span>
-                    <span className="text-xs text-gray-500">10:30 AM</span>
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-1">
-                    Interview schedule for Amazon has been updated
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
-                <div className="p-2 bg-green-100 rounded-full">
-                  <Building2 className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Google Recruiters</span>
-                    <span className="text-xs text-gray-500">Yesterday</span>
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-1">
-                    Thank you for your application to Google
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b">
-                <div className="p-2 bg-purple-100 rounded-full">
-                  <FileText className="h-4 w-4 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Resume Verification</span>
-                    <span className="text-xs text-gray-500">Feb 20</span>
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-1">
-                    Your resume has been verified for the upcoming placement
-                    season
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer">
-                <div className="p-2 bg-orange-100 rounded-full">
-                  <BookOpen className="h-4 w-4 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Training Department</span>
-                    <span className="text-xs text-gray-500">Feb 18</span>
-                  </div>
-                  <p className="text-sm text-gray-600 line-clamp-1">
-                    New interview preparation workshops scheduled
-                  </p>
-                </div>
+          {updatingContact && (
+            <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-md">
+              <h4 className="font-semibold mb-1">
+                Looking for your student record...
+              </h4>
+              <p className="text-xs">
+                This may take a moment as we search through branch databases.
+              </p>
+              <div className="mt-2 h-1 bg-blue-100 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 animate-pulse"></div>
               </div>
             </div>
-          </ScrollArea>
-
-          <div className="flex justify-between items-center mt-4 text-sm text-gray-500">
-            <span>4 unread messages</span>
-            <Button variant="ghost" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export All
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
