@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Download, ChevronDown } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  Filter,
+  PlusCircle,
+  Search,
+  Loader,
+  CheckCircle,
+  AlertCircle,
+  GraduationCap,
+} from "lucide-react";
 import axios from "axios";
 import {
-  Card,
-  CardContent,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Alert,
-  AlertDescription,
   Input,
   Button,
-} from "./UIComponents";
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+} from "../admin/UIComponents";
 import * as XLSX from "xlsx";
 import AdminLayout from "./AdminLayout";
-
-// Configure axios
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:6400";
-axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.withCredentials = true;
 
 // Department code mapping
 const departmentMapping = {
@@ -224,7 +224,12 @@ const BatchSummary = ({ departments }) => {
 };
 
 // Batch Card Component
-const BatchCard = ({ batch, showNotification }) => {
+const BatchCard = ({
+  batch,
+  showNotification,
+  isSelected,
+  toggleSelection,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const filteredDepartments = batch.departments || [];
 
@@ -344,16 +349,35 @@ const BatchCard = ({ batch, showNotification }) => {
     totalStudents > 0 ? ((placedStudents / totalStudents) * 100).toFixed(1) : 0;
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden mb-6">
+    <div
+      className={`bg-white shadow-md rounded-lg overflow-hidden mb-6 ${
+        isSelected ? "ring-2 ring-blue-500" : ""
+      }`}
+    >
       <div className="border-b border-gray-200">
         <div className="flex justify-between items-center p-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">
-              {batch.year} Batch
-            </h3>
-            <p className="text-sm text-gray-500">
-              {batch.isCompleted ? "Completed" : "Ongoing Placements"}
-            </p>
+          <div className="flex items-center">
+            {toggleSelection && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSelection();
+                }}
+                className={`w-5 h-5 mr-3 rounded border ${
+                  isSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
+                } flex items-center justify-center cursor-pointer`}
+              >
+                {isSelected && <CheckCircle className="h-4 w-4 text-white" />}
+              </div>
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">
+                {batch.year} Batch
+              </h3>
+              <p className="text-sm text-gray-500">
+                {batch.isCompleted ? "Completed" : "Ongoing Placements"}
+              </p>
+            </div>
           </div>
           <div className="flex space-x-2">
             <button
@@ -439,454 +463,462 @@ const Batches = () => {
   const [notification, setNotification] = useState(null);
   const [noDataFound, setNoDataFound] = useState(false);
 
+  // Add state for batch comparison
+  const [compareBatches, setCompareBatches] = useState(false);
+  const [selectedBatches, setSelectedBatches] = useState([]);
+  const [batchComparisonData, setBatchComparisonData] = useState(null);
+
   // Fetch batches data from database
   useEffect(() => {
-    const fetchBatchesData = async () => {
+    const fetchBatches = async () => {
       try {
         setLoading(true);
         setError(null);
         setNoDataFound(false);
 
-        console.log("Fetching batch data from API...");
-
-        // Get placement data
-        const placementResponse = await axios.get("/api/admin/placements");
-        const placementData = placementResponse.data || [];
-        console.log(`Fetched ${placementData.length} placement records`);
-
-        // Create a mapping from student ID to placement info
-        const placementMap = new Map();
-        placementData.forEach((placement) => {
-          if (placement.studentId) {
-            placementMap.set(placement.studentId, placement);
-          }
+        // Get batches data
+        const response = await axios.get("/api/admin/batches", {
+          withCredentials: true,
         });
 
-        // Fetch students from all departments
-        const departmentCodes = Object.keys(departmentMapping);
-        const departmentPromises = departmentCodes.map((code) =>
-          axios.get(`/api/admin/students/${code}`)
-        );
-
-        const responses = await Promise.all(departmentPromises);
-        const allStudents = responses.flatMap(
-          (response) => response.data || []
-        );
-        console.log("Total students fetched:", allStudents.length);
-
-        if (allStudents.length === 0) {
-          console.log("No student data found in the database");
-          setNoDataFound(true);
-
-          // Create empty batches for the UI
-          const currentYear = new Date().getFullYear();
-          const emptyBatches = [];
-
-          for (let i = 0; i < 5; i++) {
-            const startYear = currentYear - i + 1;
-            const endYear = startYear + 4;
-            const batchYear = `${startYear}-${endYear}`;
-            const isCompleted = endYear <= currentYear;
-
-            emptyBatches.push({
-              id: batchYear,
-              year: batchYear,
-              isCompleted,
-              departments: Object.keys(departmentMapping).map((code) => ({
-                name: code,
-                totalStudents: 0,
-                placed: 0,
-                averagePackage: "0 LPA",
-                highestPackage: "0 LPA",
-                companies: [],
-              })),
-            });
-          }
-
-          setBatches(emptyBatches);
-          setLoading(false);
-          return;
+        if (response.data && response.data.length === 0) {
+          // If API returns empty array, create demo batches
+          createDemoBatches();
+        } else {
+          setBatches(response.data);
         }
-
-        // Group students by batch based on yearOfAdmission
-        const batchesMap = new Map();
-
-        // First identify all batches from student data
-        allStudents.forEach((student) => {
-          if (student.yearOfAdmission) {
-            const admissionYear = parseInt(student.yearOfAdmission);
-            const graduationYear = admissionYear + 4;
-            const batchYear = `${admissionYear}-${graduationYear}`;
-
-            if (!batchesMap.has(batchYear)) {
-              // Create a new batch with the correct year format
-              batchesMap.set(batchYear, {
-                id: batchYear,
-                year: batchYear,
-                isCompleted: graduationYear <= new Date().getFullYear(),
-                departments: departmentCodes.reduce((acc, code) => {
-                  acc[code] = {
-                    name: code,
-                    totalStudents: 0,
-                    placed: 0,
-                    averagePackage: "0 LPA",
-                    highestPackage: "0 LPA",
-                    companies: [],
-                  };
-                  return acc;
-                }, {}),
-              });
-            }
-          }
-        });
-
-        // If no batch data found, create default batches for the last 5 years
-        if (batchesMap.size === 0) {
-          console.log(
-            "No batch data found in students, creating default batches"
-          );
-          setNoDataFound(true);
-
-          const currentYear = new Date().getFullYear();
-
-          // Create batches for the last 5 years
-          for (let i = 0; i < 5; i++) {
-            const startYear = currentYear - i + 1;
-            const endYear = startYear + 4;
-            const batchYear = `${startYear}-${endYear}`;
-            const isCompleted = endYear <= currentYear;
-
-            batchesMap.set(batchYear, {
-              id: batchYear,
-              year: batchYear,
-              isCompleted,
-              departments: departmentCodes.reduce((acc, code) => {
-                acc[code] = {
-                  name: code,
-                  totalStudents: 0,
-                  placed: 0,
-                  averagePackage: "0 LPA",
-                  highestPackage: "0 LPA",
-                  companies: [],
-                };
-                return acc;
-              }, {}),
-            });
-          }
-        }
-
-        // Fill in student data for each batch
-        allStudents.forEach((student) => {
-          if (student && student.yearOfAdmission && student.department) {
-            const admissionYear = parseInt(student.yearOfAdmission);
-            const graduationYear = admissionYear + 4;
-            const batchYear = `${admissionYear}-${graduationYear}`;
-            const deptCode = student.department;
-
-            if (
-              batchesMap.has(batchYear) &&
-              batchesMap.get(batchYear).departments[deptCode]
-            ) {
-              const batch = batchesMap.get(batchYear);
-              const dept = batch.departments[deptCode];
-
-              // Increment total students
-              dept.totalStudents = (dept.totalStudents || 0) + 1;
-
-              // Check if student is placed
-              const placementInfo =
-                placementMap.get(student._id) ||
-                placementMap.get(student.id) ||
-                placementMap.get(student.universityId);
-
-              const isPlaced = student.isPlaced || placementInfo != null;
-
-              if (isPlaced) {
-                // Increment placed count
-                dept.placed = (dept.placed || 0) + 1;
-
-                // Get company name
-                let companyName = "Unknown Company";
-                if (placementInfo && placementInfo.company) {
-                  companyName =
-                    typeof placementInfo.company === "object"
-                      ? placementInfo.company.name || "Unknown Company"
-                      : placementInfo.company;
-                } else if (student.placementCompany) {
-                  companyName =
-                    typeof student.placementCompany === "object"
-                      ? student.placementCompany.name || "Unknown Company"
-                      : student.placementCompany;
-                }
-
-                // Add company to list if not already present
-                if (!dept.companies.includes(companyName)) {
-                  dept.companies.push(companyName);
-                }
-
-                // Update package information
-                let packageValue = 0;
-                if (placementInfo && placementInfo.package) {
-                  packageValue = parseFloat(placementInfo.package);
-                } else if (student.placementPackage) {
-                  packageValue = parseFloat(student.placementPackage);
-                }
-
-                if (!isNaN(packageValue) && packageValue > 0) {
-                  // Calculate running average
-                  const currentAvg = parseFloat(dept.averagePackage) || 0;
-                  const currentPlaced = dept.placed;
-
-                  if (currentPlaced === 1) {
-                    dept.averagePackage = `${packageValue.toFixed(2)} LPA`;
-                  } else {
-                    const newAvg =
-                      (currentAvg * (currentPlaced - 1) + packageValue) /
-                      currentPlaced;
-                    dept.averagePackage = `${newAvg.toFixed(2)} LPA`;
-                  }
-
-                  // Update highest package
-                  const currentHighest = parseFloat(dept.highestPackage) || 0;
-                  if (packageValue > currentHighest) {
-                    dept.highestPackage = `${packageValue.toFixed(2)} LPA`;
-                  }
-                }
-              }
-            }
-          }
-        });
-
-        // Convert map to array and format it for the UI
-        const batchesArray = Array.from(batchesMap.values()).map((batch) => ({
-          ...batch,
-          departments: Object.values(batch.departments),
-        }));
-
-        // Sort batches by year (newest first)
-        batchesArray.sort((a, b) => {
-          const yearA = parseInt(a.year.split("-")[0]);
-          const yearB = parseInt(b.year.split("-")[0]);
-          return yearB - yearA;
-        });
-
-        console.log("Processed batch data:", batchesArray);
-        setBatches(batchesArray);
-        setLoading(false);
       } catch (err) {
-        console.error("Error fetching batch data:", err);
-        setError("Failed to fetch batch data. Please try again later.");
+        console.error("Error fetching batches:", err);
+        setError("Failed to load batches data. Please try again.");
+
+        // On error, create demo batches to allow interface testing
+        createDemoBatches();
+      } finally {
         setLoading(false);
-        setNoDataFound(true);
-
-        // Create empty batches on error
-        const currentYear = new Date().getFullYear();
-        const emptyBatches = [];
-
-        for (let i = 0; i < 5; i++) {
-          const startYear = currentYear - i + 1;
-          const endYear = startYear + 4;
-          const batchYear = `${startYear}-${endYear}`;
-          const isCompleted = endYear <= currentYear;
-
-          emptyBatches.push({
-            id: batchYear,
-            year: batchYear,
-            isCompleted,
-            departments: Object.keys(departmentMapping).map((code) => ({
-              name: code,
-              totalStudents: 0,
-              placed: 0,
-              averagePackage: "0 LPA",
-              highestPackage: "0 LPA",
-              companies: [],
-            })),
-          });
-        }
-
-        setBatches(emptyBatches);
       }
     };
 
-    fetchBatchesData();
+    fetchBatches();
   }, []);
+
+  // Create demo batches when API fails
+  const createDemoBatches = () => {
+    const currentYear = new Date().getFullYear();
+    const demoBatches = [];
+
+    // Create 3 batches: current year and 2 previous years
+    for (let i = 0; i < 3; i++) {
+      const year = currentYear - i;
+      const startYear = year - 4;
+      const batchYear = `${startYear}-${year}`;
+
+      demoBatches.push({
+        year: batchYear,
+        isCompleted: i > 0, // Only current batch is not completed
+        departments: Object.keys(departmentMapping).map((deptCode) => ({
+          name: deptCode,
+          totalStudents: Math.floor(Math.random() * 80) + 40, // 40-120 students
+          placed: Math.floor(Math.random() * 60) + 20, // 20-80 placements
+          averagePackage: `${(Math.random() * 8 + 4).toFixed(2)} LPA`,
+          highestPackage: `${(Math.random() * 30 + 10).toFixed(2)} LPA`,
+          companies: ["TCS", "Infosys", "Wipro", "Microsoft", "Google"].slice(
+            0,
+            Math.floor(Math.random() * 4) + 2
+          ), // 2-5 companies
+        })),
+      });
+    }
+
+    setBatches(demoBatches);
+    showNotification("Using demo data. Connect to API for real data.");
+  };
 
   // Show notification
   const showNotification = (message) => {
-    setNotification({ message, type: "success" });
+    setNotification(message);
     setTimeout(() => setNotification(null), 3000);
   };
 
   // Add a new batch
-  const handleAddBatch = (batchYear) => {
+  const handleAddBatch = async (batchYear) => {
     try {
-      // Parse year from format "YYYY-YYYY"
-      const [startYear, endYear] = batchYear.split("-").map(Number);
-      const isCompleted = endYear <= new Date().getFullYear();
+      setLoading(true);
+      const response = await axios.post(
+        "/api/admin/batches",
+        { year: batchYear },
+        { withCredentials: true }
+      );
 
-      // Create a new batch with empty department data
-      const newBatch = {
-        id: batchYear,
-        year: batchYear,
-        isCompleted,
-        departments: Object.keys(departmentMapping).map((deptCode) => ({
-          name: deptCode,
-          totalStudents: 0,
-          placed: 0,
-          averagePackage: "0 LPA",
-          highestPackage: "0 LPA",
-          companies: [],
-        })),
-      };
+      setBatches([...batches, response.data]);
+      setAddBatchModal(false);
+      showNotification(`Batch ${batchYear} added successfully`);
+    } catch (err) {
+      console.error("Error adding batch:", err);
+      showNotification(
+        `Error: ${err.response?.data?.message || "Failed to add batch"}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Add to state
-      setBatches((prev) => [
-        newBatch,
-        ...prev.sort((a, b) => {
-          const yearA = parseInt(a.year.split("-")[0]);
-          const yearB = parseInt(b.year.split("-")[0]);
-          return yearB - yearA;
-        }),
-      ]);
+  // Handle batch comparison
+  const toggleBatchComparison = () => {
+    setCompareBatches(!compareBatches);
+    if (!compareBatches) {
+      setSelectedBatches([]);
+      setBatchComparisonData(null);
+    }
+  };
 
-      showNotification(`Successfully added batch ${batchYear}`);
-    } catch (error) {
-      console.error("Error adding batch:", error);
-      setNotification({ message: "Failed to add batch", type: "error" });
+  // Toggle batch selection for comparison
+  const toggleBatchSelection = (batchYear) => {
+    if (selectedBatches.includes(batchYear)) {
+      setSelectedBatches(selectedBatches.filter((year) => year !== batchYear));
+    } else {
+      // Limit selection to 2-3 batches for meaningful comparison
+      if (selectedBatches.length < 3) {
+        setSelectedBatches([...selectedBatches, batchYear]);
+      } else {
+        showNotification("You can compare up to 3 batches at a time");
+      }
+    }
+  };
+
+  // Compare selected batches
+  const compareBatchesData = async () => {
+    if (selectedBatches.length < 2) {
+      showNotification("Please select at least 2 batches to compare");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "/api/admin/compare-batches",
+        { batchYears: selectedBatches },
+        { withCredentials: true }
+      );
+
+      setBatchComparisonData(response.data);
+    } catch (err) {
+      console.error("Error comparing batches:", err);
+      showNotification("Failed to compare batches");
+    } finally {
+      setLoading(false);
     }
   };
 
   // Filter batches based on search and department selection
   const filteredBatches = batches.filter((batch) => {
-    // Filter by search term
-    const matchesSearch = batch.year
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    // Filter by search term (match batch year)
+    const matchesSearch = batch.year.toString().includes(searchTerm);
 
-    // Filter by department
+    // Filter by department if not "All Departments"
     const matchesDepartment =
       selectedDepartment === "All Departments" ||
       batch.departments.some(
         (dept) =>
-          dept.name === departmentCodeFromName[selectedDepartment] ||
-          departmentMapping[dept.name] === selectedDepartment
+          departmentMapping[dept.name] === selectedDepartment ||
+          dept.name === selectedDepartment
       );
 
     return matchesSearch && matchesDepartment;
   });
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="flex h-full w-full items-center justify-center">
-          <div className="text-xl text-gray-600">Loading batch data...</div>
-        </div>
-      </AdminLayout>
-    );
-  }
+  // Render batch comparison component
+  const BatchComparisonView = () => {
+    if (!batchComparisonData) return null;
 
-  if (error && batches.length === 0) {
     return (
-      <AdminLayout>
-        <div className="flex justify-center items-center h-full">
-          <div className="text-center">
-            <div className="text-xl text-red-600">{error}</div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Batch Comparison</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Metric
+                  </th>
+                  {selectedBatches.map((batch) => (
+                    <th
+                      key={batch}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {batch} Batch
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    Total Students
+                  </td>
+                  {selectedBatches.map((batch) => (
+                    <td
+                      key={batch}
+                      className="px-6 py-4 whitespace-nowrap text-sm"
+                    >
+                      {batchComparisonData[batch]?.totalStudents || 0}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    Placed Students
+                  </td>
+                  {selectedBatches.map((batch) => (
+                    <td
+                      key={batch}
+                      className="px-6 py-4 whitespace-nowrap text-sm"
+                    >
+                      {batchComparisonData[batch]?.placedStudents || 0}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    Placement Rate
+                  </td>
+                  {selectedBatches.map((batch) => {
+                    const data = batchComparisonData[batch];
+                    const rate =
+                      data?.totalStudents > 0
+                        ? (
+                            (data.placedStudents / data.totalStudents) *
+                            100
+                          ).toFixed(1)
+                        : "0.0";
+                    return (
+                      <td
+                        key={batch}
+                        className="px-6 py-4 whitespace-nowrap text-sm"
+                      >
+                        {rate}%
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    Average Package
+                  </td>
+                  {selectedBatches.map((batch) => (
+                    <td
+                      key={batch}
+                      className="px-6 py-4 whitespace-nowrap text-sm"
+                    >
+                      {batchComparisonData[batch]?.averagePackage || "0 LPA"}
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Department-wise comparison */}
+                <tr className="bg-gray-50">
+                  <td
+                    colSpan={selectedBatches.length + 1}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Department-wise Placement Rate
+                  </td>
+                </tr>
+                {Object.keys(departmentMapping).map((dept) => (
+                  <tr key={dept}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {departmentMapping[dept]}
+                    </td>
+                    {selectedBatches.map((batch) => {
+                      const deptData = batchComparisonData[
+                        batch
+                      ]?.departments.find((d) => d.name === dept);
+                      const rate =
+                        deptData && deptData.totalStudents > 0
+                          ? (
+                              (deptData.placed / deptData.totalStudents) *
+                              100
+                            ).toFixed(1)
+                          : "0.0";
+                      return (
+                        <td
+                          key={batch}
+                          className="px-6 py-4 whitespace-nowrap text-sm"
+                        >
+                          {rate}%
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </AdminLayout>
+        </CardContent>
+      </Card>
     );
-  }
+  };
 
   return (
     <AdminLayout>
-      <div className="p-6 w-full">
-        <div className="max-w-5xl mx-auto">
-          {notification && (
-            <Alert
-              className={`mb-4 ${
-                notification.type === "success"
-                  ? "border-green-500 bg-green-50"
-                  : "border-red-500 bg-red-50"
-              }`}
-            >
-              <AlertDescription>{notification.message}</AlertDescription>
-            </Alert>
-          )}
-
-          {noDataFound && (
-            <Alert className="mb-4 border-yellow-500 bg-yellow-50">
-              <AlertDescription>
-                No student or placement data found in the database. Add students
-                with admission years to see real data.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Batches</h1>
+      <div className="p-8 bg-gray-50 min-h-screen">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Placement Batches
+          </h1>
+          <div className="flex gap-2">
             <Button
-              onClick={() => setAddBatchModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              variant={compareBatches ? "default" : "outline"}
+              onClick={toggleBatchComparison}
             >
-              <Plus className="h-5 w-5 mr-2" />
-              New Batch
+              {compareBatches ? "Cancel Comparison" : "Compare Batches"}
+            </Button>
+            <Button onClick={() => setAddBatchModal(true)}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add New Batch
             </Button>
           </div>
+        </div>
 
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
+                <input
                   type="text"
                   placeholder="Search batches..."
-                  className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
-            </div>
-            <div className="w-full md:w-64">
-              <Select
+              <select
                 value={selectedDepartment}
-                onValueChange={setSelectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="p-2 border border-gray-300 rounded-lg md:w-64"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-4">
-            {filteredBatches.length > 0 ? (
-              filteredBatches.map((batch) => (
-                <BatchCard
-                  key={batch.id}
-                  batch={batch}
-                  showNotification={showNotification}
-                />
-              ))
-            ) : (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">No batches found</p>
+        {/* Batch comparison controls */}
+        {compareBatches && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Select batches to compare</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {batches.map((batch) => (
+                  <div
+                    key={batch.year}
+                    onClick={() => toggleBatchSelection(batch.year)}
+                    className={`
+                      px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors
+                      ${
+                        selectedBatches.includes(batch.year)
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      }
+                    `}
+                  >
+                    {batch.year}
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+              <Button
+                disabled={selectedBatches.length < 2}
+                onClick={compareBatchesData}
+              >
+                Compare Selected Batches
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-          <AddBatchModal
-            isOpen={addBatchModal}
-            onClose={() => setAddBatchModal(false)}
-            onAdd={handleAddBatch}
-          />
+        {/* Batch comparison results */}
+        {compareBatches && batchComparisonData && <BatchComparisonView />}
+
+        {/* Loading state */}
+        {loading && batches.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader className="h-12 w-12 text-blue-500 animate-spin mb-4" />
+            <p className="text-lg text-gray-600">Loading batch data...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {error && batches.length === 0 && (
+          <Card className="bg-red-50 border-red-100">
+            <CardContent className="flex flex-col items-center py-12">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <p className="text-lg text-red-700 font-medium mb-2">
+                Error Loading Batches
+              </p>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No data state */}
+        {noDataFound && (
+          <Card>
+            <CardContent className="flex flex-col items-center py-12">
+              <GraduationCap className="h-12 w-12 text-gray-400 mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No Batch Data Found
+              </h3>
+              <p className="text-gray-500 mb-4">
+                There are no batches in the system yet.
+              </p>
+              <Button onClick={() => setAddBatchModal(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add First Batch
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Batch cards */}
+        <div className="space-y-6">
+          {filteredBatches.map((batch) => (
+            <BatchCard
+              key={batch.year}
+              batch={batch}
+              showNotification={showNotification}
+              isSelected={selectedBatches.includes(batch.year)}
+              toggleSelection={
+                compareBatches ? () => toggleBatchSelection(batch.year) : null
+              }
+            />
+          ))}
         </div>
+
+        {/* Add Batch Modal */}
+        <AddBatchModal
+          isOpen={addBatchModal}
+          onClose={() => setAddBatchModal(false)}
+          onAdd={handleAddBatch}
+        />
+
+        {/* Notification */}
+        {notification && (
+          <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+            {notification}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

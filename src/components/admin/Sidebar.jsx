@@ -86,7 +86,6 @@ const Sidebar = () => {
     { icon: Users, label: "Batches", path: "/batches" },
     { icon: Calendar, label: "Manage Interviews", path: "/manage-interviews" },
     { icon: BarChart3, label: "Placement Records", path: "/placement-records" },
-    { icon: FileText, label: "Reports", path: "/reports" },
     { icon: FileText, label: "General Queries", path: "/queries" },
   ];
 

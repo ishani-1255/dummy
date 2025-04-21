@@ -40,6 +40,9 @@ const resumeRoutes = require("./routes/resumeRoutes");
 const forgotPasswordRoutes = require("./routes/student");
 const adminForgotPasswordRoutes = require("./routes/admin");
 
+// Import batch routes
+const batchRoutes = require("./routes/batchRoutes");
+
 // Load environment variables
 const port = process.env.PORT || 5000;
 const dbUrl = process.env.DB_URL;
@@ -122,6 +125,9 @@ app.use("/api/admin", adminForgotPasswordRoutes);
 // Include query routes
 const queryRoutes = require("./routes/queryRoutes");
 app.use("/api/queries", queryRoutes);
+
+// Register batch routes
+app.use("/api/admin/batches", batchRoutes);
 
 // **Passport Local Strategy for Admin**
 passport.use("admin", adminInfo.createStrategy());
@@ -1862,72 +1868,127 @@ app.get("/api/admin/placements", isLoggedIn, async (req, res) => {
 
     // Fetch placed students from each department
     for (const [deptCode, Model] of Object.entries(departmentModels)) {
-      const students = await Model.find({ isPlaced: true })
-        .populate("placementCompany")
-        .lean();
+      if (!Model) continue; // Skip if model doesn't exist
 
-      // Transform student data into placement records
-      const deptPlacements = students.map((student) => ({
-        _id: `${student._id}_placement`,
-        studentId: student._id,
-        universityId: student.registrationNumber,
-        studentName:
-          student.name ||
-          `${student.firstName || ""} ${student.lastName || ""}`.trim(),
-        department: deptCode,
-        company: student.placementCompany,
-        package: student.placementPackage || 0,
-        role: student.placementRole || "Not specified",
-        location: student.placementLocation || "Not specified",
-        joiningDate: student.placementDate
-          ? new Date(student.placementDate).toISOString().split("T")[0]
-          : null,
-        offerLetterLink: student.offerLetterLink || null,
-        createdAt: student.placementDate || student.updatedAt || new Date(),
-      }));
+      try {
+        // Find placed students without using populate
+        const students = await Model.find({ isPlaced: true }).lean();
 
-      placedStudents = [...placedStudents, ...deptPlacements];
+        // For each student, manually fetch their placement company if needed
+        const studentsWithCompany = [];
+        for (const student of students) {
+          let studentData = { ...student };
+
+          // If the student has a placement company, fetch it separately
+          if (student.placementCompany) {
+            try {
+              const company = await Company.findById(
+                student.placementCompany
+              ).lean();
+              if (company) {
+                studentData.placementCompanyInfo = company;
+              }
+            } catch (companyError) {
+              console.error(
+                `Error fetching company for student:`,
+                companyError
+              );
+            }
+          }
+
+          // Add to placed students array with department info
+          placedStudents.push({
+            _id: student._id,
+            studentId: student._id,
+            universityId: student.registrationNumber || "Unknown",
+            studentName: student.name || "Unknown Student",
+            department: deptCode,
+            company: studentData.placementCompanyInfo || {
+              name: "Unknown Company",
+            },
+            package: student.placementPackage || 0,
+            role: student.placementRole || "Not specified",
+            location: student.placementLocation || "Not specified",
+            joiningDate: student.placementDate
+              ? new Date(student.placementDate).toISOString().split("T")[0]
+              : null,
+            offerLetterLink: student.offerLetterLink || null,
+            createdAt: student.updatedAt || student.createdAt || new Date(),
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching placed students from ${deptCode}:`, err);
+      }
     }
 
     // Also get placements from the applications collection
-    const acceptedApplications = await Application.find({ status: "Accepted" })
-      .populate("company")
-      .populate("student")
-      .lean();
+    try {
+      // Find accepted applications without using populate
+      const acceptedApplications = await Application.find({
+        status: "Accepted",
+      }).lean();
 
-    // Map applications to placement records, avoiding duplicates
-    const existingStudentIds = new Set(
-      placedStudents.map((p) => p.studentId.toString())
-    );
+      // Map of already included student IDs to avoid duplicates
+      const existingStudentIds = new Set(
+        placedStudents.map((p) => p.studentId.toString())
+      );
 
-    const applicationPlacements = acceptedApplications
-      .filter(
-        (app) => !existingStudentIds.has(app.student?._id?.toString() || "")
-      )
-      .map((app) => ({
-        _id: `${app._id}_application`,
-        studentId: app.student?._id || app.student || null,
-        universityId: app.student?.registrationNumber || "Unknown",
-        studentName: app.student?.name || app.studentName || "Unknown Student",
-        department: app.studentModel,
-        company: app.company,
-        package: app.packageOffered || 0,
-        role: app.role || "Not specified",
-        location: app.location || "Not specified",
-        joiningDate: app.acceptedDate
-          ? new Date(app.acceptedDate).toISOString().split("T")[0]
-          : null,
-        offerLetterLink: null,
-        createdAt: app.updatedAt || app.createdAt || new Date(),
-      }));
+      // Process each application
+      for (const app of acceptedApplications) {
+        try {
+          let companyData = null;
+          let studentData = null;
 
-    // Combine both sets of placement data
-    const allPlacements = [...placedStudents, ...applicationPlacements];
+          // Fetch company data separately
+          if (app.company) {
+            companyData = await Company.findById(app.company).lean();
+          }
+
+          // Fetch student data separately if needed
+          if (app.student && app.studentModel) {
+            const StudentModel = departmentModels[app.studentModel];
+            if (StudentModel) {
+              studentData = await StudentModel.findById(app.student).lean();
+            }
+          }
+
+          // Skip if we've already included this student
+          if (app.student && existingStudentIds.has(app.student.toString())) {
+            continue;
+          }
+
+          // Add to placement records
+          placedStudents.push({
+            _id: `${app._id}_application`,
+            studentId: app.student || null,
+            universityId: studentData?.registrationNumber || "Unknown",
+            studentName:
+              studentData?.name || app.studentName || "Unknown Student",
+            department: app.studentModel || "Unknown",
+            company: companyData || { name: "Unknown Company" },
+            package: app.packageOffered || 0,
+            role: app.role || "Not specified",
+            location: app.location || "Not specified",
+            joiningDate: app.acceptedDate
+              ? new Date(app.acceptedDate).toISOString().split("T")[0]
+              : null,
+            offerLetterLink: null,
+            createdAt: app.updatedAt || app.createdAt || new Date(),
+          });
+        } catch (appError) {
+          console.error("Error processing application:", appError);
+        }
+      }
+    } catch (appFetchError) {
+      console.error("Error fetching accepted applications:", appFetchError);
+    }
 
     // Sort by most recent first
-    allPlacements.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    placedStudents.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
 
-    res.status(200).json(allPlacements);
+    res.status(200).json(placedStudents);
   } catch (error) {
     console.error("Error fetching placement records:", error);
     res.status(500).json({ message: "Server error" });
