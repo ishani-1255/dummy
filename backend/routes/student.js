@@ -145,7 +145,6 @@ router.post("/:branch/update-password", async (req, res) => {
 
       await student.save();
       console.log("Password updated successfully");
-
       return res.status(200).json({
         success: true,
         message: "Password updated successfully",

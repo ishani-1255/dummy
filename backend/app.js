@@ -119,6 +119,10 @@ app.use("/api/resume", resumeRoutes);
 app.use("/api/student", forgotPasswordRoutes);
 app.use("/api/admin", adminForgotPasswordRoutes);
 
+// Include query routes
+const queryRoutes = require("./routes/queryRoutes");
+app.use("/api/queries", queryRoutes);
+
 // **Passport Local Strategy for Admin**
 passport.use("admin", adminInfo.createStrategy());
 

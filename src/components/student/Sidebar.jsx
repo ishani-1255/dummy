@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "../../pages/UserContext";
+import axios from "axios"; // Add axios import
 import {
   LayoutDashboard,
   FileText,
@@ -58,11 +59,40 @@ const Sidebar = () => {
   const location = useLocation();
   const { logout, currentUser } = useUser(); // Use the context
   const [activePath, setActivePath] = useState(location.pathname);
+  const [jobCount, setJobCount] = useState(0); // Add state for job count
+  const [loading, setLoading] = useState(true); // Loading state for the count
 
   // Update active path when location changes
   useEffect(() => {
     setActivePath(location.pathname);
   }, [location.pathname]);
+
+  // Fetch the job listings count
+  useEffect(() => {
+    const fetchJobCount = async () => {
+      try {
+        setLoading(true);
+        // If the user has a branch/department, we can filter by it
+        const branch = currentUser?.branch || "";
+        const endpoint = branch
+          ? `/api/companies?department=${branch}`
+          : "/api/companies";
+
+        const response = await axios.get(endpoint, {
+          withCredentials: true,
+        });
+
+        setJobCount(response.data.length);
+      } catch (error) {
+        console.error("Error fetching job count:", error);
+        setJobCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobCount();
+  }, [currentUser?.branch]);
 
   const handleNavigation = (path) => {
     setActivePath(path);
@@ -88,7 +118,7 @@ const Sidebar = () => {
       icon: Briefcase,
       label: "Job Listings",
       path: "/all-companies",
-      badge: "12",
+      badge: loading ? "..." : jobCount > 0 ? jobCount.toString() : null,
     },
     { icon: ScrollText, label: "My Applications", path: "/applications" },
     { icon: PieChart, label: "Resume ATS Score", path: "/resume-score" },

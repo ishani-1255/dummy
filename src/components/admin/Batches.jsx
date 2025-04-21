@@ -50,41 +50,6 @@ const departmentCodeFromName = {
   "Electronics and Communication": "EC",
 };
 
-// Function to generate sample data for batches with no data
-const generateSampleData = (batchYear, isCompleted) => {
-  return {
-    id: batchYear,
-    year: batchYear,
-    isCompleted,
-    departments: Object.keys(departmentMapping).map((deptCode) => {
-      // Generate random data for demonstration
-      const totalStudents = Math.floor(Math.random() * 50) + 30; // 30-80 students
-      const placed = isCompleted
-        ? Math.floor(Math.random() * 30) + 10 // 10-40 placed (completed batch)
-        : Math.floor(Math.random() * 15) + 5; // 5-20 placed (ongoing batch)
-
-      return {
-        name: deptCode,
-        totalStudents,
-        placed,
-        averagePackage: `${(Math.random() * 5 + 5).toFixed(2)} LPA`, // 5-10 LPA
-        highestPackage: `${(Math.random() * 15 + 10).toFixed(2)} LPA`, // 10-25 LPA
-        companies: [
-          "TCS",
-          "Infosys",
-          "Wipro",
-          "Google",
-          "Microsoft",
-          "Amazon",
-        ].slice(
-          0,
-          Math.floor(Math.random() * 4) + 1 // 1-4 companies
-        ),
-      };
-    }),
-  };
-};
-
 // Add Batch Modal Component
 const AddBatchModal = ({ isOpen, onClose, onAdd }) => {
   const [batchYear, setBatchYear] = useState("");
@@ -472,7 +437,7 @@ const Batches = () => {
     useState("All Departments");
   const [addBatchModal, setAddBatchModal] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [useDemo, setUseDemo] = useState(false);
+  const [noDataFound, setNoDataFound] = useState(false);
 
   // Fetch batches data from database
   useEffect(() => {
@@ -480,19 +445,12 @@ const Batches = () => {
       try {
         setLoading(true);
         setError(null);
+        setNoDataFound(false);
 
         console.log("Fetching batch data from API...");
 
         // Get placement data
-        const placementResponse = await axios
-          .get("/api/admin/placements", {
-            withCredentials: true,
-          })
-          .catch((error) => {
-            console.error("Failed to fetch placement data:", error);
-            return { data: [] };
-          });
-
+        const placementResponse = await axios.get("/api/admin/placements");
         const placementData = placementResponse.data || [];
         console.log(`Fetched ${placementData.length} placement records`);
 
@@ -507,17 +465,7 @@ const Batches = () => {
         // Fetch students from all departments
         const departmentCodes = Object.keys(departmentMapping);
         const departmentPromises = departmentCodes.map((code) =>
-          axios
-            .get(`/api/admin/students/${code}`, {
-              withCredentials: true,
-            })
-            .catch((error) => {
-              console.warn(
-                `Failed to fetch ${code} department data:`,
-                error.message
-              );
-              return { data: [] };
-            })
+          axios.get(`/api/admin/students/${code}`)
         );
 
         const responses = await Promise.all(departmentPromises);
@@ -526,33 +474,36 @@ const Batches = () => {
         );
         console.log("Total students fetched:", allStudents.length);
 
-        // If no data is found and we're not already using demo data, use demo data
-        if (allStudents.length === 0 && !useDemo) {
-          setUseDemo(true);
-          console.log("No student data found, using demo data instead");
+        if (allStudents.length === 0) {
+          console.log("No student data found in the database");
+          setNoDataFound(true);
 
-          // Generate some demo batches
+          // Create empty batches for the UI
           const currentYear = new Date().getFullYear();
-          const demoBatches = [];
+          const emptyBatches = [];
 
-          // Create 5 batch years - 3 ongoing, 2 completed
           for (let i = 0; i < 5; i++) {
             const startYear = currentYear - i + 1;
             const endYear = startYear + 4;
             const batchYear = `${startYear}-${endYear}`;
             const isCompleted = endYear <= currentYear;
 
-            demoBatches.push(generateSampleData(batchYear, isCompleted));
+            emptyBatches.push({
+              id: batchYear,
+              year: batchYear,
+              isCompleted,
+              departments: Object.keys(departmentMapping).map((code) => ({
+                name: code,
+                totalStudents: 0,
+                placed: 0,
+                averagePackage: "0 LPA",
+                highestPackage: "0 LPA",
+                companies: [],
+              })),
+            });
           }
 
-          // Sort by year (newest first)
-          demoBatches.sort((a, b) => {
-            const yearA = parseInt(a.year.split("-")[0]);
-            const yearB = parseInt(b.year.split("-")[0]);
-            return yearB - yearA;
-          });
-
-          setBatches(demoBatches);
+          setBatches(emptyBatches);
           setLoading(false);
           return;
         }
@@ -594,6 +545,8 @@ const Batches = () => {
           console.log(
             "No batch data found in students, creating default batches"
           );
+          setNoDataFound(true);
+
           const currentYear = new Date().getFullYear();
 
           // Create batches for the last 5 years
@@ -705,34 +658,10 @@ const Batches = () => {
         });
 
         // Convert map to array and format it for the UI
-        let batchesArray = Array.from(batchesMap.values()).map((batch) => ({
+        const batchesArray = Array.from(batchesMap.values()).map((batch) => ({
           ...batch,
           departments: Object.values(batch.departments),
         }));
-
-        // If we still have zero data, use demo data for better user experience
-        if (
-          batchesArray.every((batch) =>
-            batch.departments.every(
-              (dept) =>
-                parseInt(dept.totalStudents) === 0 &&
-                parseInt(dept.placed) === 0
-            )
-          )
-        ) {
-          console.log(
-            "All batches have zero data, using demo data for better visualization"
-          );
-          setUseDemo(true);
-
-          batchesArray = batchesArray.map((batch) => {
-            const demoData = generateSampleData(batch.year, batch.isCompleted);
-            return {
-              ...batch,
-              departments: demoData.departments,
-            };
-          });
-        }
 
         // Sort batches by year (newest first)
         batchesArray.sort((a, b) => {
@@ -748,34 +677,39 @@ const Batches = () => {
         console.error("Error fetching batch data:", err);
         setError("Failed to fetch batch data. Please try again later.");
         setLoading(false);
+        setNoDataFound(true);
 
-        // Fall back to demo data on error
-        if (!useDemo) {
-          setUseDemo(true);
-          console.log("Error loading data, falling back to demo data");
+        // Create empty batches on error
+        const currentYear = new Date().getFullYear();
+        const emptyBatches = [];
 
-          // Generate demo batches
-          const currentYear = new Date().getFullYear();
-          const demoBatches = [];
+        for (let i = 0; i < 5; i++) {
+          const startYear = currentYear - i + 1;
+          const endYear = startYear + 4;
+          const batchYear = `${startYear}-${endYear}`;
+          const isCompleted = endYear <= currentYear;
 
-          for (let i = 0; i < 5; i++) {
-            const startYear = currentYear - i + 1;
-            const endYear = startYear + 4;
-            const batchYear = `${startYear}-${endYear}`;
-            const isCompleted = endYear <= currentYear;
-
-            demoBatches.push(generateSampleData(batchYear, isCompleted));
-          }
-
-          setBatches(demoBatches);
-          setLoading(false);
-          setError(null);
+          emptyBatches.push({
+            id: batchYear,
+            year: batchYear,
+            isCompleted,
+            departments: Object.keys(departmentMapping).map((code) => ({
+              name: code,
+              totalStudents: 0,
+              placed: 0,
+              averagePackage: "0 LPA",
+              highestPackage: "0 LPA",
+              companies: [],
+            })),
+          });
         }
+
+        setBatches(emptyBatches);
       }
     };
 
     fetchBatchesData();
-  }, [useDemo]);
+  }, []);
 
   // Show notification
   const showNotification = (message) => {
@@ -790,26 +724,20 @@ const Batches = () => {
       const [startYear, endYear] = batchYear.split("-").map(Number);
       const isCompleted = endYear <= new Date().getFullYear();
 
-      // Create a new batch with either demo or empty data
-      let newBatch;
-
-      if (useDemo) {
-        newBatch = generateSampleData(batchYear, isCompleted);
-      } else {
-        newBatch = {
-          id: batchYear,
-          year: batchYear,
-          isCompleted,
-          departments: Object.keys(departmentMapping).map((deptCode) => ({
-            name: deptCode,
-            totalStudents: 0,
-            placed: 0,
-            averagePackage: "0 LPA",
-            highestPackage: "0 LPA",
-            companies: [],
-          })),
-        };
-      }
+      // Create a new batch with empty department data
+      const newBatch = {
+        id: batchYear,
+        year: batchYear,
+        isCompleted,
+        departments: Object.keys(departmentMapping).map((deptCode) => ({
+          name: deptCode,
+          totalStudents: 0,
+          placed: 0,
+          averagePackage: "0 LPA",
+          highestPackage: "0 LPA",
+          companies: [],
+        })),
+      };
 
       // Add to state
       setBatches((prev) => [
@@ -857,7 +785,7 @@ const Batches = () => {
     );
   }
 
-  if (error && !useDemo) {
+  if (error && batches.length === 0) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-full">
@@ -885,11 +813,11 @@ const Batches = () => {
             </Alert>
           )}
 
-          {useDemo && (
-            <Alert className="mb-4 border-blue-500 bg-blue-50">
+          {noDataFound && (
+            <Alert className="mb-4 border-yellow-500 bg-yellow-50">
               <AlertDescription>
-                Demo data is currently displayed. Connect to a database to see
-                real placement data.
+                No student or placement data found in the database. Add students
+                with admission years to see real data.
               </AlertDescription>
             </Alert>
           )}
