@@ -3,7 +3,7 @@ const pdfParse = require("pdf-parse");
 
 // Initialize the Gemini API with your API key
 const genAI = new GoogleGenerativeAI(
-  process.env.GEMINI_API_KEY || "AIzaSyB0elbGtnjtO_v8IpFRCUkJEyIPVYGdfaU"
+  process.env.GEMINI_API_KEY || "AIzaSyC5oc2G9TsyNNSx09CInqpWmHgqGiLxC0U"
 );
 
 /**
